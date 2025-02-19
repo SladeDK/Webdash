@@ -2,7 +2,7 @@
 Webdash
 
 ## Description
-Your4 own customizable startup page in your browser, which only displays the links you want it to.
+Your own customizable startup page for your browser, which only displays the links you want it to.
 By editing the index.html file, you can choose which links should be used, how they should open, and which category they should belong in.
 
 ## Table of Contents
