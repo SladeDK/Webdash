@@ -8,9 +8,6 @@ By editing the index.html file, you can choose which links should be used, how t
 ## Table of Contents
 - [Description](#description)
 - [Installation](#installation)
-- [Usage](#usage)
-- [Features](#features)
-- [Contributing](#contributing)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
 - [Contact](#contact)
@@ -26,11 +23,11 @@ To install and set up the Webdash project, follow these steps:
    ```
 
 2. **Install dependencies:**
-    Make sure you have nginx installed.
-    *NOTE: You can still use the config_www files with other web-engines*
+    <br />Make sure you have nginx installed.
+    <br /><ins>*NOTE: You can still use the config_www files with other web-engines*</ins>
 
 3. **Move and edit the necessary files:**
-    Copy the files from the config_www into "/var/www/html/" folder.
+    <br />Copy the files from the config_www into "/var/www/html/" folder.
     ```bash
     sudo rm /var/www/html/index.nginx* -rf
 
@@ -45,7 +42,7 @@ To install and set up the Webdash project, follow these steps:
     sudo mv ./config_nginx_site-confs/* /etc/nginx/sites-available/default.conf
     sudo ln -sf /etc/nginx/sites-available/default.conf /etc/nginx/sites-enabled/default.conf
     ```
-
+   
 4. **Start Nginx & sites:**
     ```bash
     systemctl enable nginx --now
@@ -53,10 +50,10 @@ To install and set up the Webdash project, follow these steps:
     ```
 
 5. **Open in browser:**
-    Open your browser and navigate to http://web.webdash.local or http://home.webdash.local to see your customizable startup pages.
+    <br />Open your browser and navigate to http://web.webdash.local or http://home.webdash.local to see your customizable startup pages.
 
 6. **Edit the index.html file:**
-    Customize the index.html file to add your desired links, categories, and how they should open.
+    <br />Customize the index.html file to add your desired links, categories, and how they should open.
 
 ## License
 Information about the license under which your project is distributed.
