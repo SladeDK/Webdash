@@ -21,40 +21,42 @@ To install and set up the Webdash project, follow these steps:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/webdash.git
+   git clone https://github.com/SladeDK/webdash.git
    cd webdash
    ```
 
 2. **Install dependencies:**
-    Make sure you have Node.js installed. Then, run:
+    Make sure you have nginx installed.
+    *NOTE: You can still use the config_www files with other web-engines*
+
+3. **Move and edit the necessary files:**
+    Copy the files from the config_www into "/var/www/html/" folder.
     ```bash
-    npm install
+    sudo rm /var/www/html/index.nginx* -rf
+
+    sudo mv ./config_www/* /var/www/html/.
     ```
 
-3. **Build the project:**
+    Copy the files from the config_nginx_site-confs into "/etc/nginx/sites-enabled/" folder.
     ```bash
-    npm run build
+    sudo rm /etc/nginx/sites-available/* -rf
+    sudo rm /etc/nginx/sites-enabled/default -rf
+
+    sudo mv ./config_nginx_site-confs/* /etc/nginx/sites-available/default.conf
+    sudo ln -sf /etc/nginx/sites-available/default.conf /etc/nginx/sites-enabled/default.conf
     ```
 
-4. **Run the project:**
+4. **Start Nginx & sites:**
     ```bash
-    npm start
+    systemctl enable nginx --now
+    nginx -s reload
     ```
 
 5. **Open in browser:**
-    Open your browser and navigate to http://localhost:3000 to see your customizable startup page.
+    Open your browser and navigate to http://web.webdash.local or http://home.webdash.local to see your customizable startup pages.
 
 6. **Edit the index.html file:**
     Customize the index.html file to add your desired links, categories, and how they should open.
-
-## Usage
-Instructions and examples on how to use your project.
-
-## Features
-A list of features included in your project.
-
-## Contributing
-Guidelines for contributing to your project.
 
 ## License
 Information about the license under which your project is distributed.
