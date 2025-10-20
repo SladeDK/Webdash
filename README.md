@@ -27,7 +27,7 @@ To install and set up the Webdash project, follow these steps:
     <br /><ins>*NOTE: You can still use the config_www files with other web-engines*</ins>
 
 3. **Move and edit the necessary files:**
-    <br />Copy the files from the config_www into "/var/www/html/" folder.
+    <br />Copy the files from the website-configs into "/var/www/html/" folder.
     ```bash
     sudo rm /var/www/html/index.nginx* -rf
 
@@ -35,6 +35,7 @@ To install and set up the Webdash project, follow these steps:
     ```
 
     Copy the files from the config_nginx_site-confs into "/etc/nginx/sites-enabled/" folder.
+    <br /><ins>*NOTE: Remember to change the subdomain name within the default.conf, to your desired subdomain*</ins>
     ```bash
     sudo rm /etc/nginx/sites-available/* -rf
     sudo rm /etc/nginx/sites-enabled/default -rf
@@ -50,7 +51,8 @@ To install and set up the Webdash project, follow these steps:
     ```
 
 5. **Open in browser:**
-    <br />Open your browser and navigate to http://web.webdash.local or http://home.webdash.local to see your customizable startup pages.
+    <br />Open your browser and navigate to http://web.webdash.dk or http://home.webdash.dk to see your customizable startup pages.
+    <br /><ins>*NOTE: If a DNS hasn't been configured to point to the IP of the respective subdomains, you'll have to configure that alternatively you can input the IP of the device instead*</ins>
 
 6. **Edit the index.html file:**
     <br />Customize the index.html file to add your desired links, categories, and how they should open.
