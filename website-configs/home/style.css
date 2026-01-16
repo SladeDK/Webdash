@@ -280,3 +280,91 @@ body {
 .footer .socials a:hover {
     color: #357ABD;
 }
+
+
+
+
+
+
+
+/* ==================================================
+    MOBILE HEADER – Logo only in the center
+    Pages (left) | Logo (center) | Themes (right)
+    Title text hidden on mobile; desktop untouched
+   ================================================== */
+@media (max-width: 768px) {
+
+    /* Header is the layout controller */
+    .header {
+        display: grid;
+        grid-template-columns: auto 1fr auto;      /* left | center | right */
+        grid-template-rows: auto;                  /* single row */
+        grid-template-areas: "pages brand themes";
+        align-items: center;
+        padding: 10px 12px 12px;
+        margin-bottom: 16px;
+        text-align: center;
+    }
+
+    /* Flatten the wrapper so its children become direct grid items */
+    .header-actions {
+        display: contents;
+    }
+
+    /* Left button */
+    .dropdownPages {
+        grid-area: pages;
+        position: relative;
+        justify-self: start;
+    }
+
+    /* Right button */
+    .dropdownThemes {
+        grid-area: themes;
+        position: relative;
+        justify-self: end;
+    }
+
+    /* Center: show ONLY the logo */
+    .header img {
+        grid-area: brand;
+        height: 42px;
+        display: block;
+        margin: 0 auto;     /* center */
+    }
+
+    /* Hide the title text on mobile */
+    .header h1 {
+        display: none;      /* simplest, cleanest; desktop remains the same */
+    }
+
+    /* Button sizing for mobile */
+    .dropdownPages-button,
+    .dropdownThemes-button {
+        padding: 8px 12px;
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+        white-space: nowrap;
+    }
+
+    /* Dropdown panels open cleanly below buttons */
+    .dropdownPages-content,
+    .dropdownThemes-content {
+        top: calc(100% + 6px);
+        z-index: 1000;
+    }
+
+    /* Main content stacks vertically */
+    .container {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        padding: 0 12px;
+        max-width: 100%;
+    }
+
+    /* Guardrail: avoid horizontal scroll on phones */
+    html, body {
+        overflow-x: hidden;
+    }
+}

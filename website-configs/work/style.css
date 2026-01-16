@@ -280,3 +280,86 @@ body {
 .footer .socials a:hover {
     color: #357ABD;
 }
+
+
+/* ==================================================
+   MOBILE HEADER – Logo centered between buttons
+   Pages (left) | Logo (center) | Themes (right)
+   Desktop untouched
+===================================================== */
+@media (max-width: 768px) {
+
+    /* Header controls layout on mobile */
+    .header {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas: "pages brand themes";
+        align-items: center;
+        padding: 10px 12px 12px;
+        margin-bottom: 16px;
+        text-align: center;
+    }
+
+    /* Flatten wrapper so children become grid items */
+    .header-actions {
+        display: contents;
+    }
+
+    /* Pages (left) */
+    .dropdownPages {
+        grid-area: pages;
+        position: relative;
+        justify-self: start;
+        margin-bottom: 20px;
+    }
+
+    /* Themes (right) */
+    .dropdownThemes {
+        grid-area: themes;
+        position: relative;
+        justify-self: end;
+        margin-bottom: 20px;
+    }
+
+    /* Logo in the center */
+    .header img {
+        grid-area: brand;
+        height: 42px;
+        margin: 0 auto;
+        display: block;
+    }
+
+    /* Hide name on mobile */
+    .header h1 {
+        display: none;
+    }
+
+    /* Mobile button sizing */
+    .dropdownPages-button,
+    .dropdownThemes-button {
+        padding: 8px 12px;
+        font-size: 0.95rem;
+        white-space: nowrap;
+    }
+
+    /* Dropdown panels */
+    .dropdownPages-content,
+    .dropdownThemes-content {
+        top: calc(100% + 6px);
+        z-index: 1000;
+    }
+
+    /* Stack content vertically */
+    .container {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        padding: 0 12px;
+        max-width: 100%;
+    }
+
+    /* Prevent sideways scrolling */
+    html, body {
+        overflow-x: hidden;
+    }
+}

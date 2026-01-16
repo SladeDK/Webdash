@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="icon" href="work.png">
+        <link rel="icon" href="browser-icon.png">
         <script src="https://kit.fontawesome.com/782d4dd7ab.js" crossorigin="anonymous"></script>
         <link rel="stylesheet" href="style.css">
         <link rel="stylesheet" href="backgrounds.css">
@@ -14,9 +14,9 @@
 
     <body>
         <!-- Header section with logo and title -->
-        <div class="header">            
+        <div class="header" aria-label="FBH">            
 
-            <img src="work.png" alt="Logo">
+            <img src="work.png" alt="FBH-Logo" style="clip-path: circle(50%)">
             <h1>Frederik Haurum</h1>
             
             <!-- User warning if JavaScript is disabled / blocked -->
@@ -25,32 +25,34 @@
                     JavaScript is disabled in your browser. Please enable JavaScript to view the full functionality of this website.
                 </div>
             </noscript>
-            
-            <!-- Dropdown menu for different page versions-->
-            <div class="dropdownPages">
-                <button class="dropdownPages-button"><i class="fa-solid fa-bars"></i> Pages</button>
-                <div class="dropdownPages-content">
-                    <a href="http://home.webdash.dk">Home</a>
-                    <a href="http://work.webdash.dk">Work</a>
-                </div>
-            </div>
 
-            <!-- Dropdown menu for different background themes -->            
-            <div class="dropdownThemes">
-                <button class="dropdownThemes-button"><i class="fa-solid fa-paint-brush"></i> Themes</button>
-                <div class="dropdownThemes-content">
-                    <a href="#" data-bg="bg1">Blank</a>
-                    <a href="#" data-bg="bg2">Squares Dotted</a>
-                    <a href="#" data-bg="bg3">Webbed</a>
-                    <a href="#" data-bg="bg4">Triangle Gradient</a>
-                    <a href="#" data-bg="bg5">Triangle Solid</a>
-                    <a href="#" data-bg="bg6">Layered Hex</a>
-                    <a href="#" data-bg="bg7">Circuit</a>
+            <div class="header-actions">
+                <!-- Dropdown menu for different page versions-->
+                <div class="dropdownPages">
+                    <button class="dropdownPages-button"><i class="fa-solid fa-bars"></i> Pages</button>
+                    <div class="dropdownPages-content">
+                        <a href="https://home.webdash.dk">Home</a>
+                        <a href="https://work.webdash.dk">Work</a>
+                    </div>
+                </div>
+
+                <!-- Dropdown menu for different background themes -->            
+                <div class="dropdownThemes">
+                    <button class="dropdownThemes-button"><i class="fa-solid fa-paint-brush"></i> Themes</button>
+                    <div class="dropdownThemes-content">
+                        <a href="#" data-bg="bg1">Blank</a>
+                        <a href="#" data-bg="bg2">Squares Dotted</a>
+                        <a href="#" data-bg="bg3">Webbed</a>
+                        <a href="#" data-bg="bg4">Triangle Gradient</a>
+                        <a href="#" data-bg="bg5">Triangle Solid</a>
+                        <a href="#" data-bg="bg6">Layered Hex</a>
+                        <a href="#" data-bg="bg7">Circuit</a>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <!-- Main content area with categories -->
+<!-- Main content area with categories -->
         <div class="container">
 
             <!-- Category for Wingmen Sites -->
@@ -73,6 +75,11 @@
                     <a class="button" href="https://www.office.com/?auth=2">
                         <i class="fa-brands fa-microsoft"></i>Microsoft Home
                     </a>
+
+                    <!-- Button for SalesForce -->
+                    <a class="button" href="https://wingmen.lightning.force.com/lightning/page/home">
+                        <i class="fa-brands fa-salesforce"></i>SalesForce
+                    </a>
                 </div>
             </div>
 
@@ -86,17 +93,12 @@
                     <a class="button" href="https://avitgroup.logicmonitor.com/santaba/uiv4/alerts">
                         <i class="fa-solid fa-chart-pie"></i>LogicMonitor
                     </a>
-                    
-                    <!-- Button for SalesForce Cases -->
-                    <a class="button" href="https://wingmen.lightning.force.com/lightning/o/Case/list?filterName=Kopi_af_My_Custom">
-                        <i class="fa-brands fa-salesforce"></i>SalesForce Cases
-                    </a>
-            
+
                     <!-- Button for Meraki Dashboard -->
                     <a class="button" href="https://n371.meraki.com/manage/overviews/global_overview/organizations">
                         <i class="fa-solid fa-globe"></i>Meraki Dashboard
-                    </a>
-                            
+                    </a>    
+
                     <!-- Button for NACC -->
                     <a class="button" href="https://nacc.wingmen.dk/">
                         <i class="fa-solid fa-globe"></i>NACC
@@ -105,6 +107,11 @@
                     <!-- Button for Cherwell -->                     
                     <a class="button" href="https://selfservice.avitgroup.com/CherwellClient">                                      
                         <i class="fa-solid fa-globe"></i>Cherwell           
+                    </a>
+                    
+                    <!-- Button for ServiceNow -->
+                    <a class="button" href="https://springboardprod.service-now.com/now/cwf/agent/home">
+                        <i class="fa-solid fa-globe"></i>ServiceNow
                     </a>
                 </div>
             </div>
@@ -138,7 +145,7 @@
                     <a class="button" href="https://salesconnect.cisco.com/blackbeltpartneracademy/s/">
                         <i class="fa-solid fa-graduation-cap"></i>Cisco Black Belt
                     </a>
-
+                    
                     <!-- Button for W3School HTML -->
                     <a class="button" href="https://www.w3schools.com/">
                         <i class="fa-solid fa-graduation-cap"></i>W3School
