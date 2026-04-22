@@ -3,6 +3,8 @@ const THEME_KEY = 'webdash-theme';
 const BACKGROUND_KEY = 'webdash-background';
 const USER_PREFS_KEY = 'webdash-user-preferences';
 const PAGE_CONFIG_KEY = 'webdash-page-config';
+const HAS_SEEDED_DASHBOARD_KEY = "webdash.hasSeededDashboard";
+const DASHBOARD_STATE_KEY = 'webdash-dashboard-state';
 
 // Category shape (for reference only):
 // {
@@ -32,7 +34,100 @@ let renamingCategoryId = null;
 let renamingItemId = null;
 let editingButtonContext = null;
 let draggedCategoryId = null;
+let dashboardState = null;
+let pageCategories = null;
 
+// =====================================================================================
+// Default dashboard state (used for resets and as a reference for expected data shape)
+// =====================================================================================
+const DEFAULT_DASHBOARD_STATE = {
+  id: "default-dashboard",
+  name: "My Dashboard",
+  categories: [
+    {
+      id: "cat-getting-started",
+      title: "Getting Started",
+      order: 0,
+      visible: true,
+      items: [
+        {
+          id: "btn-settings",
+          label: "Google",
+          url: "https://google.com",
+          order: 1,
+          visible: true
+        },
+        {
+          id: "btn-docs",
+          label: "WebDash Github",
+          url: "https://github.com/SladeDK/Webdash",
+          order: 0,
+          visible: true
+        }
+      ]
+    }
+  ]
+};
+
+// ======================================================================
+// Dashboard state initialization logic with first-ever load detection
+// ======================================================================
+function initializeDashboardState() {
+  const saved = loadDashboardState();
+
+  if (saved) {
+    dashboardState = saved;
+    return;
+  }
+
+  // First-ever load: seed default dashboard
+  dashboardState = structuredClone(DEFAULT_DASHBOARD_STATE);
+  localStorage.setItem(HAS_SEEDED_DASHBOARD_KEY, "true");
+  saveDashboardState();
+}
+
+// 1️⃣ Dashboard data
+initializeDashboardState();
+pageCategories = dashboardState.categories;
+
+// 2️⃣ Preferences
+const userPreferences = loadUnifiedPreferences();
+ensureIdentityDefaults();
+applyIdentityToUI();
+document.documentElement.classList.add('identity-ready');
+
+console.assert(
+  dashboardState &&
+  pageCategories &&
+  userPreferences &&
+  pageCategories === dashboardState.categories,
+  '[WebDash] App state not initialized correctly before render'
+);
+
+// 3️⃣ Render (NOW it is safe)
+renderCategories(pageCategories);
+renderLayoutEditor(pageCategories);
+
+// ======================================================================
+// Dashboard state persistence helpers (currently only used for export/import, but will be expanded for auto-saving in the future)
+// ======================================================================
+function saveDashboardState() {
+  localStorage.setItem(
+    DASHBOARD_STATE_KEY,
+    JSON.stringify(dashboardState)
+  );
+}
+
+function loadDashboardState() {
+  const raw = localStorage.getItem(DASHBOARD_STATE_KEY);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
 
 // ============================
 // Page‑scoped storage helpers
@@ -58,8 +153,6 @@ const INITIAL_IDENTITY = (() => {
 
   return { name, icon };
 })();
-
-const INITIAL_PAGE_CATEGORIES = loadPageCategoriesFromDOM();
 
 // ============================
 // Dropdown menu logic (with optional auto-close behavior)
@@ -309,9 +402,6 @@ function saveUnifiedPreferences(prefs) {
 
   setCookie('webdash_shared_prefs', JSON.stringify(sharedPrefs));
 }
-
-// Loaded once, used everywhere
-const userPreferences = loadUnifiedPreferences();
 
 ensureIdentityDefaults();
 applyIdentityToUI();
@@ -586,29 +676,27 @@ function validateImportPayload(payload) {
 // =====================================================
 
 function applyImportedData(payload) {
-  // Replace unified user preferences in storage
+  // Replace preferences
   localStorage.setItem(
     USER_PREFS_KEY,
     JSON.stringify(payload.data.preferences)
   );
-
-  // Replace page categories for this page
-  savePageCategories(payload.data.categories);
-
-  // Reload in-memory state
   Object.assign(userPreferences, payload.data.preferences);
 
-  pageCategories.length = 0;
-  payload.data.categories.forEach(cat => pageCategories.push(cat));
+  // Replace dashboard content
+  dashboardState = {
+    ...dashboardState,
+    categories: structuredClone(payload.data.categories)
+  };
 
-  // ✅ Apply identity immediately
-  ensureIdentityDefaults();   // safety, in case import is missing identity
+  saveDashboardState();
+
+  pageCategories = dashboardState.categories;
+
+  ensureIdentityDefaults();
   applyIdentityToUI();
-
-  // ✅ Mark identity as ready (prevents hidden header)
   document.documentElement.classList.add('identity-ready');
 
-  // Re-render everything else
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 }
@@ -698,22 +786,21 @@ function createDefaultPreferences() {
 
 function resetDashboard() {
   // 1️⃣ Reset preferences
-  const defaults = getDefaultPreferences();
+  const defaults = createDefaultPreferences();
   localStorage.setItem(USER_PREFS_KEY, JSON.stringify(defaults));
   Object.assign(userPreferences, defaults);
 
-  // 2️⃣ Reset page layout (✅ fixed)
-  const defaultCategories = structuredClone(INITIAL_PAGE_CATEGORIES);
-  savePageCategories(defaultCategories);
+  // 2️⃣ Reset dashboard state
+  dashboardState = structuredClone(DEFAULT_DASHBOARD_STATE);
+  pageCategories = dashboardState.categories;
 
-  pageCategories.length = 0;
-  defaultCategories.forEach(cat => pageCategories.push(cat));
+  // Save the reset dashboard state
+  saveDashboardState();          // ✅ critical
 
   // 3️⃣ Re-apply visual state
   setActiveTheme(defaults.appearance.theme);
   setActiveBackground(defaults.appearance.background);
   syncBehaviorUI();
-
   ensureIdentityDefaults();
   applyIdentityToUI();
   document.documentElement.classList.add('identity-ready');
@@ -808,6 +895,8 @@ document.documentElement.classList.add('bg-visible');
 // Load page categories from DOM
 // =====================================
 
+
+// 🚫 Legacy (DOM-based bootstrap, will be removed when backend lands)
 function loadPageCategoriesFromDOM() {
   const categories = [];
 
@@ -862,6 +951,8 @@ function loadPageCategoriesFromDOM() {
 // Load page categories (storage → DOM)
 // =====================================
 
+
+// 🚫 Legacy (DOM-based bootstrap, will be removed when backend lands)
 function loadPageCategories() {
   const key = getPageConfigKey();
   const raw = localStorage.getItem(key);
@@ -884,28 +975,6 @@ function loadPageCategories() {
 
   // Fallback for first-time pages or corrupted storage
   return loadPageCategoriesFromDOM();
-}
-
-function persistPageCategoriesOnce(categories) {
-  const key = getPageConfigKey();
-
-  if (!localStorage.getItem(key)) {
-    localStorage.setItem(
-      key,
-      JSON.stringify({ categories })
-    );
-
-    console.info('[WebDash] Initialized page config:', key);
-  }
-}
-
-function savePageCategories(categories) {
-  const key = getPageConfigKey();
-
-  localStorage.setItem(
-    key,
-    JSON.stringify({ categories })
-  );
 }
 
 // =====================================
@@ -951,17 +1020,6 @@ function renderCategories(categories) {
       container.appendChild(categoryEl);
     });
 }
-
-const pageCategories = loadPageCategories();
-
-// Bootstrap storage for existing pages
-persistPageCategoriesOnce(pageCategories);
-
-// Render from data (authoritative source)
-renderCategories(pageCategories);
-
-// Render layout editor (same data, different UI)
-renderLayoutEditor(pageCategories);
 
 // =====================================
 // Dashboard Layout editor rendering
@@ -1409,8 +1467,7 @@ container.querySelectorAll('.layout-category').forEach(categoryEl => {
 
     const [moved] = category.items.splice(sourceIndex, 1);
     category.items.splice(targetIndex, 0, moved);
-
-    savePageCategories(pageCategories);
+    saveDashboardState();
     renderCategories(pageCategories);
     renderLayoutEditor(pageCategories);
   }
@@ -1534,6 +1591,10 @@ buttonEditorForm?.addEventListener('submit', e => {
       label,
       url: normalizedUrl
     });
+  saveDashboardState();  
+  renderCategories(pageCategories);
+  renderLayoutEditor(pageCategories);
+
   } else {
     const category = pageCategories.find(
       c => c.id === editingButtonContext.categoryId
@@ -1545,9 +1606,11 @@ buttonEditorForm?.addEventListener('submit', e => {
 
     item.label = label;
     item.url = normalizedUrl;
+    saveDashboardState();
+    renderCategories(pageCategories);
+    renderLayoutEditor(pageCategories);
   }
 
-  savePageCategories(pageCategories);
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
   closeButtonEditor();
@@ -1568,12 +1631,10 @@ function createEmptyCategory(categories) {
 
 function addCategory() {
   const newCategory = createEmptyCategory(pageCategories);
-
   pageCategories.push(newCategory);
 
-  savePageCategories(pageCategories);
+  saveDashboardState();
 
-  // Re-render both views
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 }
@@ -1586,13 +1647,8 @@ function toggleCategoryVisibility(categoryId) {
   const category = pageCategories.find(c => c.id === categoryId);
   if (!category) return;
 
-  // Toggle visibility (default to true)
   category.visible = category.visible === false ? true : false;
-
-  // Persist change
-  savePageCategories(pageCategories);
-
-  // Re-render both views
+  saveDashboardState();
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 }
@@ -1609,9 +1665,7 @@ function renameCategory(categoryId, newTitle) {
   if (!trimmed) return;
 
   category.title = trimmed;
-
-  savePageCategories(pageCategories);
-
+  saveDashboardState();
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 }
@@ -1627,12 +1681,14 @@ function renameItem(itemId, newLabel) {
     const item = category.items.find(i => i.id === itemId);
     if (item) {
       item.label = trimmed;
+      saveDashboardState();
+      renderCategories(pageCategories);
+      renderLayoutEditor(pageCategories);
       break;
     }
   }
 
-  savePageCategories(pageCategories);
-
+  saveDashboardState();
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 }
@@ -1652,12 +1708,10 @@ function deleteCategory(categoryId) {
       if (index === -1) return;
 
       pageCategories.splice(index, 1);
-
       pageCategories.forEach((c, i) => {
         c.order = i;
       });
-
-      savePageCategories(pageCategories);
+      saveDashboardState();
       renderCategories(pageCategories);
       renderLayoutEditor(pageCategories);
     }
@@ -1675,12 +1729,10 @@ function reorderCategories(sourceId, targetId) {
 
   const [moved] = pageCategories.splice(sourceIndex, 1);
   pageCategories.splice(targetIndex, 0, moved);
-
   pageCategories.forEach((c, i) => {
     c.order = i;
   });
-
-  savePageCategories(pageCategories);
+  saveDashboardState();
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 }
@@ -1702,9 +1754,7 @@ function addButtonToCategory(categoryId) {
 
   const newButton = createEmptyButton();
   category.items.push(newButton);
-
-  savePageCategories(pageCategories);
-
+  saveDashboardState();
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 }
@@ -1728,8 +1778,7 @@ function deleteButton(itemId) {
           if (latestIndex === -1) return;
 
           category.items.splice(latestIndex, 1);
-
-          savePageCategories(pageCategories);
+          saveDashboardState();
           renderCategories(pageCategories);
           renderLayoutEditor(pageCategories);
         }
