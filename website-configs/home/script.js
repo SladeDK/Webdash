@@ -1,4 +1,3 @@
-
 // Wait for the DOM content to be fully loaded before executing the script
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -59,4 +58,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-
