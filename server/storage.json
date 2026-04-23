@@ -1,0 +1,90 @@
+{
+  "dashboards": {
+    "default": {
+      "id": "default-dashboard",
+      "name": "My Dashboard",
+      "categories": [
+        {
+          "id": "cat-getting-started",
+          "title": "Getting Started",
+          "order": 0,
+          "visible": true,
+          "items": [
+            {
+              "id": "btn-settings",
+              "label": "Google",
+              "url": "https://google.com",
+              "order": 1,
+              "visible": true
+            },
+            {
+              "id": "btn-docs",
+              "label": "WebDash Github",
+              "url": "https://github.com/SladeDK/Webdash",
+              "order": 0,
+              "visible": true
+            }
+          ]
+        },
+        {
+          "id": "category-1776926173949",
+          "title": "New Category",
+          "order": 1,
+          "items": [
+            {
+              "id": "item-1776926180890",
+              "label": "button",
+              "url": "https://button.com"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "activeDashboardId": "default",
+  "preferences": {
+    "test": true,
+    "timestamp": 1776925263199,
+    "reloadCount": 1,
+    "appearance": {
+      "theme": "theme-midnight",
+      "background": "bg-hex",
+      "identity": {
+        "name": "SladeDK",
+        "icon": "assets/default.jpg"
+      }
+    },
+    "behavior": {
+      "autoCloseDropdowns": true,
+      "openLinksInNewTab": true
+    }
+  },
+  "dashboardState": {
+    "id": "default-dashboard",
+    "name": "My Dashboard",
+    "categories": [
+      {
+        "id": "cat-getting-started",
+        "title": "Getting Started",
+        "order": 0,
+        "visible": true,
+        "items": [
+          {
+            "id": "btn-settings",
+            "label": "Google",
+            "url": "https://google.com",
+            "order": 1,
+            "visible": true
+          },
+          {
+            "id": "btn-docs",
+            "label": "WebDash Github",
+            "url": "https://github.com/SladeDK/Webdash",
+            "order": 0,
+            "visible": true
+          }
+        ]
+      }
+    ]
+  }
+}

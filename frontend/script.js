@@ -2,17 +2,43 @@
 const THEME_KEY = 'webdash-theme';
 const BACKGROUND_KEY = 'webdash-background';
 const USER_PREFS_KEY = 'webdash-user-preferences';
-const PAGE_CONFIG_KEY = 'webdash-page-config';
 const HAS_SEEDED_DASHBOARD_KEY = "webdash.hasSeededDashboard";
 const DASHBOARD_STATE_KEY = 'webdash-dashboard-state';
+const AUTO_CLOSE_KEY = 'webdash-dropdown-autoclose';
+const autoCloseCheckbox = document.getElementById('pref-dropdown-autoclose');
 
-// Category shape (for reference only):
-// {
-//   id: string,
-//   title: string,
-//   order: number,
-//   items: [{ id, label, url }]
-// }
+const DashboardService = {
+  async load() {
+    const res = await fetch('/api/dashboard');
+    if (!res.ok) return null;
+
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  },
+
+  async save(dashboardState) {
+    await fetch('/api/dashboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dashboardState)
+    });
+  }
+};
+
+const PreferencesService = {
+  async load() {
+    const res = await fetch('/api/preferences');
+    return res.ok ? await res.json() : null;
+  },
+
+  async save(prefs) {
+    await fetch('/api/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prefs)
+    });
+  }
+};
 
 // Enumerations / static lists
 const BACKGROUNDS = [
@@ -36,6 +62,11 @@ let editingButtonContext = null;
 let draggedCategoryId = null;
 let dashboardState = null;
 let pageCategories = null;
+let autoCloseDropdowns;
+
+document.addEventListener('submit', e => {
+  e.preventDefault();
+});
 
 // =====================================================================================
 // Default dashboard state (used for resets and as a reference for expected data shape)
@@ -72,41 +103,59 @@ const DEFAULT_DASHBOARD_STATE = {
 // ======================================================================
 // Dashboard state initialization logic with first-ever load detection
 // ======================================================================
-function initializeDashboardState() {
-  const saved = loadDashboardState();
+async function initializeDashboardState() {
+  const saved = await DashboardService.load();
 
   if (saved) {
     dashboardState = saved;
     return;
   }
 
-  // First-ever load: seed default dashboard
   dashboardState = structuredClone(DEFAULT_DASHBOARD_STATE);
-  localStorage.setItem(HAS_SEEDED_DASHBOARD_KEY, "true");
-  saveDashboardState();
+  await DashboardService.save(dashboardState);
 }
 
-// 1️⃣ Dashboard data
-initializeDashboardState();
-pageCategories = dashboardState.categories;
+// ====================================================================
+// App initialization
+// ====================================================================
 
-// 2️⃣ Preferences
-const userPreferences = loadUnifiedPreferences();
-ensureIdentityDefaults();
-applyIdentityToUI();
-document.documentElement.classList.add('identity-ready');
+async function initApp() {
+  // 1️⃣ Dashboard data
+  await initializeDashboardState();
+  pageCategories = dashboardState.categories;
 
-console.assert(
-  dashboardState &&
-  pageCategories &&
-  userPreferences &&
-  pageCategories === dashboardState.categories,
-  '[WebDash] App state not initialized correctly before render'
-);
+  // 2️⃣ Preferences
+  userPreferences = await PreferencesService.load();
 
-// 3️⃣ Render (NOW it is safe)
-renderCategories(pageCategories);
-renderLayoutEditor(pageCategories);
+  if (!userPreferences) {
+    userPreferences = createDefaultPreferences();
+    await PreferencesService.save(userPreferences);
+  }
+  ensureIdentityDefaults();
+  applyIdentityToUI();
+  document.documentElement.classList.add('identity-ready');
+
+  // Apply visual preferences immediately to prevent flashing of defaults
+  setActiveTheme(userPreferences.appearance.theme);
+  setActiveBackground(userPreferences.appearance.background);
+  
+  // Sync behavior-related UI elements with loaded preferences
+  if (openLinksCheckbox) {
+    // Initialize checkbox state from unified preferences
+    openLinksCheckbox.checked =
+    userPreferences.behavior.openLinksInNewTab !== false;
+  }
+
+  autoCloseDropdowns = userPreferences.behavior.autoCloseDropdowns !== false;
+
+  if (autoCloseCheckbox) {
+    autoCloseCheckbox.checked = autoCloseDropdowns;
+  }
+
+  // 3️⃣ Initial render
+  renderCategories(pageCategories);
+  renderLayoutEditor(pageCategories);
+}
 
 // ======================================================================
 // Dashboard state persistence helpers (currently only used for export/import, but will be expanded for auto-saving in the future)
@@ -132,15 +181,6 @@ function loadDashboardState() {
 // ============================
 // Page‑scoped storage helpers
 // ============================
-
-function getPageId() {
-  // Simple and reliable page identity
-  return window.location.pathname || 'default';
-}
-
-function getPageConfigKey() {
-  return `${PAGE_CONFIG_KEY}::${getPageId()}`;
-}
 
 const INITIAL_IDENTITY = (() => {
   const name =
@@ -194,22 +234,12 @@ function closeMenu() {
 // Preferences → Behavior (Dropdown auto-close)
 // =====================================================
 
-const AUTO_CLOSE_KEY = 'webdash-dropdown-autoclose';
-const autoCloseCheckbox = document.getElementById('pref-dropdown-autoclose');
-
-// Default: true
-let autoCloseDropdowns = localStorage.getItem(AUTO_CLOSE_KEY) !== 'false';
-
-if (autoCloseCheckbox) {
-  autoCloseCheckbox.checked = autoCloseDropdowns;
-
-  autoCloseCheckbox.addEventListener('change', () => {
+autoCloseCheckbox.addEventListener('change', () => {
   autoCloseDropdowns = autoCloseCheckbox.checked;
 
   userPreferences.behavior.autoCloseDropdowns = autoCloseDropdowns;
-  saveUnifiedPreferences(userPreferences);
+  PreferencesService.save(userPreferences);
 });
-}
 
 document.addEventListener('click', (e) => {
   if (!autoCloseDropdowns) return;
@@ -403,12 +433,6 @@ function saveUnifiedPreferences(prefs) {
   setCookie('webdash_shared_prefs', JSON.stringify(sharedPrefs));
 }
 
-ensureIdentityDefaults();
-applyIdentityToUI();
-
-// Mark identity as ready (used to prevent flashing of default identity)
-document.documentElement.classList.add('identity-ready');
-
 // ============================
 // Identity helpers
 // ============================
@@ -421,6 +445,12 @@ function getDefaultIdentity() {
 }
 
 function ensureIdentityDefaults() {
+  // Ensure appearance root exists
+  if (!userPreferences.appearance) {
+    userPreferences.appearance = {};
+  }
+
+  // Ensure identity exists
   if (!userPreferences.appearance.identity) {
     userPreferences.appearance.identity = getDefaultIdentity();
   }
@@ -434,7 +464,7 @@ function resetIdentity() {
     icon: defaults.icon
   };
 
-  saveUnifiedPreferences(userPreferences);
+  PreferencesService.save(userPreferences);
   applyIdentityToUI();
 }
 
@@ -479,7 +509,7 @@ identityNameInput.addEventListener('input', () => {
   // Only update state + UI if there is actual text
   if (trimmed) {
     userPreferences.appearance.identity.name = trimmed;
-    saveUnifiedPreferences(userPreferences);
+    PreferencesService.save(userPreferences);
     applyIdentityToUI();
   }
 });
@@ -490,7 +520,7 @@ identityNameInput.addEventListener('blur', () => {
 
   if (!trimmed) {
     userPreferences.appearance.identity.name = 'Dashboard';
-    saveUnifiedPreferences(userPreferences);
+    PreferencesService.save(userPreferences);
     applyIdentityToUI();
   }
 });
@@ -518,7 +548,7 @@ if (identityIconWrapper && identityIconInput) {
 
     reader.onload = () => {
       userPreferences.appearance.identity.icon = reader.result;
-      saveUnifiedPreferences(userPreferences);
+      PreferencesService.save(userPreferences);
       applyIdentityToUI();
     };
 
@@ -689,7 +719,7 @@ function applyImportedData(payload) {
     categories: structuredClone(payload.data.categories)
   };
 
-  saveDashboardState();
+  DashboardService.save(dashboardState);
 
   pageCategories = dashboardState.categories;
 
@@ -747,20 +777,16 @@ function syncBehaviorUI() {
 const openLinksCheckbox = document.getElementById('pref-open-links-new-tab');
 
 if (openLinksCheckbox) {
-  // Initialize checkbox state from unified preferences
-  openLinksCheckbox.checked =
-    userPreferences.behavior.openLinksInNewTab !== false;
+// Persist preference + re-render dashboard on change
+openLinksCheckbox.addEventListener('change', () => {
+  userPreferences.behavior.openLinksInNewTab =
+    openLinksCheckbox.checked;
 
-  // Persist preference + re-render dashboard on change
-  openLinksCheckbox.addEventListener('change', () => {
-    userPreferences.behavior.openLinksInNewTab =
-      openLinksCheckbox.checked;
+  PreferencesService.save(userPreferences);
 
-    saveUnifiedPreferences(userPreferences);
-
-    // Re-render so link targets update immediately
-    renderCategories(pageCategories);
-  });
+  // Re-render so link targets update immediately
+  renderCategories(pageCategories);
+});
 }
 
 // ==========================================================
@@ -795,7 +821,7 @@ function resetDashboard() {
   pageCategories = dashboardState.categories;
 
   // Save the reset dashboard state
-  saveDashboardState();          // ✅ critical
+  DashboardService.save(dashboardState);          // ✅ critical
 
   // 3️⃣ Re-apply visual state
   setActiveTheme(defaults.appearance.theme);
@@ -813,9 +839,6 @@ function resetDashboard() {
 // =====================================================
 // Preferences → Appearance (Theme selection)
 // =====================================================
-
-// Optional: log once for validation during development
-console.debug('[WebDash] Preference snapshot:', preferenceSnapshot);
 
 function resolveSystemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -856,6 +879,7 @@ function setActiveTheme(theme) {
 
 themeButtons.forEach(button => {
   button.addEventListener('click', e => {
+    e.preventDefault();
     e.stopPropagation();
     changeTheme(button.dataset.theme);
     closeAll();
@@ -865,10 +889,6 @@ themeButtons.forEach(button => {
 // =====================================
 // Apply unified user preferences on load
 // =====================================
-
-setActiveTheme(userPreferences.appearance.theme);
-setActiveBackground(userPreferences.appearance.background);
-autoCloseDropdowns = userPreferences.behavior.autoCloseDropdowns;
 
 window
   .matchMedia('(prefers-color-scheme: dark)')
@@ -890,92 +910,6 @@ function setActiveBackground(bg) {
 }
 
 document.documentElement.classList.add('bg-visible');
-
-// =====================================
-// Load page categories from DOM
-// =====================================
-
-
-// 🚫 Legacy (DOM-based bootstrap, will be removed when backend lands)
-function loadPageCategoriesFromDOM() {
-  const categories = [];
-
-  const categoryElements = document.querySelectorAll('.category');
-
-  categoryElements.forEach((categoryEl, index) => {
-    const rawId = categoryEl.getAttribute('data-category-id');
-    const id = rawId && rawId.trim()
-      ? rawId.trim()
-      : `category-${index}`;
-
-    const titleEl = categoryEl.querySelector('.category-title');
-    const title = titleEl && titleEl.textContent
-      ? titleEl.textContent.trim()
-      : `Category ${index + 1}`;
-
-    const buttonsContainer = categoryEl.querySelector('.buttons');
-    const items = [];
-
-    if (buttonsContainer) {
-      const links = buttonsContainer.querySelectorAll('a');
-
-      links.forEach((link, i) => {
-        const label = link.textContent
-          ? link.textContent.trim()
-          : `Item ${i + 1}`;
-
-        const url = link.getAttribute('href');
-        if (!url) return; // skip invalid links
-
-        items.push({
-          id: link.getAttribute('data-id') || `${id}-item-${i}`,
-          label,
-          url
-        });
-      });
-    }
-
-    categories.push({
-      id,
-      title,
-      order: index,
-      visible: true,
-      items
-    });
-  });
-
-  return categories;
-}
-
-// =====================================
-// Load page categories (storage → DOM)
-// =====================================
-
-
-// 🚫 Legacy (DOM-based bootstrap, will be removed when backend lands)
-function loadPageCategories() {
-  const key = getPageConfigKey();
-  const raw = localStorage.getItem(key);
-
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw);
-
-      if (
-        parsed &&
-        typeof parsed === 'object' &&
-        Array.isArray(parsed.categories)
-      ) {
-        return parsed.categories;
-      }
-    } catch (err) {
-      console.warn('[WebDash] Invalid page config, falling back to DOM', err);
-    }
-  }
-
-  // Fallback for first-time pages or corrupted storage
-  return loadPageCategoriesFromDOM();
-}
 
 // =====================================
 // Render categories
@@ -1467,7 +1401,7 @@ container.querySelectorAll('.layout-category').forEach(categoryEl => {
 
     const [moved] = category.items.splice(sourceIndex, 1);
     category.items.splice(targetIndex, 0, moved);
-    saveDashboardState();
+    DashboardService.save(dashboardState);
     renderCategories(pageCategories);
     renderLayoutEditor(pageCategories);
   }
@@ -1591,7 +1525,7 @@ buttonEditorForm?.addEventListener('submit', e => {
       label,
       url: normalizedUrl
     });
-  saveDashboardState();  
+  DashboardService.save(dashboardState);  
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 
@@ -1606,7 +1540,7 @@ buttonEditorForm?.addEventListener('submit', e => {
 
     item.label = label;
     item.url = normalizedUrl;
-    saveDashboardState();
+    DashboardService.save(dashboardState);
     renderCategories(pageCategories);
     renderLayoutEditor(pageCategories);
   }
@@ -1633,7 +1567,7 @@ function addCategory() {
   const newCategory = createEmptyCategory(pageCategories);
   pageCategories.push(newCategory);
 
-  saveDashboardState();
+  DashboardService.save(dashboardState);
 
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
@@ -1648,7 +1582,7 @@ function toggleCategoryVisibility(categoryId) {
   if (!category) return;
 
   category.visible = category.visible === false ? true : false;
-  saveDashboardState();
+  DashboardService.save(dashboardState);
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 }
@@ -1665,7 +1599,7 @@ function renameCategory(categoryId, newTitle) {
   if (!trimmed) return;
 
   category.title = trimmed;
-  saveDashboardState();
+  DashboardService.save(dashboardState);
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 }
@@ -1681,14 +1615,14 @@ function renameItem(itemId, newLabel) {
     const item = category.items.find(i => i.id === itemId);
     if (item) {
       item.label = trimmed;
-      saveDashboardState();
+      DashboardService.save(dashboardState);
       renderCategories(pageCategories);
       renderLayoutEditor(pageCategories);
       break;
     }
   }
 
-  saveDashboardState();
+  DashboardService.save(dashboardState);
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 }
@@ -1711,7 +1645,7 @@ function deleteCategory(categoryId) {
       pageCategories.forEach((c, i) => {
         c.order = i;
       });
-      saveDashboardState();
+      DashboardService.save(dashboardState);
       renderCategories(pageCategories);
       renderLayoutEditor(pageCategories);
     }
@@ -1732,7 +1666,7 @@ function reorderCategories(sourceId, targetId) {
   pageCategories.forEach((c, i) => {
     c.order = i;
   });
-  saveDashboardState();
+  DashboardService.save(dashboardState);
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 }
@@ -1754,7 +1688,7 @@ function addButtonToCategory(categoryId) {
 
   const newButton = createEmptyButton();
   category.items.push(newButton);
-  saveDashboardState();
+  DashboardService.save(dashboardState);
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 }
@@ -1778,7 +1712,7 @@ function deleteButton(itemId) {
           if (latestIndex === -1) return;
 
           category.items.splice(latestIndex, 1);
-          saveDashboardState();
+          DashboardService.save(dashboardState);
           renderCategories(pageCategories);
           renderLayoutEditor(pageCategories);
         }
@@ -2155,7 +2089,7 @@ function changeTheme(theme) {
   setActiveTheme(theme);
 
   userPreferences.appearance.theme = theme;
-  saveUnifiedPreferences(userPreferences);
+  PreferencesService.save(userPreferences);
 
   syncThemeCards();
   syncBackgroundCards();
@@ -2166,14 +2100,16 @@ function changeBackground(bg) {
   setActiveBackground(bg);
 
   userPreferences.appearance.background = bg;
-  saveUnifiedPreferences(userPreferences);
+  PreferencesService.save(userPreferences);
 
   syncBackgroundCards();
   syncThemeCards();
 }
 
 themeCards.forEach(card => {
-  card.addEventListener('click', () => {
+  card.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     changeTheme(card.dataset.theme);
   });
 });
@@ -2196,7 +2132,9 @@ function syncBackgroundCards() {
 }
 
 backgroundCards.forEach(card => {
-  card.addEventListener('click', () => {
+  card.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     changeBackground(card.dataset.bg);
   });
 });
@@ -2211,3 +2149,8 @@ document
 
 // ✅ Signal that categories are ready
 document.body.classList.add('categories-initialized');
+
+// ============================
+// Initialize app state and render UI
+// ============================
+initApp();

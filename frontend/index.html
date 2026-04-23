@@ -20,13 +20,14 @@
       class="dropdown-btn"
       aria-haspopup="true"
       aria-expanded="false"
+      type="button"
       >
       <i class="fa-solid fa-bars"></i> Dashboards
     </button>
     <div class="dropdown-menu">
       <div class="dropdown-header">
         <span class="dropdown-label">Pages:</span>
-        <button class="dropdown-close" aria-label="Close pages menu">✕</button>
+        <button class="dropdown-close" type="button" aria-label="Close pages menu">✕</button>
       </div>
 
       <a href="https://home.webdash.dk">Home</a>
@@ -44,6 +45,7 @@
       class="dropdown-btn"
       aria-haspopup="true"
       aria-expanded="false"
+      type="button"
       >
       <i class="fa-solid fa-paint-brush"></i> Themes
     </button>
@@ -52,6 +54,7 @@
       id="settings-button"
       class="dropdown-btn"
       aria-label="Open preferences"
+      type="button"
     >
       <span class="icon"><i class="fa-solid fa-gear"></i></span>
     </button>
@@ -60,45 +63,45 @@
     
     <div class="dropdown-header">
       <span class="dropdown-label">Themes:</span>
-      <button class="dropdown-close" aria-label="Close themes menu">✕</button>
+      <button class="dropdown-close" type="button" aria-label="Close themes menu">✕</button>
     </div>
 
-    <button data-theme="system" title="Follow your operating system’s theme">
+    <button data-theme="system" type="button" title="Follow your operating system’s theme">
       <span class="theme-indicator">✓</span>
       System
     </button>
 
-    <button data-theme="theme-dark" title="Standard dark dashboard theme">
+    <button data-theme="theme-dark" type="button" title="Standard dark dashboard theme">
       <span class="theme-indicator">✓</span>
       Dark
     </button>
 
-    <button data-theme="theme-light" title="Clean, bright layout for daytime use">
+    <button data-theme="theme-light" type="button" title="Clean, bright layout for daytime use">
       <span class="theme-indicator">✓</span>
       Light
     </button>
 
-    <button data-theme="theme-midnight" title="Deep blue tones for low-light environments">
+    <button data-theme="theme-midnight" type="button" title="Deep blue tones for low-light environments">
       <span class="theme-indicator">✓</span>
       Midnight
     </button>
 
-    <button data-theme="theme-slate" title="Neutral, professional gray-blue palette">
+    <button data-theme="theme-slate" type="button" title="Neutral, professional gray-blue palette">
       <span class="theme-indicator">✓</span>
       Slate
     </button>
 
-    <button data-theme="theme-nord" title="Soft, cool contrast inspired by Nord colors">
+    <button data-theme="theme-nord" type="button" title="Soft, cool contrast inspired by Nord colors">
       <span class="theme-indicator">✓</span>
       Nord
     </button>
 
-    <button data-theme="theme-carbon" title="Ultra-dark theme with high contrast">
+    <button data-theme="theme-carbon" type="button" title="Ultra-dark theme with high contrast">
       <span class="theme-indicator">✓</span>
       Carbon
     </button>
 
-    <button data-theme="theme-glass" title="Frosted glass effect with depth">
+    <button data-theme="theme-glass" type="button" title="Frosted glass effect with depth">
       <span class="theme-indicator">✓</span>
       Glass
     </button>
@@ -143,16 +146,16 @@
     <div class="modal-body">
       <!-- Left navigation -->
       <nav class="modal-nav" aria-label="Preferences categories">
-        <button class="nav-item active" data-panel="appearance">
+        <button class="nav-item active" type="button" data-panel="appearance">
           Appearance
         </button>
-        <button class="nav-item" data-panel="behavior">
+        <button class="nav-item" type="button" data-panel="behavior">
           Behavior
         </button>
-        <button class="nav-item" data-panel="layout">
+        <button class="nav-item" type="button" data-panel="layout">
           Dashboard Layout
         </button>
-        <button class="nav-item" data-panel="data">
+        <button class="nav-item" type="button" data-panel="data">
           Data Management
         </button>
       </nav>
@@ -224,37 +227,37 @@
               <legend>Theme</legend>
 
               <div class="theme-grid">
-                <button class="theme-card" data-theme="theme-dark">
+                <button class="theme-card" type="button" data-theme="theme-dark">
                   <span class="theme-preview theme-dark"></span>
                   <span class="theme-name">Dark</span>
                 </button>
 
-                <button class="theme-card" data-theme="theme-light">
+                <button class="theme-card" type="button"data-theme="theme-light">
                   <span class="theme-preview theme-light"></span>
                   <span class="theme-name">Light</span>
                 </button>
 
-                <button class="theme-card" data-theme="theme-midnight">
+                <button class="theme-card" type="button" data-theme="theme-midnight">
                   <span class="theme-preview theme-midnight"></span>
                   <span class="theme-name">Midnight</span>
                 </button>
 
-                <button class="theme-card" data-theme="theme-slate">
+                <button class="theme-card" type="button" data-theme="theme-slate">
                   <span class="theme-preview theme-slate"></span>
                   <span class="theme-name">Slate</span>
                 </button>
 
-                <button class="theme-card" data-theme="theme-nord">
+                <button class="theme-card" type="button" data-theme="theme-nord">
                   <span class="theme-preview theme-nord"></span>
                   <span class="theme-name">Nord</span>
                 </button>
 
-                <button class="theme-card" data-theme="theme-carbon">
+                <button class="theme-card" type="button" data-theme="theme-carbon">
                   <span class="theme-preview theme-carbon"></span>
                   <span class="theme-name">Carbon</span>
                 </button>
 
-                <button class="theme-card" data-theme="theme-glass">
+                <button class="theme-card" type="button" data-theme="theme-glass">
                   <span class="theme-preview theme-glass"></span>
                   <span class="theme-name">Glass</span>
                 </button>
@@ -264,55 +267,55 @@
               <legend>Background</legend>
 
               <div class="theme-grid background-grid">
-                <button class="theme-card bg-card" data-bg="bg-plain">
+                <button class="theme-card bg-card" type="button" data-bg="bg-plain">
                   <span class="theme-preview bg-preview-plain"></span>
                   <span class="theme-name">Plain</span>
                 </button>
 
-                <button class="theme-card bg-card" data-bg="bg-gradient">
+                <button class="theme-card bg-card" type="button" data-bg="bg-gradient">
                   <span class="theme-preview bg-preview-gradient"></span>
                   <span class="theme-name">Soft Gradient</span>
                 </button>
 
-                <button class="theme-card bg-card" data-bg="bg-focus">
+                <button class="theme-card bg-card" type="button" data-bg="bg-focus">
                   <span class="theme-preview bg-preview-focus"></span>
                   <span class="theme-name">Focus Glow</span>
                 </button>
-                <button class="theme-card bg-card" data-bg="bg-glass">
+                <button class="theme-card bg-card" type="button" data-bg="bg-glass">
                   <span class="theme-preview bg-preview-glass"></span>
                   <span class="theme-name">Glass Atmosphere</span>
                 </button>
-                <button class="theme-card bg-card" data-bg="bg-dotted">
+                <button class="theme-card bg-card" type="button" data-bg="bg-dotted">
                   <span class="theme-preview bg-preview-dotted"></span>
                   <span class="theme-name">Dotted Pattern</span>
                 </button>
 
-                <button class="theme-card bg-card" data-bg="bg-webbed">
+                <button class="theme-card bg-card" type="button" data-bg="bg-webbed">
                   <span class="theme-preview bg-preview-webbed"></span>
                   <span class="theme-name">Webbed Pattern</span>
                 </button>
 
-                <button class="theme-card bg-card" data-bg="bg-triangle-gradient">
+                <button class="theme-card bg-card" type="button" data-bg="bg-triangle-gradient">
                   <span class="theme-preview bg-preview-triangle-gradient"></span>
                   <span class="theme-name">Triangle Gradient</span>
                 </button>
 
-                <button class="theme-card bg-card" data-bg="bg-triangle-subtle">
+                <button class="theme-card bg-card" type="button" data-bg="bg-triangle-subtle">
                   <span class="theme-preview bg-preview-triangle-subtle"></span>
                   <span class="theme-name">Triangle Subtle</span>
                 </button>
 
-                <button class="theme-card bg-card" data-bg="bg-hex">
+                <button class="theme-card bg-card" type="button" data-bg="bg-hex">
                   <span class="theme-preview bg-preview-hex"></span>
                   <span class="theme-name">Hex Pattern</span>
                 </button>
 
-                <button class="theme-card bg-card" data-bg="bg-topo">
+                <button class="theme-card bg-card" type="button" data-bg="bg-topo">
                   <span class="theme-preview bg-preview-topo"></span>
                   <span class="theme-name">Topographical</span>
                 </button>
 
-                <button class="theme-card bg-card" data-bg="bg-circuit">
+                <button class="theme-card bg-card" type="button" data-bg="bg-circuit">
                   <span class="theme-preview bg-preview-circuit"></span>
                   <span class="theme-name">Circuit Board</span>
                 </button>
