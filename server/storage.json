@@ -2,7 +2,7 @@
   "dashboards": {
     "default": {
       "id": "default-dashboard",
-      "name": "My Dashboard",
+      "name": "Default Dashboard",
       "categories": [
         {
           "id": "cat-getting-started",
@@ -25,23 +25,20 @@
               "visible": true
             }
           ]
-        },
-        {
-          "id": "category-1776926173949",
-          "title": "New Category",
-          "order": 1,
-          "items": [
-            {
-              "id": "item-1776926180890",
-              "label": "button",
-              "url": "https://button.com"
-            }
-          ]
         }
       ]
+    },
+    "dashboard-1777010470844": {
+      "name": "Renamed A",
+      "categories": []
+    },
+    "dashboard-1777010865239": {
+      "name": "Dashboard B",
+      "categories": []
     }
   },
-  "activeDashboardId": "default",
+  "activeDashboardId": "dashboard-1777010470844",
+  "defaultDashboardId": "dashboard-1777010470844",
   "preferences": {
     "test": true,
     "timestamp": 1776925263199,

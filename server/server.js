@@ -45,6 +45,7 @@ if (!fs.existsSync(STORAGE_FILE)) {
       {
         dashboards: { default: null },
         activeDashboardId: 'default',
+        defaultDashboardId: 'default',
         preferences: null
       },
       null,
@@ -63,6 +64,7 @@ function readStorage() {
       return {
         dashboards: { default: null },
         activeDashboardId: 'default',
+        defaultDashboardId: 'default',
         preferences: null
       };
     }
@@ -72,6 +74,7 @@ function readStorage() {
     return {
       dashboards: { default: null },
       activeDashboardId: 'default',
+      defaultDashboardId: 'default',
       preferences: null
     };
   }
@@ -105,6 +108,117 @@ app.post('/api/preferences', (req, res) => {
   const data = readStorage();
   data.preferences = req.body;
   writeStorage(data);
+  res.sendStatus(204);
+});
+
+app.get('/api/dashboards', (req, res) => {
+  const data = readStorage();
+
+  const dashboards = Object.entries(data.dashboards || {}).map(
+    ([id, dashboard]) => ({
+      id,
+      name: dashboard?.name || id
+    })
+  );
+
+  res.json(dashboards);
+});
+
+app.get('/api/dashboards/active', (req, res) => {
+  const data = readStorage();
+  res.json({ activeDashboardId: data.activeDashboardId });
+});
+
+app.post('/api/dashboards/active', (req, res) => {
+  const { dashboardId } = req.body;
+  const data = readStorage();
+
+  if (!dashboardId || !data.dashboards[dashboardId]) {
+    return res.status(400).json({ error: 'Invalid dashboardId' });
+  }
+
+  data.activeDashboardId = dashboardId;
+  writeStorage(data);
+
+  res.sendStatus(204);
+});
+
+app.get('/api/dashboards/default', (req, res) => {
+  const data = readStorage();
+  res.json({ defaultDashboardId: data.defaultDashboardId });
+});
+
+app.post('/api/dashboards/default', (req, res) => {
+  const { dashboardId } = req.body;
+  const data = readStorage();
+
+  if (!dashboardId || !data.dashboards[dashboardId]) {
+    return res.status(400).json({ error: 'Invalid dashboardId' });
+  }
+
+  data.defaultDashboardId = dashboardId;
+  writeStorage(data);
+  res.sendStatus(204);
+});
+
+app.post('/api/dashboards', (req, res) => {
+  const { dashboardId, dashboardData } = req.body;
+  const data = readStorage();
+
+  if (!dashboardId) {
+    return res.status(400).json({ error: 'dashboardId is required' });
+  }
+
+  if (data.dashboards[dashboardId]) {
+    return res.status(409).json({ error: 'Dashboard already exists' });
+  }
+
+  data.dashboards[dashboardId] = dashboardData ?? {
+    categories: []
+  };
+
+  data.activeDashboardId = dashboardId;
+  writeStorage(data);
+
+  res.sendStatus(201);
+});
+
+app.delete('/api/dashboards/:id', (req, res) => {
+  const dashboardId = req.params.id;
+  const data = readStorage();
+
+  if (!data.dashboards[dashboardId]) {
+    return res.status(404).json({ error: 'Dashboard not found' });
+  }
+
+  delete data.dashboards[dashboardId];
+
+  if (data.activeDashboardId === dashboardId) {
+    data.activeDashboardId = Object.keys(data.dashboards)[0] || 'default';
+  }
+
+  writeStorage(data);
+  res.sendStatus(204);
+});
+
+app.post('/api/dashboards/:id/rename', (req, res) => {
+  const dashboardId = req.params.id;
+  const { name } = req.body;
+
+  if (!name || typeof name !== 'string') {
+    return res.status(400).json({ error: 'Invalid dashboard name' });
+  }
+
+  const data = readStorage();
+  const dashboard = data.dashboards[dashboardId];
+
+  if (!dashboard) {
+    return res.status(404).json({ error: 'Dashboard not found' });
+  }
+
+  dashboard.name = name.trim();
+  writeStorage(data);
+
   res.sendStatus(204);
 });
 

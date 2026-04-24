@@ -7,11 +7,26 @@ const DASHBOARD_STATE_KEY = 'webdash-dashboard-state';
 const AUTO_CLOSE_KEY = 'webdash-dropdown-autoclose';
 const autoCloseCheckbox = document.getElementById('pref-dropdown-autoclose');
 
+// Miscellaneous
+let renamingCategoryId = null;
+let renamingItemId = null;
+let editingButtonContext = null;
+let draggedCategoryId = null;
+let dashboardState = null;
+let pageCategories = null;
+let autoCloseDropdowns;
+let activeDashboardId = null;
+let defaultDashboardId = null;
+// [{ id, name}]
+let availableDashboards = [];
+let isCreatingDashboard = false;
+let renamingDashboardId = null;
+let dashboardValidationError = null;
+
 const DashboardService = {
   async load() {
     const res = await fetch('/api/dashboard');
     if (!res.ok) return null;
-
     const text = await res.text();
     return text ? JSON.parse(text) : null;
   },
@@ -22,7 +37,57 @@ const DashboardService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dashboardState)
     });
-  }
+  },
+
+  async listDashboards() {
+    const res = await fetch('/api/dashboards');
+    if (!res.ok) return [];
+    return await res.json();
+  },
+
+  async getActiveDashboardId() {
+    const res = await fetch('/api/dashboards/active');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.activeDashboardId;
+  },
+
+  async setActiveDashboardId(dashboardId) {
+    await fetch('/api/dashboards/active', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dashboardId })
+    });
+  },
+
+  async createDashboard({ id, name }) {
+    await fetch('/api/dashboards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dashboardId: id,
+        dashboardData: {
+          name,
+          categories: []
+        }
+      })
+    });
+  },
+
+  async getDefaultDashboardId() {
+    const res = await fetch('/api/dashboards/default');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.defaultDashboardId;
+  },
+
+  async setDefaultDashboardId(dashboardId) {
+    await fetch('/api/dashboards/default', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dashboardId })
+    });
+  },
 };
 
 const PreferencesService = {
@@ -55,14 +120,6 @@ const BACKGROUNDS = [
   'bg-circuit',
 ];
 
-// Miscellaneous
-let renamingCategoryId = null;
-let renamingItemId = null;
-let editingButtonContext = null;
-let draggedCategoryId = null;
-let dashboardState = null;
-let pageCategories = null;
-let autoCloseDropdowns;
 
 document.addEventListener('submit', e => {
   e.preventDefault();
@@ -120,6 +177,35 @@ async function initializeDashboardState() {
 // ====================================================================
 
 async function initApp() {
+  // 0️⃣ Dashboard metadata (NEW)
+  availableDashboards = await DashboardService.listDashboards();
+  activeDashboardId = await DashboardService.getActiveDashboardId();
+  defaultDashboardId = await DashboardService.getDefaultDashboardId();
+
+  // ✅ Ensure default dashboard is valid
+  if (
+    !defaultDashboardId ||
+    !availableDashboards.some(d => d.id === defaultDashboardId)
+  ) {
+    defaultDashboardId = availableDashboards[0]?.id ?? null;
+
+    if (defaultDashboardId) {
+      await DashboardService.setDefaultDashboardId(defaultDashboardId);
+    }
+  }
+
+  // ✅ Ensure active dashboard always resolves
+  if (
+    !activeDashboardId ||
+    !availableDashboards.some(d => d.id === activeDashboardId)
+  ) {
+    activeDashboardId = defaultDashboardId;
+
+    if (activeDashboardId) {
+      await DashboardService.setActiveDashboardId(activeDashboardId);
+    }
+  }
+
   // 1️⃣ Dashboard data
   await initializeDashboardState();
   pageCategories = dashboardState.categories;
@@ -131,6 +217,7 @@ async function initApp() {
     userPreferences = createDefaultPreferences();
     await PreferencesService.save(userPreferences);
   }
+
   ensureIdentityDefaults();
   applyIdentityToUI();
   document.documentElement.classList.add('identity-ready');
@@ -138,12 +225,11 @@ async function initApp() {
   // Apply visual preferences immediately to prevent flashing of defaults
   setActiveTheme(userPreferences.appearance.theme);
   setActiveBackground(userPreferences.appearance.background);
-  
+
   // Sync behavior-related UI elements with loaded preferences
   if (openLinksCheckbox) {
-    // Initialize checkbox state from unified preferences
     openLinksCheckbox.checked =
-    userPreferences.behavior.openLinksInNewTab !== false;
+      userPreferences.behavior.openLinksInNewTab !== false;
   }
 
   autoCloseDropdowns = userPreferences.behavior.autoCloseDropdowns !== false;
@@ -155,6 +241,7 @@ async function initApp() {
   // 3️⃣ Initial render
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
+  renderDashboardList();
 }
 
 // ======================================================================
@@ -176,6 +263,104 @@ function loadDashboardState() {
   } catch {
     return null;
   }
+}
+
+// ======================================================================
+// Dashboard switching logic
+// ======================================================================
+
+async function switchDashboard(dashboardId) {
+  if (dashboardId === activeDashboardId) return;
+
+  await DashboardService.setActiveDashboardId(dashboardId);
+
+  activeDashboardId = dashboardId;
+
+  const newDashboardState = await DashboardService.load();
+  if (!newDashboardState) {
+    console.warn('[WebDash] Switched dashboard has no data');
+    return;
+  }
+
+  dashboardState = newDashboardState;
+  pageCategories = dashboardState.categories;
+
+  renderCategories(pageCategories);
+  renderLayoutEditor(pageCategories);
+}
+
+// ======================================================================
+// Dashboard creation and switching logic
+// ======================================================================
+
+async function createAndSwitchDashboard({ id, name }) {
+  await DashboardService.createDashboard({ id, name });
+
+  availableDashboards.push({ id, name });
+
+  activeDashboardId = id;
+
+  const newDashboardState = await DashboardService.load();
+  dashboardState = newDashboardState;
+  pageCategories = dashboardState.categories;
+
+  renderCategories(pageCategories);
+  renderLayoutEditor(pageCategories);
+  syncDefaultDashboardSelector();
+  renderDashboardList();
+  renderDashboardManagementPanel();
+}
+
+// ======================================================================
+// Dashboard display name helper (uses metadata if available, falls back to ID)
+// ======================================================================
+
+function getDashboardDisplayName(dashboardId) {
+  // Use display name if present on the dashboard object
+  if (dashboardState && dashboardState.id === dashboardId) {
+    return dashboardState.name || dashboardId;
+  }
+  return dashboardId;
+}
+
+// ======================================================================
+// Dashboard validation helper
+// ======================================================================
+
+function setDashboardValidationError(message) {
+  dashboardValidationError = message;
+  renderDashboardManagementPanel();
+}
+
+function clearDashboardValidationError() {
+  dashboardValidationError = null;
+}
+
+// ======================================================================
+// Sync default dashboard selector with available dashboards and current default
+// ======================================================================
+
+function syncDefaultDashboardSelector() {
+  const select = document.getElementById('default-dashboard-select');
+  if (!select) return;
+
+  select.innerHTML = '';
+
+  availableDashboards.forEach(({ id, name }) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = name;
+    option.selected = id === defaultDashboardId;
+    select.appendChild(option);
+  });
+
+  select.onchange = async () => {
+    const newDefault = select.value;
+    if (newDefault === defaultDashboardId) return;
+
+    defaultDashboardId = newDefault;
+    await DashboardService.setDefaultDashboardId(newDefault);
+  };
 }
 
 // ============================
@@ -955,6 +1140,280 @@ function renderCategories(categories) {
     });
 }
 
+// ====================================
+// Render dashboard list in DashboardSwitcher dropdown
+// ===================================
+
+function renderDashboardList() {
+  const container = document.getElementById('dashboard-list');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  availableDashboards.forEach(({ id, name }) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dashboard-item';
+    btn.textContent = name;
+
+    if (id === activeDashboardId) {
+      btn.classList.add('active-dashboard');
+    }
+
+    btn.addEventListener('click', async () => {
+      await switchDashboard(id);
+      renderDashboardList();
+      closeAll();
+    });
+
+    container.appendChild(btn);
+  });
+}
+
+// =====================================
+// Render dashboard management panel (rename/delete dashboards)
+// ====================================
+
+function renderDashboardManagementPanel() {
+  const container = document.getElementById('dashboard-management-list');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  // ✅ Inline validation error (if any)
+  if (dashboardValidationError) {
+    const error = document.createElement('div');
+    error.className = 'form-error is-visible';
+    error.textContent = dashboardValidationError;
+    error.style.marginBottom = '0.75rem';
+    container.appendChild(error);
+  }
+
+  availableDashboards.forEach(({ id, name }) =>{
+    const row = document.createElement('div');
+    row.className = 'layout-category';
+
+    const header = document.createElement('div');
+    header.className = 'layout-category-header';
+
+    let title;
+
+    if (renamingDashboardId === id) {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'rename-input';
+      input.value = name;
+
+      requestAnimationFrame(() => {
+        input.focus();
+        input.select();
+      });
+
+      input.onkeydown = async (e) => {
+        if (e.key === 'Enter') {
+          const newName = input.value.trim();
+          if (!newName) return;
+
+          renamingDashboardId = null;
+          await renameDashboardDisplayName(id, newName);
+        }
+
+        if (e.key === 'Escape') {
+          renamingDashboardId = null;
+          renderDashboardManagementPanel();
+        }
+      };
+
+      // ✅ Blur = cancel rename (consistent with Escape)
+      input.addEventListener('blur', () => {
+        renamingDashboardId = null;
+        renderDashboardManagementPanel();
+      });
+
+      title = input;
+    } else {
+        const span = document.createElement('span');
+        span.className = 'category-title';
+        span.textContent = name;
+        title = span;
+      }
+
+    const actions = document.createElement('div');
+    actions.className = 'category-actions';
+
+    const renameBtn = document.createElement('button');
+    renameBtn.type = 'button';
+    renameBtn.className = 'icon-button';
+    renameBtn.title = 'Rename dashboard';
+    renameBtn.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
+
+    renameBtn.onclick = () => {
+      renamingDashboardId = id;
+      renderDashboardManagementPanel();
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'icon-button';
+    deleteBtn.title = 'Delete dashboard';
+    deleteBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+
+    deleteBtn.onclick = () => {
+      clearDashboardValidationError();
+
+      if (id === 'default') {
+        setDashboardValidationError('The default dashboard cannot be deleted.');
+        return;
+      }
+
+      openConfirm({
+        title: 'Delete dashboard',
+        message: `Delete dashboard "${name}"?\nThis will remove the dashboard and all its categories and buttons.`,
+        onConfirm: async () => {
+          await deleteDashboard(id);
+          clearDashboardValidationError();
+        }
+      });
+    };
+
+    actions.append(renameBtn, deleteBtn);
+    header.append(title, actions);
+    row.appendChild(header);
+    container.appendChild(row);
+  });
+  
+  // ✅ Inline creation row
+  if (isCreatingDashboard) {
+    const row = document.createElement('div');
+    row.className = 'layout-category';
+
+    const header = document.createElement('div');
+    header.className = 'layout-category-header';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'rename-input';
+    input.placeholder = 'New dashboard name';
+
+    input.addEventListener('input', () => {
+      if (dashboardValidationError) {
+        clearDashboardValidationError();
+      }
+    });
+
+    requestAnimationFrame(() => input.focus());
+
+    input.onkeydown = async (e) => {
+      if (e.key === 'Enter') {
+        clearDashboardValidationError();
+
+        const displayName = input.value.trim();
+        if (!displayName) return;
+
+        // ✅ Category-style opaque ID
+        const id = `dashboard-${Date.now()}`;
+
+        isCreatingDashboard = false;
+        await createAndSwitchDashboard({ id, name: displayName });
+
+        clearDashboardValidationError();
+      }
+
+      if (e.key === 'Escape') {
+        isCreatingDashboard = false;
+        clearDashboardValidationError();
+        renderDashboardManagementPanel();
+      }
+    };
+
+    input.onblur = () => {
+      isCreatingDashboard = false;
+      renderDashboardManagementPanel();
+    };
+
+    header.appendChild(input);
+    row.appendChild(header);
+    container.appendChild(row);
+  }
+}
+
+
+document
+  .getElementById('create-dashboard-btn')
+  ?.addEventListener('click', () => {
+    isCreatingDashboard = true;
+    renderDashboardManagementPanel();
+});
+
+async function renameDashboardDisplayName(dashboardId, newName) {
+  const trimmed = newName.trim();
+  if (!trimmed) {
+    renamingDashboardId = null;
+
+    syncDefaultDashboardSelector();
+    clearDashboardValidationError();
+    renderDashboardManagementPanel();
+    return;
+  }
+
+  const res = await fetch(`/api/dashboards/${dashboardId}/rename`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: trimmed })
+  });
+
+  if (!res.ok) {
+    setDashboardValidationError('Failed to rename dashboard', await res.text());
+    renamingDashboardId = null;
+    renderDashboardManagementPanel();
+    return;
+  }
+
+  clearDashboardValidationError();
+
+  // ✅ Update in-memory dashboard metadata
+  const dashboard = availableDashboards.find(d => d.id === dashboardId);
+  if (dashboard) {
+    dashboard.name = trimmed;
+  }
+
+  // ✅ Keep active dashboard state in sync
+  if (dashboardState && dashboardState.id === dashboardId) {
+    dashboardState.name = trimmed;
+  }
+
+  renamingDashboardId = null;
+
+  syncDefaultDashboardSelector();
+  renderDashboardManagementPanel();
+  renderDashboardList();
+}
+
+async function deleteDashboard(dashboardId, autoSwitch = true) {
+  const res = await fetch(`/api/dashboards/${dashboardId}`, {
+    method: 'DELETE'
+  });
+
+  if (!res.ok) {
+    console.error('[WebDash] Failed to delete dashboard', dashboardId);
+    return;
+  }
+
+  // ✅ Remove from local metadata (Option A)
+  availableDashboards = availableDashboards.filter(d => d.id !== dashboardId);
+
+  // ✅ Handle active dashboard deletion
+  if (autoSwitch && dashboardId === activeDashboardId) {
+    const fallback = availableDashboards[0]?.id;
+    if (fallback) {
+      await switchDashboard(fallback);
+    }
+  }
+  syncDefaultDashboardSelector();
+  renderDashboardManagementPanel();
+  renderDashboardList();
+}
+
 // =====================================
 // Dashboard Layout editor rendering
 // =====================================
@@ -1100,29 +1559,35 @@ function renderLayoutEditor(categories) {
       renderLayoutEditor(pageCategories);
     };
   });
-  // Wire rename inputs (Phase C.3)
+  // Wire rename inputs (Phase C.3) — normalized UX
   container.querySelectorAll('.rename-input').forEach(input => {
     const categoryId = input.dataset.categoryId;
 
-  requestAnimationFrame(() => {  
-    input.focus();
-    input.select();
-  });
+    requestAnimationFrame(() => {
+      input.focus();
+      input.select();
+    });
 
     input.onkeydown = e => {
       if (e.key === 'Enter') {
-        renameCategory(categoryId, input.value);
+        const trimmed = input.value.trim();
+        if (trimmed) {
+          renameCategory(categoryId, trimmed);
+        }
         renamingCategoryId = null;
+        renderLayoutEditor(pageCategories);
       }
+
       if (e.key === 'Escape') {
         renamingCategoryId = null;
         renderLayoutEditor(pageCategories);
       }
     };
 
+    // ✅ Blur = cancel (same as Escape)
     input.onblur = () => {
-      renameCategory(categoryId, input.value);
       renamingCategoryId = null;
+      renderLayoutEditor(pageCategories);
     };
   });
   // Wire delete category buttons (Phase C.4)
@@ -1788,6 +2253,9 @@ function openPreferences() {
 
   const firstNav = preferencesOverlay.querySelector('.nav-item');
   firstNav?.focus();
+
+  syncDefaultDashboardSelector();
+  renderDashboardManagementPanel();
 }
 
 // ---------- Close modal ----------

@@ -16,22 +16,22 @@
 
 <header class="header">
   <div class="header-left dropdown">
-        <button 
-      class="dropdown-btn"
-      aria-haspopup="true"
-      aria-expanded="false"
-      type="button"
+      <button 
+        class="dropdown-btn"
+        aria-haspopup="true"
+        aria-expanded="false"
+        type="button"
       >
       <i class="fa-solid fa-bars"></i> Dashboards
     </button>
     <div class="dropdown-menu">
       <div class="dropdown-header">
-        <span class="dropdown-label">Pages:</span>
-        <button class="dropdown-close" type="button" aria-label="Close pages menu">✕</button>
+        <span class="dropdown-label">Dashboards:</span>
+        <button type="button" class="dropdown-close">✕</button>
       </div>
 
-      <a href="https://home.webdash.dk">Home</a>
-      <a href="https://work.webdash.dk">Work</a>
+      <!-- ✅ Dynamic dashboard list -->
+      <div id="dashboard-list"></div>
     </div>
   </div>
 
@@ -153,7 +153,10 @@
           Behavior
         </button>
         <button class="nav-item" type="button" data-panel="layout">
-          Dashboard Layout
+          Layout
+        </button>
+        <button class="nav-item" type="button" data-panel="dashboard-management">
+          Dashboard Management
         </button>
         <button class="nav-item" type="button" data-panel="data">
           Data Management
@@ -352,7 +355,7 @@
         </div>
 
         <div class="panel" id="panel-layout">
-          <h3>Dashboard Layout</h3>
+          <h3>Layout</h3>
           <p>Customize your dashboard layout.</p>
           <div class="layout-editor">
             <!-- Always visible, never buried -->
@@ -366,6 +369,36 @@
             <!-- JS renders categories + buttons here -->
             <div id="layout-categories"></div>
           </div>
+        </div>
+
+        <div class="panel" id="panel-dashboard-management">
+          <h3>Dashboard Management</h3>
+          <p>Create, rename, or delete dashboards.</p>
+
+          <fieldset class="setting-group">
+            <legend>Default dashboard:</legend>
+
+            <label class="setting-row">
+              <span>Current default dashboard</span>
+              <select id="default-dashboard-select"></select>
+            </label>
+          </fieldset>
+
+          <fieldset class="setting-group">
+            <legend>Dashboards:</legend>
+
+            <div class="dashboard-management-list" id="dashboard-management-list"></div>
+
+            <button
+              type="button"
+              id="create-dashboard-btn"
+              class="layout-action-btn"
+              style="margin-top: 12px;"
+            >
+              <span class="action-icon"><i class="fa-solid fa-plus"></i></span>
+              Create new dashboard
+            </button>
+          </fieldset>
         </div>
 
         <div class="panel" id="panel-data">
