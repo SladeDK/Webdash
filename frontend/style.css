@@ -1507,6 +1507,66 @@ html.theme-light .bg-preview-circuit {
   background: var(--bg-control-hover);
 }
 
+.setting-row select {
+  min-width: 220px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-control);
+  color: var(--text-main);
+}
+
+.setting-row select option {
+  background: var(--bg-control);
+  color: var(--text-main);
+}
+
+.setting-row select {
+  margin-left: auto;
+}
+
+/* =====================================================
+   Select dropdowns (Preferences + Modals)
+   ===================================================== */
+
+/* Add dropdown indicator arrow */
+.setting-row select {
+  padding-right: 2rem; /* room for arrow */
+
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    right 0.75rem center,
+    right 0.45rem center;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+
+/* Hover / selected option */
+.setting-row select option:hover,
+.setting-row select option:checked {
+  background-color: var(--bg-control-hover);
+  color: var(--text-main);
+}
+
+/* Dropdown options (critical for readability) */
+.setting-row select option {
+  background-color: var(--bg-control);
+  color: var(--text-main);
+}
+
+#default-dashboard-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
 .toggle {
   position: relative;
   width: 42px;
@@ -2110,4 +2170,19 @@ html:not(.identity-ready) .header-center {
 
 .dashboard-item:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.setting-row select {
+  min-width: 220px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-control);
+  color: var(--text-main);
+}
+
+.setting-row select option {
+  background-color: var(--bg-control);
+  color: var(--text-main);
 }

@@ -379,7 +379,7 @@
             <legend>Default dashboard:</legend>
 
             <label class="setting-row">
-              <span>Current default dashboard</span>
+              <span>Default dashboard</span>
               <select id="default-dashboard-select"></select>
             </label>
           </fieldset>
@@ -550,6 +550,74 @@
           Cancel
         </button>
         <button type="button" class="danger-btn" id="confirm-accept">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Default Dashboard Modal -->
+<div
+  id="delete-default-dashboard-overlay"
+  class="modal-overlay"
+  hidden
+  aria-hidden="true"
+>
+  <div 
+    class="modal modal-container confirm-modal" 
+    role="dialog" 
+    aria-modal="true"
+    aria-labelledby="delete-default-dashboard-title"
+  >
+    <header class="modal-header">
+      <h2 id="delete-default-dashboard-title">
+        Delete Default Dashboard
+      </h2>
+
+      <button
+        class="modal-close"
+        type="button"
+        aria-label="Close delete default dialog"
+        id="delete-default-dashboard-close"
+      >
+        ✕
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <fieldset class="setting-group">
+        <legend>New default dashboard</legend>
+
+
+      <div>
+        <p class="setting-description">
+          You are deleting the default dashboard.
+          Please choose a new default dashboard to continue.
+        </p>
+
+        <label class="setting-row">
+          <span>New default dashboard</span>
+          <select id="delete-default-dashboard-select"></select>
+        </label>
+      </div>
+
+      <!-- ✅ ACTIONS BLOCK -->
+      <div class="modal-actions">
+        <button
+          type="button"
+          class="secondary-btn"
+          id="delete-default-dashboard-cancel"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="danger-btn"
+          id="delete-default-dashboard-confirm"
+          disabled
+        >
           Delete
         </button>
       </div>

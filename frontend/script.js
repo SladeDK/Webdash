@@ -19,6 +19,7 @@ let activeDashboardId = null;
 let defaultDashboardId = null;
 // [{ id, name}]
 let availableDashboards = [];
+let pendingDefaultDeletionId = null;
 let isCreatingDashboard = false;
 let renamingDashboardId = null;
 let dashboardValidationError = null;
@@ -1397,14 +1398,9 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
   const remainingDashboards =
     availableDashboards.filter(d => d.id !== dashboardId);
 
-  // --------------------------------------------------
-  // Rule 3 (temporary): Default dashboard with 3+ total
-  // --------------------------------------------------
   if (isDefault && remainingDashboards.length > 1) {
-    // Step C will replace this with a selection modal
-    setDashboardValidationError(
-      'You must choose a new default dashboard before deleting this one.'
-    );
+    pendingDefaultDeletionId = dashboardId;
+    openDeleteDefaultDashboardModal(dashboardId);
     return;
   }
 
@@ -2283,6 +2279,14 @@ if (searchInput) {
 
 const preferencesOverlay = document.getElementById('preferences-overlay');
 const preferencesButton = document.getElementById('settings-button');
+
+// Delete Default Dashboard modal references
+const deleteDefaultOverlay = document.getElementById('delete-default-dashboard-overlay');
+const deleteDefaultSelect = document.getElementById('delete-default-dashboard-select');
+const deleteDefaultConfirm = document.getElementById('delete-default-dashboard-confirm');
+const deleteDefaultCancel = document.getElementById('delete-default-dashboard-cancel');
+const deleteDefaultClose = document.getElementById('delete-default-dashboard-close');
+
 const closeButton = preferencesOverlay?.querySelector('.modal-close');
 
 const navItems = preferencesOverlay?.querySelectorAll('.nav-item');
@@ -2315,6 +2319,11 @@ closeButton?.addEventListener('click', closePreferences);
 
 // Click outside modal to close
 preferencesOverlay?.addEventListener('mousedown', (e) => {
+  // ✅ Ignore clicks when delete-default modal is on top
+  if (deleteDefaultOverlay && !deleteDefaultOverlay.hidden) {
+    return;
+  }
+
   const modal = preferencesOverlay.querySelector('.modal-container');
   if (modal && !modal.contains(e.target)) {
     closePreferences();
@@ -2326,9 +2335,9 @@ document.addEventListener('keydown', (e) => {
   const buttonEditorOverlay = document.getElementById('button-editor-overlay');
 
   const confirmOpen = confirmOverlay && !confirmOverlay.hidden;
-  const buttonEditorOpen =
-    buttonEditorOverlay && !buttonEditorOverlay.hidden;
+  const buttonEditorOpen = buttonEditorOverlay && !buttonEditorOverlay.hidden;
   const preferencesOpen = preferencesOverlay && !preferencesOverlay.hidden;
+  const deleteDefaultOpen = deleteDefaultOverlay && !deleteDefaultOverlay.hidden;
 
   /* ===============================
      ENTER = confirm delete
@@ -2345,11 +2354,19 @@ document.addEventListener('keydown', (e) => {
   }
 
   /* ===============================
-     ESCAPE = close topmost modal
-     =============================== */
+    ESCAPE = close topmost modal
+    =============================== */
   if (e.key !== 'Escape') return;
 
-  // 1️⃣ Confirm modal
+  // 1️⃣ Delete Default Dashboard modal (highest priority)
+  if (deleteDefaultOpen) {
+    e.preventDefault();
+    e.stopPropagation();
+    closeDeleteDefaultDashboardModal();
+    return;
+  }
+
+  // 2️⃣ Confirm modal
   if (confirmOpen) {
     e.preventDefault();
     e.stopPropagation();
@@ -2357,7 +2374,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  // 2️⃣ Button editor
+  // 3️⃣ Button editor
   if (buttonEditorOpen) {
     e.preventDefault();
     e.stopPropagation();
@@ -2365,7 +2382,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  // 3️⃣ Preferences
+  // 4️⃣ Preferences (lowest priority)
   if (preferencesOpen) {
     e.preventDefault();
     e.stopPropagation();
@@ -2509,12 +2526,189 @@ function closeConfirm() {
   confirmCallback = null;
 }
 
+// --------------------------------------------------
+// Delete Default Dashboard Modal helpers
+// --------------------------------------------------
+function openDeleteDefaultDashboardModal(dashboardId) {
+deleteDefaultSelect.innerHTML = '';
+
+const remaining = availableDashboards.filter(
+  d => d.id !== dashboardId
+  );
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Select dashboard…';
+  placeholder.disabled = true;
+  placeholder.selected = true;
+
+  // ✅ Hides it from the opened dropdown list
+  placeholder.hidden = true;
+
+  deleteDefaultSelect.appendChild(placeholder);
+
+  remaining.forEach(({ id, name }) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = name;
+    deleteDefaultSelect.appendChild(option);
+  });
+
+  deleteDefaultOverlay.hidden = false;
+  deleteDefaultOverlay.setAttribute('aria-hidden', 'false');
+
+  const modalContainer =
+  deleteDefaultOverlay.querySelector('.modal-container');
+
+  // Prevent clicks inside the modal from closing it
+  modalContainer.addEventListener('mousedown', e => {
+    e.stopPropagation();
+  });
+  modalContainer.addEventListener('click', e => {
+    e.stopPropagation();
+  });
+}
+
+function closeDeleteDefaultDashboardModal() {
+  pendingDefaultDeletionId = null;
+  deleteDefaultOverlay.hidden = true;
+  deleteDefaultOverlay.setAttribute('aria-hidden', 'true');
+}
+
+deleteDefaultOverlay.addEventListener('mousedown', (e) => {
+  // Prevent this click from reaching Preferences overlay
+  e.stopPropagation();
+
+  // Close only if clicking the backdrop itself
+  if (e.target === deleteDefaultOverlay) {
+    closeDeleteDefaultDashboardModal();
+  }
+});
+
+// Enable confirm only when a selection is made
+deleteDefaultSelect.addEventListener('change', () => {
+  deleteDefaultConfirm.disabled = !deleteDefaultSelect.value;
+});
+
+deleteDefaultCancel.addEventListener(
+  'click',
+  closeDeleteDefaultDashboardModal
+);
+
+deleteDefaultClose.addEventListener(
+  'click',
+  closeDeleteDefaultDashboardModal
+);
+
+deleteDefaultConfirm.addEventListener('click', async () => {
+  const newDefaultId = deleteDefaultSelect.value;
+  if (!newDefaultId || !pendingDefaultDeletionId) return;
+
+  // Assign new default first
+  defaultDashboardId = newDefaultId;
+  await DashboardService.setDefaultDashboardId(newDefaultId);
+
+  // Now delete the old default
+  await deleteDashboard(pendingDefaultDeletionId, false);
+
+  closeDeleteDefaultDashboardModal();
+});
+
+function openDeleteDefaultModal(dashboardId) {
+  const remainingDashboards =
+    availableDashboards.filter(d => d.id !== dashboardId);
+
+  let selectedNewDefault = null;
+
+  // Build custom modal content
+  const wrapper = document.createElement('div');
+
+  const text = document.createElement('p');
+  text.textContent =
+    'You are deleting the default dashboard. Please choose a new default dashboard to continue.';
+  wrapper.appendChild(text);
+
+  const select = document.createElement('select');
+  select.style.width = '100%';
+  select.style.marginTop = '0.75rem';
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Select new default dashboard…';
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  select.appendChild(placeholder);
+
+  remainingDashboards.forEach(({ id, name }) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = name;
+    select.appendChild(option);
+  });
+
+  select.addEventListener('change', () => {
+    selectedNewDefault = select.value;
+    confirmAccept.disabled = !selectedNewDefault;
+  });
+
+  wrapper.appendChild(select);
+
+  openConfirm({
+    title: 'Delete default dashboard',
+    message: wrapper,
+    confirmLabel: 'Delete',
+    onConfirm: async () => {
+      // Assign new default first
+      defaultDashboardId = selectedNewDefault;
+      await DashboardService.setDefaultDashboardId(defaultDashboardId);
+
+      // Delete the old default
+      await deleteDashboard(dashboardId, false);
+    }
+  });
+
+  // Disable delete until a new default is chosen
+  confirmAccept.disabled = true;
+}
+
 // =====================================================
 // Confirm modal button wiring (must come AFTER helpers)
 // =====================================================
 const confirmOverlay = document.getElementById('confirm-overlay');
 const confirmCancel = document.getElementById('confirm-cancel');
 const confirmAccept = document.getElementById('confirm-accept');
+
+// =====================================================
+// Delete Default Dashboard modal wiring
+// =====================================================
+deleteDefaultSelect.addEventListener('change', () => {
+  deleteDefaultConfirm.disabled = !deleteDefaultSelect.value;
+});
+
+deleteDefaultCancel.addEventListener(
+  'click',
+  closeDeleteDefaultDashboardModal
+);
+
+deleteDefaultClose.addEventListener(
+  'click',
+  closeDeleteDefaultDashboardModal
+);
+
+deleteDefaultConfirm.addEventListener('click', async () => {
+  const newDefaultId = deleteDefaultSelect.value;
+  if (!newDefaultId || !pendingDefaultDeletionId) return;
+
+  // 1️⃣ Persist the new default
+  defaultDashboardId = newDefaultId;
+  await DashboardService.setDefaultDashboardId(newDefaultId);
+
+  // 2️⃣ Delete the old default dashboard
+  await deleteDashboard(pendingDefaultDeletionId, false);
+
+  // 3️⃣ Close modal and reset state
+  closeDeleteDefaultDashboardModal();
+});
 
 confirmCancel?.addEventListener('click', closeConfirm);
 
