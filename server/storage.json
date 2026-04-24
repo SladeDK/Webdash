@@ -1,8 +1,8 @@
 {
   "dashboards": {
-    "default": {
+    "dashboard-1777011976244": {
       "id": "default-dashboard",
-      "name": "Default Dashboard",
+      "name": "My Dashboard",
       "categories": [
         {
           "id": "cat-getting-started",
@@ -27,18 +27,10 @@
           ]
         }
       ]
-    },
-    "dashboard-1777010470844": {
-      "name": "Renamed A",
-      "categories": []
-    },
-    "dashboard-1777010865239": {
-      "name": "Dashboard B",
-      "categories": []
     }
   },
-  "activeDashboardId": "dashboard-1777010470844",
-  "defaultDashboardId": "dashboard-1777010470844",
+  "activeDashboardId": "dashboard-1777011976244",
+  "defaultDashboardId": "dashboard-1777011976244",
   "preferences": {
     "test": true,
     "timestamp": 1776925263199,

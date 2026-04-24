@@ -1261,11 +1261,6 @@ function renderDashboardManagementPanel() {
     deleteBtn.onclick = () => {
       clearDashboardValidationError();
 
-      if (id === 'default') {
-        setDashboardValidationError('The default dashboard cannot be deleted.');
-        return;
-      }
-
       openConfirm({
         title: 'Delete dashboard',
         message: `Delete dashboard "${name}"?\nThis will remove the dashboard and all its categories and buttons.`,
@@ -1390,6 +1385,32 @@ async function renameDashboardDisplayName(dashboardId, newName) {
 }
 
 async function deleteDashboard(dashboardId, autoSwitch = true) {
+  // --------------------------------------------------
+  // Rule 1: Must always have at least one dashboard
+  // --------------------------------------------------
+  if (availableDashboards.length <= 1) {
+    setDashboardValidationError('You must have at least one dashboard.');
+    return;
+  }
+
+  const isDefault = dashboardId === defaultDashboardId;
+  const remainingDashboards =
+    availableDashboards.filter(d => d.id !== dashboardId);
+
+  // --------------------------------------------------
+  // Rule 3 (temporary): Default dashboard with 3+ total
+  // --------------------------------------------------
+  if (isDefault && remainingDashboards.length > 1) {
+    // Step C will replace this with a selection modal
+    setDashboardValidationError(
+      'You must choose a new default dashboard before deleting this one.'
+    );
+    return;
+  }
+
+  // --------------------------------------------------
+  // Perform backend delete
+  // --------------------------------------------------
   const res = await fetch(`/api/dashboards/${dashboardId}`, {
     method: 'DELETE'
   });
@@ -1399,16 +1420,37 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
     return;
   }
 
-  // ✅ Remove from local metadata (Option A)
-  availableDashboards = availableDashboards.filter(d => d.id !== dashboardId);
+  // --------------------------------------------------
+  // Update local dashboard metadata
+  // --------------------------------------------------
+  availableDashboards = remainingDashboards;
 
-  // ✅ Handle active dashboard deletion
-  if (autoSwitch && dashboardId === activeDashboardId) {
-    const fallback = availableDashboards[0]?.id;
-    if (fallback) {
-      await switchDashboard(fallback);
-    }
+  // --------------------------------------------------
+  // If default was deleted and one dashboard remains
+  // --------------------------------------------------
+  if (isDefault && remainingDashboards.length === 1) {
+    defaultDashboardId = remainingDashboards[0].id;
+    await DashboardService.setDefaultDashboardId(defaultDashboardId);
   }
+
+  // --------------------------------------------------
+  // If active dashboard was deleted → fallback to default
+  // --------------------------------------------------
+  if (dashboardId === activeDashboardId) {
+    activeDashboardId = defaultDashboardId;
+    await DashboardService.setActiveDashboardId(activeDashboardId);
+
+    const newDashboardState = await DashboardService.load();
+    dashboardState = newDashboardState;
+    pageCategories = dashboardState.categories;
+
+    renderCategories(pageCategories);
+    renderLayoutEditor(pageCategories);
+  }
+
+  // --------------------------------------------------
+  // Final UI sync
+  // --------------------------------------------------
   syncDefaultDashboardSelector();
   renderDashboardManagementPanel();
   renderDashboardList();
