@@ -36,8 +36,8 @@
   </div>
 
   <div class="header-center">
-    <img src="assets/default.jpg" alt="Logo">
-    <h1>SladeDK</h1>
+    <img src="assets/webdash-logo.png" alt="Logo">
+    <h1>WebDash</h1>
   </div>
 
   <div class="header-right dropdown">
@@ -170,7 +170,7 @@
             <p>Theme and visual preferences.</p>
 
             <fieldset class="setting-group">
-              <legend>Identity</legend>
+              <legend>Identity:</legend>
 
               <div class="identity-settings">
 
@@ -227,7 +227,7 @@
               </div>
             </fieldset>
             <fieldset class="setting-group">
-              <legend>Theme</legend>
+              <legend>Themes:</legend>
 
               <div class="theme-grid">
                 <button class="theme-card" type="button" data-theme="theme-dark">
@@ -267,7 +267,7 @@
               </div>
             </fieldset>
             <fieldset class="setting-group">
-              <legend>Background</legend>
+              <legend>Backgrounds:</legend>
 
               <div class="theme-grid background-grid">
                 <button class="theme-card bg-card" type="button" data-bg="bg-plain">
@@ -330,7 +330,7 @@
           <h3>Behavior</h3>
           <p>How the interface behaves.</p>
           <fieldset class="setting-group">
-            <legend>Dropdowns</legend>
+            <legend>Dropdowns:</legend>
 
             <label class="setting-row" for="pref-dropdown-autoclose">
               <span>Automatically close dropdowns when clicking outside</span>
@@ -342,7 +342,7 @@
           </fieldset>
 
           <fieldset class="setting-group">
-            <legend>Links</legend>
+            <legend>Links:</legend>
 
             <label class="setting-row" for="pref-open-links-new-tab">
               <span>Open dashboard links in new tab</span>
@@ -403,14 +403,14 @@
 
         <div class="panel" id="panel-data">
           <h3>Data Management</h3>
-          <p>Back up or restore your dashboard configuration.</p>
+          <p>Back up or restore your system configuration.</p>
 
           <fieldset class="setting-group">
-            <legend>Import / Export</legend>
+            <legend>Import / Export:</legend>
 
             <div class="data-management-card">
               <p class="setting-description">
-                Export a backup of your dashboard or restore a previous configuration.
+                Export or import a backup of your system or restore a previous configuration.
               </p>
 
               <div class="setting-actions">
@@ -419,7 +419,7 @@
                   class="secondary-btn"
                   id="export-dashboard-btn"
                 >
-                  Export dashboard settings
+                  Export system backup
                 </button>
 
                 <button
@@ -427,7 +427,7 @@
                   class="secondary-btn"
                   id="import-dashboard-btn"
                 >
-                  Import dashboard settings
+                  Import system backup
                 </button>
 
                 <input
@@ -440,11 +440,10 @@
             </div>
           </fieldset>
           <fieldset class="setting-group">
-            <legend>Reset</legend>
+            <legend>Reset Dashboard:</legend>
 
             <p class="setting-description">
-              Restore the dashboard to its original default state.
-              This will remove all custom settings and layout changes.
+              Restore the dashboard to the default state, and will remove all custom settings and layout changes.
             </p>
 
             <div class="setting-actions">
@@ -458,6 +457,22 @@
               </button>
             </div>
           </fieldset>
+          <fieldset class="setting-group">
+            <legend>Reset System:</legend>
+
+            <p class="setting-description">
+              This will reset the entire system to the default state, and will remove all custom dashboards and settings.
+            </p>
+
+            <div class="setting-actions">
+              <button 
+              type="button"
+              class="danger-outline-btn"
+              id="reset-system-btn"
+              >
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              Reset System
+            </button>
         </div>
       </section>
     </div>

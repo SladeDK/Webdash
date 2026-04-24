@@ -131,7 +131,7 @@ document.addEventListener('submit', e => {
 // =====================================================================================
 const DEFAULT_DASHBOARD_STATE = {
   id: "default-dashboard",
-  name: "My Dashboard",
+  name: "WebDash",
   categories: [
     {
       id: "cat-getting-started",
@@ -140,23 +140,33 @@ const DEFAULT_DASHBOARD_STATE = {
       visible: true,
       items: [
         {
+          id: "btn-docs",
+          label: "WebDash Github",
+          url: "https://github.com/SladeDK/Webdash",
+          order: 0,
+          visible: true
+        },
+        {
           id: "btn-settings",
           label: "Google",
           url: "https://google.com",
           order: 1,
           visible: true
         },
-        {
-          id: "btn-docs",
-          label: "WebDash Github",
-          url: "https://github.com/SladeDK/Webdash",
-          order: 0,
-          visible: true
-        }
       ]
     }
   ]
 };
+
+function getDefaultDashboardTemplate(overrides = {}) {
+  const base = structuredClone(DEFAULT_DASHBOARD_STATE);
+
+  return {
+    ...base,
+    id: overrides.id ?? base.id,
+    name: overrides.name ?? base.name
+  };
+}
 
 // ======================================================================
 // Dashboard state initialization logic with first-ever load detection
@@ -295,7 +305,16 @@ async function switchDashboard(dashboardId) {
 // ======================================================================
 
 async function createAndSwitchDashboard({ id, name }) {
-  await DashboardService.createDashboard({ id, name });
+  const template = getDefaultDashboardTemplate({ id, name });
+
+  await DashboardService.createDashboard({
+    id: template.id,
+    name: template.name
+  });
+
+  // Persist default layout immediately
+  dashboardState = template;
+  await DashboardService.save(dashboardState);
 
   availableDashboards.push({ id, name });
 
@@ -780,21 +799,101 @@ function buildExportFilename() {
   return `WebDash-${dashboardName}-${date}.json`;
 }
 
+
 // =====================================================
-// Data Management — Export dashboard settings
+// Data Management — Export system backup (Schema v2)
 // =====================================================
+
+/*
+=====================================================
+SYSTEM IMPORT / EXPORT CONTRACT (Schema v2)
+-----------------------------------------------------
+- Export represents a FULL system snapshot
+- Dashboards are merged by ID on import
+- Categories and buttons are replaced by ID, merged otherwise
+- Missing items are preserved
+- Preferences may be overwritten (user opt-in)
+- Import must NOT bypass invariants
+- initApp() MUST be called after import
+=====================================================
+*/
+
+function validateSystemImport(payload) {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid import file');
+  }
+
+  if (payload.schemaVersion !== 2) {
+    throw new Error(
+      `Unsupported import schema version: ${payload.schemaVersion}`
+    );
+  }
+
+  if (payload.type !== 'system') {
+    throw new Error('Import file is not a system backup');
+  }
+
+  if (!Array.isArray(payload.dashboards)) {
+    throw new Error('Invalid dashboards array');
+  }
+
+  if (!payload.meta ||
+      typeof payload.meta.activeDashboardId !== 'string' ||
+      typeof payload.meta.defaultDashboardId !== 'string'
+  ) {
+    throw new Error('Invalid dashboard metadata');
+  }
+
+  if (!payload.preferences ||
+      !payload.preferences.appearance ||
+      !payload.preferences.behavior
+  ) {
+    throw new Error('Invalid preferences section');
+  }
+}
+
 const exportDashboardBtn = document.getElementById('export-dashboard-btn');
 
 if (exportDashboardBtn) {
-  exportDashboardBtn.addEventListener('click', () => {
+  exportDashboardBtn.addEventListener('click', async () => {
     try {
+      const dashboards = [];
+
+      // Collect full data for each dashboard
+      for (const { id } of availableDashboards) {
+        // Switch dashboard context to load its data
+        await DashboardService.setActiveDashboardId(id);
+        const state = await DashboardService.load();
+        if (!state) continue;
+
+        dashboards.push({
+          id: state.id,
+          identity: {
+            name: state.name,
+            icon: userPreferences?.appearance?.identity?.icon ?? null
+          },
+          categories: structuredClone(state.categories)
+        });
+      }
+
+      // Restore active dashboard context
+      await DashboardService.setActiveDashboardId(activeDashboardId);
+
       const exportPayload = {
-        schemaVersion: 1,
+        schemaVersion: 2,
+        type: 'system',
         exportedAt: new Date().toISOString(),
-        pageId: getPageId(),
-        data: {
-          preferences: userPreferences,
-          categories: pageCategories
+
+        dashboards,
+
+        meta: {
+          activeDashboardId,
+          defaultDashboardId
+        },
+
+        preferences: {
+          appearance: structuredClone(userPreferences.appearance),
+          behavior: structuredClone(userPreferences.behavior)
         }
       };
 
@@ -802,119 +901,237 @@ if (exportDashboardBtn) {
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
 
+      const date = new Date().toISOString().split('T')[0];
       const a = document.createElement('a');
       a.href = url;
-
-      // ✅ Polished filename
-      a.download = buildExportFilename();
-
+      a.download = `WebDash-System-Backup-${date}.json`;
       document.body.appendChild(a);
       a.click();
-
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
     } catch (err) {
-      console.error('[WebDash] Export failed:', err);
-      alert('Failed to export dashboard settings.');
+      console.error('[WebDash] System export failed:', err);
+      alert('Failed to export system backup.');
     }
   });
 }
 
+function mergeItems(localItems = [], importedItems = []) {
+  const localById = new Map(localItems.map(item => [item.id, item]));
+  const usedLocalIds = new Set();
+
+  // First, take all imported items (authoritative)
+  const merged = importedItems.map(imported => {
+    if (localById.has(imported.id)) {
+      usedLocalIds.add(imported.id);
+    }
+    return { ...imported };
+  });
+
+  // Then append local-only items
+  for (const local of localItems) {
+    if (!usedLocalIds.has(local.id)) {
+      merged.push({ ...local });
+    }
+  }
+
+  // Ensure correct final order
+  merged.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  return merged;
+}
+
+function mergeCategories(localCategories = [], importedCategories = []) {
+  const result = [...localCategories];
+
+  for (const imported of importedCategories) {
+    const localIndex = result.findIndex(c => c.id === imported.id);
+
+    if (localIndex !== -1) {
+      const local = result[localIndex];
+
+      result[localIndex] = {
+        ...imported,
+        items: mergeItems(local.items, imported.items)
+      };
+    } else {
+      result.push({ ...imported });
+    }
+  }
+
+  return result;
+}
+
+function mergeIdentity(local, imported) {
+  if (!local) return imported;
+
+  return (
+    local.name !== imported.name ||
+    local.icon !== imported.icon
+  )
+    ? { ...imported }
+    : local;
+}
+
 // =====================================================
-// Data Management — Import dashboard settings
+// Data Management — Import system backup (Schema v2)
 // =====================================================
 const importDashboardBtn = document.getElementById('import-dashboard-btn');
 const importDashboardFile = document.getElementById('import-dashboard-file');
 
 if (importDashboardBtn && importDashboardFile) {
   importDashboardBtn.addEventListener('click', () => {
-    importDashboardFile.value = ''; // reset so the same file can be selected again
+    importDashboardFile.value = '';
     importDashboardFile.click();
   });
 
-  importDashboardFile.addEventListener('change', () => {
+  importDashboardFile.addEventListener('change', async () => {
     const file = importDashboardFile.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
 
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(reader.result);
+      validateSystemImport(payload);
+      openSystemImportConfirm(payload);
 
-        validateImportPayload(parsed);
-
-      openConfirm({
-        title: 'Import dashboard settings',
-        message:
-          'This will replace your current dashboard layout and preferences.\n\nThis action cannot be undone.',
-        confirmLabel: 'Import',
-        onConfirm: () => {
-          applyImportedData(parsed);
-
-          // ✅ Close the Preferences modal after successful import
-          closePreferences();
-        }
-      });
-      } catch (err) {
-        console.error('[WebDash] Import failed:', err);
-        alert('Invalid or unsupported import file.');
-      }
-    };
-
-    reader.readAsText(file);
+    } catch (err) {
+      console.error('[WebDash] Import failed:', err);
+      alert(err.message || 'Invalid or unsupported import file.');
+    }
   });
 }
 
-// =====================================================
-// Data Management — Import validation helper
-// =====================================================
-function validateImportPayload(payload) {
-  if (
-    !payload ||
-    typeof payload !== 'object' ||
-    payload.schemaVersion !== 1 ||
-    !payload.data ||
-    !payload.data.preferences ||
-    !payload.data.categories
-  ) {
-    throw new Error('Invalid import schema');
-  }
+function openSystemImportConfirm(payload) {
+  const wrapper = document.createElement('div');
 
-  if (!Array.isArray(payload.data.categories)) {
-    throw new Error('Categories must be an array');
-  }
+  const message = document.createElement('p');
+  message.textContent =
+    'This will merge the imported system backup into your current setup.\n\n' +
+    '• Dashboards with matching IDs will be updated\n' +
+    '• Categories and buttons will be merged by ID\n' +
+    '• Existing items not present in the import will be kept';
+
+  const prefsWrapper = document.createElement('label');
+  prefsWrapper.style.display = 'flex';
+  prefsWrapper.style.alignItems = 'center';
+  prefsWrapper.style.gap = '0.5rem';
+  prefsWrapper.style.marginTop = '1rem';
+
+  const prefsCheckbox = document.createElement('input');
+  prefsCheckbox.type = 'checkbox';
+  prefsCheckbox.checked = true;
+
+  const prefsLabel = document.createElement('span');
+  prefsLabel.textContent = 'Replace appearance and behavior settings';
+
+  prefsWrapper.appendChild(prefsCheckbox);
+  prefsWrapper.appendChild(prefsLabel);
+
+  wrapper.appendChild(message);
+  wrapper.appendChild(prefsWrapper);
+
+  openConfirm({
+    title: 'Import system backup',
+    message: wrapper,
+    confirmLabel: 'Import',
+    onConfirm: async () => {
+      await importSystem(payload, prefsCheckbox.checked);
+    }
+  });
 }
 
-
-// =====================================================
-// Data Management — Apply imported data
-// =====================================================
-
-function applyImportedData(payload) {
-  // Replace preferences
-  localStorage.setItem(
-    USER_PREFS_KEY,
-    JSON.stringify(payload.data.preferences)
+async function importSystem(payload, replacePreferences) {
+  // Map existing dashboards by ID
+  const localDashboards = new Map(
+    availableDashboards.map(d => [d.id, d])
   );
-  Object.assign(userPreferences, payload.data.preferences);
 
-  // Replace dashboard content
-  dashboardState = {
-    ...dashboardState,
-    categories: structuredClone(payload.data.categories)
-  };
+  // Merge or create dashboards
+  for (const imported of payload.dashboards) {
+    if (localDashboards.has(imported.id)) {
+      // Merge into existing dashboard
+      await DashboardService.setActiveDashboardId(imported.id);
+      const localState = await DashboardService.load();
 
-  DashboardService.save(dashboardState);
+      const mergedCategories = mergeCategories(
+        localState.categories,
+        imported.categories
+      );
 
-  pageCategories = dashboardState.categories;
+      const mergedIdentity = mergeIdentity(
+        { name: localState.name, icon: userPreferences.appearance.identity?.icon },
+        imported.identity
+      );
 
-  ensureIdentityDefaults();
-  applyIdentityToUI();
-  document.documentElement.classList.add('identity-ready');
+      const mergedState = {
+        ...localState,
+        name: mergedIdentity.name,
+        categories: mergedCategories
+      };
 
-  renderCategories(pageCategories);
-  renderLayoutEditor(pageCategories);
+      await DashboardService.save(mergedState);
+    } else {
+        // -------------------------------
+        // Create new dashboard from import
+        // -------------------------------
+
+        const importedName = imported.identity.name;
+
+        // Case-insensitive name collision check
+        const hasNameCollision = availableDashboards.some(d =>
+          d.name.toLowerCase() === importedName.toLowerCase()
+        );
+
+        const finalName = hasNameCollision
+          ? `${importedName} (imported)`
+          : importedName;
+
+        await DashboardService.createDashboard({
+          id: imported.id,
+          name: finalName
+        });
+
+        await DashboardService.save({
+          id: imported.id,
+          name: finalName,
+          categories: structuredClone(imported.categories)
+        });
+
+        // Keep metadata array in sync during import
+        availableDashboards.push({
+          id: imported.id,
+          name: finalName
+        });
+    }
+  }
+
+  // Preferences (optional)
+  if (replacePreferences) {
+    userPreferences.appearance = structuredClone(payload.preferences.appearance);
+    userPreferences.behavior = structuredClone(payload.preferences.behavior);
+    await PreferencesService.save(userPreferences);
+  }
+
+  // Restore default and active dashboards
+  await DashboardService.setDefaultDashboardId(
+    payload.meta.defaultDashboardId
+  );
+  await DashboardService.setActiveDashboardId(
+    payload.meta.activeDashboardId
+  );
+
+  // ✅ Re-bootstrap invariants and UI
+  await initApp();
+
+  // ✅ Refresh Preferences UI if it is currently open
+  if (isPreferencesOpen()) {
+  syncDefaultDashboardSelector();
+  renderDashboardList();
+  renderDashboardManagementPanel();
+  }
 }
 
 // ========================================================================
@@ -929,7 +1146,7 @@ if (resetDashboardBtn) {
     openConfirm({
       title: 'Reset dashboard',
       message:
-        'This will permanently remove all dashboard customizations, including layout, appearance, and settings.\n\nThis action cannot be undone.',
+        `This will reset the dashboard "${dashboardState?.name ?? 'Dashboard'}" back to the default dashboard layout.\n\nAll categories, buttons, and the dashboard identity will be restored to their original defaults.\n\nThis action cannot be undone.`,
       confirmLabel: 'Reset',
       onConfirm: () => {
         resetDashboard();
@@ -996,30 +1213,66 @@ function createDefaultPreferences() {
   };
 }
 
-function resetDashboard() {
-  // 1️⃣ Reset preferences
-  const defaults = createDefaultPreferences();
-  localStorage.setItem(USER_PREFS_KEY, JSON.stringify(defaults));
-  Object.assign(userPreferences, defaults);
+async function resetDashboard(dashboardId = activeDashboardId) {
+  if (!dashboardId) return;
 
-  // 2️⃣ Reset dashboard state
-  dashboardState = structuredClone(DEFAULT_DASHBOARD_STATE);
+  const template = getDefaultDashboardTemplate({
+    id: dashboardId,
+    name: dashboardState?.name ?? 'Dashboard'
+  });
+
+  dashboardState = template;
   pageCategories = dashboardState.categories;
 
-  // Save the reset dashboard state
-  DashboardService.save(dashboardState);          // ✅ critical
+  await DashboardService.save(dashboardState);
 
-  // 3️⃣ Re-apply visual state
-  setActiveTheme(defaults.appearance.theme);
-  setActiveBackground(defaults.appearance.background);
-  syncBehaviorUI();
-  ensureIdentityDefaults();
-  applyIdentityToUI();
-  document.documentElement.classList.add('identity-ready');
-
-  // 4️⃣ Re-render
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
+}
+
+async function resetSystem() {
+  // 1️⃣ Clear user preferences
+  localStorage.removeItem(USER_PREFS_KEY);
+
+  // 2️⃣ Clear all dashboards on backend
+  for (const { id } of availableDashboards) {
+    await fetch(`/api/dashboards/${id}`, { method: 'DELETE' });
+  }
+
+  // 3️⃣ Reset in-memory dashboard metadata
+  availableDashboards = [];
+
+  // 4️⃣ Create one fresh default dashboard
+  const id = `dashboard-${Date.now()}`;
+  const template = getDefaultDashboardTemplate({ id });
+
+  await DashboardService.createDashboard({
+    id: template.id,
+    name: template.name
+  });
+
+  await DashboardService.save(template);
+
+  // 5️⃣ Set active + default dashboard
+  activeDashboardId = template.id;
+  defaultDashboardId = template.id;
+
+  await DashboardService.setActiveDashboardId(template.id);
+  await DashboardService.setDefaultDashboardId(template.id);
+
+  // 6️⃣ Reinitialize app state cleanly
+  dashboardState = template;
+  pageCategories = dashboardState.categories;
+
+  userPreferences = createDefaultPreferences();
+  await PreferencesService.save(userPreferences);
+
+  setActiveTheme(userPreferences.appearance.theme);
+  setActiveBackground(userPreferences.appearance.background);
+  applyIdentityToUI();
+
+  // 7️⃣ Re-render everything
+  await initApp();
 }
 
 // =====================================================
@@ -2300,6 +2553,31 @@ function openPreferences() {
   const firstNav = preferencesOverlay.querySelector('.nav-item');
   firstNav?.focus();
 
+  // --------------------------------------------------
+  // Wire "Reset system" button (Preferences lifecycle)
+  // --------------------------------------------------
+  const resetSystemBtn = document.getElementById('reset-system-btn');
+
+  if (resetSystemBtn && !resetSystemBtn._wired) {
+    resetSystemBtn.addEventListener('click', () => {
+      openConfirm({
+        title: 'Reset system',
+        message:
+          'This will delete ALL dashboards and ALL preferences and restore WebDash to its original default state.\n\n' +
+          'This includes layouts, buttons, categories, identities, themes, and settings.\n\n' +
+          'This action cannot be undone.',
+        confirmLabel: 'Reset system',
+        onConfirm: async () => {
+          await resetSystem();
+          closePreferences();
+        }
+      });
+    });
+
+    // Prevent duplicate listeners if Preferences is opened again
+    resetSystemBtn._wired = true;
+  }
+
   syncDefaultDashboardSelector();
   renderDashboardManagementPanel();
 }
@@ -2309,6 +2587,10 @@ function closePreferences() {
   preferencesOverlay.hidden = true;
   preferencesOverlay.setAttribute('aria-hidden', 'true');
   preferencesButton?.focus();
+}
+
+function isPreferencesOpen() {
+  return preferencesOverlay && !preferencesOverlay.hidden;
 }
 
 // Open button
@@ -2486,26 +2768,32 @@ function openConfirm({ title, message, confirmLabel = 'Delete', onConfirm }) {
   const titleEl = document.getElementById('confirm-title');
   const messageEl = document.getElementById('confirm-message');
   const confirmBtn = document.getElementById('confirm-accept');
+  const modalContainer = overlay?.querySelector('.modal-container');
 
   if (!overlay || !titleEl || !messageEl || !confirmBtn) return;
 
+  // Title
   titleEl.textContent = title;
-  messageEl.textContent = message;
+
+  // ✅ Message: support string OR DOM node
+  messageEl.innerHTML = '';
+  if (typeof message === 'string') {
+    messageEl.textContent = message;
+  } else if (message instanceof Node) {
+    messageEl.appendChild(message);
+  }
+
+  // Confirm button
   confirmBtn.textContent = confirmLabel;
 
+  // Store callback
   confirmCallback = onConfirm;
 
-  const modalContainer = overlay.querySelector('.modal-container');
+  // Prevent clicks inside modal from bubbling
+  modalContainer?.addEventListener('mousedown', e => e.stopPropagation());
+  modalContainer?.addEventListener('click', e => e.stopPropagation());
 
-  // Prevent clicks inside confirm modal from closing Preferences
-  modalContainer?.addEventListener('mousedown', e => {
-    e.stopPropagation();
-  });
-  modalContainer?.addEventListener('click', e => {
-    e.stopPropagation();
-  });
-
-  // Clicking on backdrop closes ONLY confirm modal
+  // Clicking backdrop closes ONLY confirm modal
   overlay.addEventListener('mousedown', e => {
     if (e.target === overlay) {
       e.stopPropagation();

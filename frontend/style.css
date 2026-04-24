@@ -2079,6 +2079,29 @@ html.theme-light.bg-circuit::before {
   flex: none;
 }
 
+/* =====================================================
+   Modal Scrollbar Styling
+   ===================================================== */
+
+/* Firefox */
+.modal-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+/* WebKit (Chrome, Edge, Safari) */
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  opacity: 0.6;
+}
+
+.modal-content:hover::-webkit-scrollbar-thumb {
+  opacity: 1;
+}
+
 /* Data Management card */
 .data-management-card {
   background: var(--bg-control);
