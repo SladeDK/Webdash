@@ -1,746 +1,742 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WebDash</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebDash</title>
 
-  <link rel="icon" href="assets/webdash-logo.png" />
-  <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="assets/webdash-logo.png" />
+    <link rel="stylesheet" href="style.css" />
 
-  <script src="https://kit.fontawesome.com/782d4dd7ab.js" crossorigin="anonymous"></script>
-  <script src="script.js" defer></script>
-</head>
+    <script src="https://kit.fontawesome.com/782d4dd7ab.js" crossorigin="anonymous"></script>
+    <script src="script.js" defer></script>
+  </head>
 
-<body>
+  <body>
+    <header class="header">
+      <div class="header-left dropdown">
+          <button 
+            class="dropdown-btn"
+            aria-haspopup="true"
+            aria-expanded="false"
+            type="button"
+          >
+          <i class="fa-solid fa-bars"></i> Dashboards
+        </button>
+        <div class="dropdown-menu">
+          <div class="dropdown-header">
+            <span class="dropdown-label">Dashboards:</span>
+            <button type="button" class="dropdown-close">✕</button>
+          </div>
 
-<header class="header">
-  <div class="header-left dropdown">
-      <button 
-        class="dropdown-btn"
-        aria-haspopup="true"
-        aria-expanded="false"
-        type="button"
-      >
-      <i class="fa-solid fa-bars"></i> Dashboards
-    </button>
-    <div class="dropdown-menu">
-      <div class="dropdown-header">
-        <span class="dropdown-label">Dashboards:</span>
-        <button type="button" class="dropdown-close">✕</button>
+          <!-- ✅ Dynamic dashboard list -->
+          <div id="dashboard-list"></div>
+        </div>
       </div>
 
-      <!-- ✅ Dynamic dashboard list -->
-      <div id="dashboard-list"></div>
-    </div>
-  </div>
+      <div class="header-center">
+        <img src="assets/webdash-logo.png" alt="Logo">
+        <h1>WebDash</h1>
+      </div>
 
-  <div class="header-center">
-    <img src="assets/webdash-logo.png" alt="Logo">
-    <h1>WebDash</h1>
-  </div>
+      <div class="header-right dropdown">
+        <button 
+          class="dropdown-btn"
+          aria-haspopup="true"
+          aria-expanded="false"
+          type="button"
+          >
+          <i class="fa-solid fa-paint-brush"></i> Themes
+        </button>
 
-  <div class="header-right dropdown">
-    <button 
-      class="dropdown-btn"
-      aria-haspopup="true"
-      aria-expanded="false"
-      type="button"
-      >
-      <i class="fa-solid fa-paint-brush"></i> Themes
-    </button>
-
-    <button
-      id="settings-button"
-      class="dropdown-btn"
-      aria-label="Open preferences"
-      type="button"
-    >
-      <span class="icon"><i class="fa-solid fa-gear"></i></span>
-    </button>
-
-  <div class="dropdown-menu">
-    
-    <div class="dropdown-header">
-      <span class="dropdown-label">Themes:</span>
-      <button class="dropdown-close" type="button" aria-label="Close themes menu">✕</button>
-    </div>
-
-    <button data-theme="system" type="button" title="Follow your operating system’s theme">
-      <span class="theme-indicator">✓</span>
-      System
-    </button>
-
-    <button data-theme="theme-dark" type="button" title="Standard dark dashboard theme">
-      <span class="theme-indicator">✓</span>
-      Dark
-    </button>
-
-    <button data-theme="theme-light" type="button" title="Clean, bright layout for daytime use">
-      <span class="theme-indicator">✓</span>
-      Light
-    </button>
-
-    <button data-theme="theme-midnight" type="button" title="Deep blue tones for low-light environments">
-      <span class="theme-indicator">✓</span>
-      Midnight
-    </button>
-
-    <button data-theme="theme-slate" type="button" title="Neutral, professional gray-blue palette">
-      <span class="theme-indicator">✓</span>
-      Slate
-    </button>
-
-    <button data-theme="theme-nord" type="button" title="Soft, cool contrast inspired by Nord colors">
-      <span class="theme-indicator">✓</span>
-      Nord
-    </button>
-
-    <button data-theme="theme-carbon" type="button" title="Ultra-dark theme with high contrast">
-      <span class="theme-indicator">✓</span>
-      Carbon
-    </button>
-
-    <button data-theme="theme-glass" type="button" title="Frosted glass effect with depth">
-      <span class="theme-indicator">✓</span>
-      Glass
-    </button>
-  </div>
-  </div>
-</header>
-
-<main class="container">  
-  <div class="search-wrap">
-    <input
-      type="search"
-      id="service-search"
-      placeholder="Search services…"
-      aria-label="Search services"
-    />
-  </div>
-  <div class="categories">
-    <!-- JS renders categories + buttons here -->
-  </div>
-</main>
-<!-- Preferences Modal -->
-<div id="preferences-overlay" class="modal-overlay" hidden aria-hidden="true">
-  <div
-    class="modal modal-container"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="preferences-title"
-  >
-    <!-- Modal header -->
-    <header class="modal-header">
-      <h2 id="preferences-title">Preferences</h2>
         <button
-        class="modal-close"
-        type="button"
-        aria-label="Close preferences"
+          id="settings-button"
+          class="dropdown-btn"
+          aria-label="Open preferences"
+          type="button"
         >
-        ✕
-      </button>
+          <span class="icon"><i class="fa-solid fa-gear"></i></span>
+        </button>
+
+      <div class="dropdown-menu">
+        
+        <div class="dropdown-header">
+          <span class="dropdown-label">Themes:</span>
+          <button class="dropdown-close" type="button" aria-label="Close themes menu">✕</button>
+        </div>
+
+        <button data-theme="system" type="button" title="Follow your operating system’s theme">
+          <span class="theme-indicator">✓</span>
+          System
+        </button>
+
+        <button data-theme="theme-dark" type="button" title="Standard dark dashboard theme">
+          <span class="theme-indicator">✓</span>
+          Dark
+        </button>
+
+        <button data-theme="theme-light" type="button" title="Clean, bright layout for daytime use">
+          <span class="theme-indicator">✓</span>
+          Light
+        </button>
+
+        <button data-theme="theme-midnight" type="button" title="Deep blue tones for low-light environments">
+          <span class="theme-indicator">✓</span>
+          Midnight
+        </button>
+
+        <button data-theme="theme-slate" type="button" title="Neutral, professional gray-blue palette">
+          <span class="theme-indicator">✓</span>
+          Slate
+        </button>
+
+        <button data-theme="theme-nord" type="button" title="Soft, cool contrast inspired by Nord colors">
+          <span class="theme-indicator">✓</span>
+          Nord
+        </button>
+
+        <button data-theme="theme-carbon" type="button" title="Ultra-dark theme with high contrast">
+          <span class="theme-indicator">✓</span>
+          Carbon
+        </button>
+
+        <button data-theme="theme-glass" type="button" title="Frosted glass effect with depth">
+          <span class="theme-indicator">✓</span>
+          Glass
+        </button>
+      </div>
+      </div>
     </header>
 
-    <!-- Modal body -->
-    <div class="modal-body">
-      <!-- Left navigation -->
-      <nav class="modal-nav" aria-label="Preferences categories">
-        <button class="nav-item active" type="button" data-panel="appearance">
-          Appearance
-        </button>
-        <button class="nav-item" type="button" data-panel="behavior">
-          Behavior
-        </button>
-        <button class="nav-item" type="button" data-panel="layout">
-          Layout
-        </button>
-        <button class="nav-item" type="button" data-panel="dashboard-management">
-          Dashboard Management
-        </button>
-        <button class="nav-item" type="button" data-panel="data">
-          Data Management
-        </button>
-      </nav>
+    <main class="container">  
+      <div class="search-wrap">
+        <input
+          type="search"
+          id="service-search"
+          placeholder="Search services…"
+          aria-label="Search services"
+        />
+      </div>
+      <div class="categories">
+        <!-- JS renders categories + buttons here -->
+      </div>
+    </main>
+    <!-- Preferences Modal -->
+    <div id="preferences-overlay" class="modal-overlay" hidden aria-hidden="true">
+      <div
+        class="modal modal-container"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="preferences-title"
+      >
+        <!-- Modal header -->
+        <header class="modal-header">
+          <h2 id="preferences-title">Preferences</h2>
+            <button
+            class="modal-close"
+            type="button"
+            aria-label="Close preferences"
+            >
+            ✕
+          </button>
+        </header>
 
-      <!-- Right content -->
-      <section class="modal-content">
-        <div class="panel active" id="panel-appearance">
-          <h3>Appearance</h3>
-            <p>Theme and visual preferences.</p>
+        <!-- Modal body -->
+        <div class="modal-body">
+          <!-- Left navigation -->
+          <nav class="modal-nav" aria-label="Preferences categories">
+            <button class="nav-item active" type="button" data-panel="appearance">
+              Appearance
+            </button>
+            <button class="nav-item" type="button" data-panel="behavior">
+              Behavior
+            </button>
+            <button class="nav-item" type="button" data-panel="layout">
+              Layout
+            </button>
+            <button class="nav-item" type="button" data-panel="dashboard-management">
+              Dashboard Management
+            </button>
+            <button class="nav-item" type="button" data-panel="data">
+              Data Management
+            </button>
+          </nav>
 
-            <fieldset class="setting-group">
-              <legend>Identity:</legend>
+          <!-- Right content -->
+          <section class="modal-content">
+            <div class="panel active" id="panel-appearance">
+              <h3>Appearance</h3>
+                <p>Theme and visual preferences.</p>
 
-              <div class="identity-settings">
+                <fieldset class="setting-group">
+                  <legend>Identity:</legend>
 
-                <!-- Identity preview -->
-                <div class="identity-preview identity-editable">
-                  <div class="identity-left">
+                  <div class="identity-settings">
 
-                    <!-- Icon -->
-                    <div class="identity-icon-wrapper">
-                      <img
-                        src="assets/default.jpg"
-                        alt="Dashboard icon"
-                        class="identity-icon-preview"
-                      >
-                      <div class="identity-icon-overlay">
-                        <i class="fa-solid fa-plus"></i>
+                    <!-- Identity preview -->
+                    <div class="identity-preview identity-editable">
+                      <div class="identity-left">
+
+                        <!-- Icon -->
+                        <div class="identity-icon-wrapper">
+                          <img
+                            src="assets/default.jpg"
+                            alt="Dashboard icon"
+                            class="identity-icon-preview"
+                          >
+                          <div class="identity-icon-overlay">
+                            <i class="fa-solid fa-plus"></i>
+                          </div>
+                        </div>
+                        
+                        <!-- Name -->
+                        <span class="identity-name-preview">
+                          SladeDK
+                        </span>
                       </div>
-                    </div>
-                    
-                    <!-- Name -->
-                    <span class="identity-name-preview">
-                      SladeDK
-                    </span>
-                  </div>
 
-                  <!-- Reset -->
-                  <button
-                    type="button"
-                    class="identity-reset-btn secondary-btn"
-                  >
-                    Reset
+                      <!-- Reset -->
+                      <button
+                        type="button"
+                        class="identity-reset-btn secondary-btn"
+                      >
+                        Reset
+                      </button>
+                    </div>
+
+                    <!-- Hidden file input for later wiring -->
+                    <input
+                      type="file"
+                      id="identity-icon-input"
+                      accept="image/png, image/jpeg"
+                      hidden
+                    >
+
+                    <!-- Name input -->
+                    <label class="identity-row">
+                      <span>Dashboard name</span>
+                      <input
+                        type="text"
+                        class="identity-name-input"
+                        value="SladeDK"
+                        placeholder="Dashboard"
+                      >
+                    </label>
+
+                  </div>
+                </fieldset>
+                <fieldset class="setting-group">
+                  <legend>Themes:</legend>
+
+                  <div class="theme-grid">
+                    <button class="theme-card" type="button" data-theme="theme-dark">
+                      <span class="theme-preview theme-dark"></span>
+                      <span class="theme-name">Dark</span>
+                    </button>
+
+                    <button class="theme-card" type="button"data-theme="theme-light">
+                      <span class="theme-preview theme-light"></span>
+                      <span class="theme-name">Light</span>
+                    </button>
+
+                    <button class="theme-card" type="button" data-theme="theme-midnight">
+                      <span class="theme-preview theme-midnight"></span>
+                      <span class="theme-name">Midnight</span>
+                    </button>
+
+                    <button class="theme-card" type="button" data-theme="theme-slate">
+                      <span class="theme-preview theme-slate"></span>
+                      <span class="theme-name">Slate</span>
+                    </button>
+
+                    <button class="theme-card" type="button" data-theme="theme-nord">
+                      <span class="theme-preview theme-nord"></span>
+                      <span class="theme-name">Nord</span>
+                    </button>
+
+                    <button class="theme-card" type="button" data-theme="theme-carbon">
+                      <span class="theme-preview theme-carbon"></span>
+                      <span class="theme-name">Carbon</span>
+                    </button>
+
+                    <button class="theme-card" type="button" data-theme="theme-glass">
+                      <span class="theme-preview theme-glass"></span>
+                      <span class="theme-name">Glass</span>
+                    </button>
+                  </div>
+                </fieldset>
+                <fieldset class="setting-group">
+                  <legend>Backgrounds:</legend>
+
+                  <div class="theme-grid background-grid">
+                    <button class="theme-card bg-card" type="button" data-bg="bg-plain">
+                      <span class="theme-preview bg-preview-plain"></span>
+                      <span class="theme-name">Plain</span>
+                    </button>
+
+                    <button class="theme-card bg-card" type="button" data-bg="bg-gradient">
+                      <span class="theme-preview bg-preview-gradient"></span>
+                      <span class="theme-name">Soft Gradient</span>
+                    </button>
+
+                    <button class="theme-card bg-card" type="button" data-bg="bg-focus">
+                      <span class="theme-preview bg-preview-focus"></span>
+                      <span class="theme-name">Focus Glow</span>
+                    </button>
+                    <button class="theme-card bg-card" type="button" data-bg="bg-glass">
+                      <span class="theme-preview bg-preview-glass"></span>
+                      <span class="theme-name">Glass Atmosphere</span>
+                    </button>
+                    <button class="theme-card bg-card" type="button" data-bg="bg-dotted">
+                      <span class="theme-preview bg-preview-dotted"></span>
+                      <span class="theme-name">Dotted Pattern</span>
+                    </button>
+
+                    <button class="theme-card bg-card" type="button" data-bg="bg-webbed">
+                      <span class="theme-preview bg-preview-webbed"></span>
+                      <span class="theme-name">Webbed Pattern</span>
+                    </button>
+
+                    <button class="theme-card bg-card" type="button" data-bg="bg-triangle-gradient">
+                      <span class="theme-preview bg-preview-triangle-gradient"></span>
+                      <span class="theme-name">Triangle Gradient</span>
+                    </button>
+
+                    <button class="theme-card bg-card" type="button" data-bg="bg-triangle-subtle">
+                      <span class="theme-preview bg-preview-triangle-subtle"></span>
+                      <span class="theme-name">Triangle Subtle</span>
+                    </button>
+
+                    <button class="theme-card bg-card" type="button" data-bg="bg-hex">
+                      <span class="theme-preview bg-preview-hex"></span>
+                      <span class="theme-name">Hex Pattern</span>
+                    </button>
+
+                    <button class="theme-card bg-card" type="button" data-bg="bg-topo">
+                      <span class="theme-preview bg-preview-topo"></span>
+                      <span class="theme-name">Topographical</span>
+                    </button>
+
+                    <button class="theme-card bg-card" type="button" data-bg="bg-circuit">
+                      <span class="theme-preview bg-preview-circuit"></span>
+                      <span class="theme-name">Circuit Board</span>
+                    </button>
+                  </div>
+                </fieldset>
+            </div>
+
+            <div class="panel" id="panel-behavior">
+              <h3>Behavior</h3>
+              <p>How the interface behaves.</p>
+              <fieldset class="setting-group">
+                <legend>Dropdowns:</legend>
+
+                <label class="setting-row" for="pref-dropdown-autoclose">
+                  <span>Automatically close dropdowns when clicking outside</span>
+                  <span class="toggle">
+                    <input type="checkbox" id="pref-dropdown-autoclose">
+                    <span class="toggle-track"></span>
+                  </span>
+                </label>
+              </fieldset>
+
+              <fieldset class="setting-group">
+                <legend>Links:</legend>
+
+                <label class="setting-row" for="pref-open-links-new-tab">
+                  <span>Open dashboard links in new tab</span>
+                  <span class="toggle">
+                    <input type="checkbox" id="pref-open-links-new-tab">
+                    <span class="toggle-track"></span>
+                  </span>
+                </label>
+              </fieldset>
+            </div>
+
+            <div class="panel" id="panel-layout">
+              <h3>Layout</h3>
+              <p>Customize your dashboard layout.</p>
+              <div class="layout-editor">
+                <!-- Always visible, never buried -->
+                <div class="layout-header">
+                  <button id="add-category-btn" type="button" class="layout-action-btn">
+                    <span class="action-icon"><i class="fa-solid fa-plus"></i></span>
+                    <span>Add category</span>
                   </button>
                 </div>
 
-                <!-- Hidden file input for later wiring -->
-                <input
-                  type="file"
-                  id="identity-icon-input"
-                  accept="image/png, image/jpeg"
-                  hidden
-                >
-
-                <!-- Name input -->
-                <label class="identity-row">
-                  <span>Dashboard name</span>
-                  <input
-                    type="text"
-                    class="identity-name-input"
-                    value="SladeDK"
-                    placeholder="Dashboard"
-                  >
-                </label>
-
+                <!-- JS renders categories + buttons here -->
+                <div id="layout-categories"></div>
               </div>
-            </fieldset>
-            <fieldset class="setting-group">
-              <legend>Themes:</legend>
-
-              <div class="theme-grid">
-                <button class="theme-card" type="button" data-theme="theme-dark">
-                  <span class="theme-preview theme-dark"></span>
-                  <span class="theme-name">Dark</span>
-                </button>
-
-                <button class="theme-card" type="button"data-theme="theme-light">
-                  <span class="theme-preview theme-light"></span>
-                  <span class="theme-name">Light</span>
-                </button>
-
-                <button class="theme-card" type="button" data-theme="theme-midnight">
-                  <span class="theme-preview theme-midnight"></span>
-                  <span class="theme-name">Midnight</span>
-                </button>
-
-                <button class="theme-card" type="button" data-theme="theme-slate">
-                  <span class="theme-preview theme-slate"></span>
-                  <span class="theme-name">Slate</span>
-                </button>
-
-                <button class="theme-card" type="button" data-theme="theme-nord">
-                  <span class="theme-preview theme-nord"></span>
-                  <span class="theme-name">Nord</span>
-                </button>
-
-                <button class="theme-card" type="button" data-theme="theme-carbon">
-                  <span class="theme-preview theme-carbon"></span>
-                  <span class="theme-name">Carbon</span>
-                </button>
-
-                <button class="theme-card" type="button" data-theme="theme-glass">
-                  <span class="theme-preview theme-glass"></span>
-                  <span class="theme-name">Glass</span>
-                </button>
-              </div>
-            </fieldset>
-            <fieldset class="setting-group">
-              <legend>Backgrounds:</legend>
-
-              <div class="theme-grid background-grid">
-                <button class="theme-card bg-card" type="button" data-bg="bg-plain">
-                  <span class="theme-preview bg-preview-plain"></span>
-                  <span class="theme-name">Plain</span>
-                </button>
-
-                <button class="theme-card bg-card" type="button" data-bg="bg-gradient">
-                  <span class="theme-preview bg-preview-gradient"></span>
-                  <span class="theme-name">Soft Gradient</span>
-                </button>
-
-                <button class="theme-card bg-card" type="button" data-bg="bg-focus">
-                  <span class="theme-preview bg-preview-focus"></span>
-                  <span class="theme-name">Focus Glow</span>
-                </button>
-                <button class="theme-card bg-card" type="button" data-bg="bg-glass">
-                  <span class="theme-preview bg-preview-glass"></span>
-                  <span class="theme-name">Glass Atmosphere</span>
-                </button>
-                <button class="theme-card bg-card" type="button" data-bg="bg-dotted">
-                  <span class="theme-preview bg-preview-dotted"></span>
-                  <span class="theme-name">Dotted Pattern</span>
-                </button>
-
-                <button class="theme-card bg-card" type="button" data-bg="bg-webbed">
-                  <span class="theme-preview bg-preview-webbed"></span>
-                  <span class="theme-name">Webbed Pattern</span>
-                </button>
-
-                <button class="theme-card bg-card" type="button" data-bg="bg-triangle-gradient">
-                  <span class="theme-preview bg-preview-triangle-gradient"></span>
-                  <span class="theme-name">Triangle Gradient</span>
-                </button>
-
-                <button class="theme-card bg-card" type="button" data-bg="bg-triangle-subtle">
-                  <span class="theme-preview bg-preview-triangle-subtle"></span>
-                  <span class="theme-name">Triangle Subtle</span>
-                </button>
-
-                <button class="theme-card bg-card" type="button" data-bg="bg-hex">
-                  <span class="theme-preview bg-preview-hex"></span>
-                  <span class="theme-name">Hex Pattern</span>
-                </button>
-
-                <button class="theme-card bg-card" type="button" data-bg="bg-topo">
-                  <span class="theme-preview bg-preview-topo"></span>
-                  <span class="theme-name">Topographical</span>
-                </button>
-
-                <button class="theme-card bg-card" type="button" data-bg="bg-circuit">
-                  <span class="theme-preview bg-preview-circuit"></span>
-                  <span class="theme-name">Circuit Board</span>
-                </button>
-              </div>
-            </fieldset>
-        </div>
-
-        <div class="panel" id="panel-behavior">
-          <h3>Behavior</h3>
-          <p>How the interface behaves.</p>
-          <fieldset class="setting-group">
-            <legend>Dropdowns:</legend>
-
-            <label class="setting-row" for="pref-dropdown-autoclose">
-              <span>Automatically close dropdowns when clicking outside</span>
-              <span class="toggle">
-                <input type="checkbox" id="pref-dropdown-autoclose">
-                <span class="toggle-track"></span>
-              </span>
-            </label>
-          </fieldset>
-
-          <fieldset class="setting-group">
-            <legend>Links:</legend>
-
-            <label class="setting-row" for="pref-open-links-new-tab">
-              <span>Open dashboard links in new tab</span>
-              <span class="toggle">
-                <input type="checkbox" id="pref-open-links-new-tab">
-                <span class="toggle-track"></span>
-              </span>
-            </label>
-          </fieldset>
-        </div>
-
-        <div class="panel" id="panel-layout">
-          <h3>Layout</h3>
-          <p>Customize your dashboard layout.</p>
-          <div class="layout-editor">
-            <!-- Always visible, never buried -->
-            <div class="layout-header">
-              <button id="add-category-btn" type="button" class="layout-action-btn">
-                <span class="action-icon"><i class="fa-solid fa-plus"></i></span>
-                <span>Add category</span>
-              </button>
             </div>
 
-            <!-- JS renders categories + buttons here -->
-            <div id="layout-categories"></div>
+            <div class="panel" id="panel-dashboard-management">
+              <h3>Dashboard Management</h3>
+              <p>Create, rename, or delete dashboards.</p>
+
+              <fieldset class="setting-group">
+                <legend>Default dashboard:</legend>
+
+                <label class="setting-row">
+                  <span>Default dashboard</span>
+                  <select id="default-dashboard-select"></select>
+                </label>
+              </fieldset>
+
+              <fieldset class="setting-group">
+                <legend>Dashboards:</legend>
+
+                <div class="dashboard-management-list" id="dashboard-management-list"></div>
+
+                <button
+                  type="button"
+                  id="create-dashboard-btn"
+                  class="layout-action-btn"
+                  style="margin-top: 12px;"
+                >
+                  <span class="action-icon"><i class="fa-solid fa-plus"></i></span>
+                  Create new dashboard
+                </button>
+              </fieldset>
+            </div>
+
+            <div class="panel" id="panel-data">
+              <h3>Data Management</h3>
+              <p>Back up or restore your system configuration.</p>
+
+              <fieldset class="setting-group">
+                <legend>Import / Export:</legend>
+
+                <div class="data-management-card">
+                  <p class="setting-description">
+                    Export or import a backup of your system or restore a previous configuration.
+                  </p>
+
+                  <div class="setting-actions">
+                    <button
+                      type="button"
+                      class="secondary-btn"
+                      id="export-dashboard-btn"
+                    >
+                      Export system backup
+                    </button>
+
+                    <button
+                      type="button"
+                      class="secondary-btn"
+                      id="import-dashboard-btn"
+                    >
+                      Import system backup
+                    </button>
+
+                    <input
+                      type="file"
+                      id="import-dashboard-file"
+                      accept="application/json"
+                      hidden
+                    >
+                  </div>
+                </div>
+              </fieldset>
+              <fieldset class="setting-group">
+                <legend>Reset Dashboard:</legend>
+
+                <p class="setting-description">
+                  Restore the dashboard to the default state, and will remove all custom settings and layout changes.
+                </p>
+
+                <div class="setting-actions">
+                  <button
+                    type="button"
+                    class="danger-outline-btn"
+                    id="reset-dashboard-btn"
+                  >
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Reset dashboard
+                  </button>
+                </div>
+              </fieldset>
+              <fieldset class="setting-group">
+                <legend>Reset System:</legend>
+
+                <p class="setting-description">
+                  This will reset the entire system to the default state, and will remove all custom dashboards and settings.
+                </p>
+
+                <div class="setting-actions">
+                  <button 
+                  type="button"
+                  class="danger-outline-btn"
+                  id="reset-system-btn"
+                  >
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  Reset System
+                </button>
+            </div>
+          </section>
+        </div>
+      </div>
+      <!-- Button Editor Modal -->
+    <div
+      id="button-editor-overlay"
+      class="modal-overlay"
+      hidden 
+      aria-hidden="true"
+      >
+      <div
+        class="modal modal-container"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="button-editor-title"
+      >
+        <header class="modal-header">
+          <h2 id="button-editor-title">Edit Button</h2>
+          <button
+            class="modal-close"
+            type="button"
+            aria-label="Close button editor"
+          >
+            ✕
+          </button>
+        </header>
+
+        <div class="modal-body">
+          <form id="button-editor-form" novalidate>
+            <div class="form-group">
+              <label for="button-label-input">Button name:</label>
+              <input
+                type="text"
+                id="button-label-input"
+                required
+                autocomplete="off"
+              />
+              <span id="button-name-error" class="form-error">
+                Invalid name
+              </span>
+            </div>
+
+            <div class="form-group url-group">
+              <label for="button-url-input">Button URL</label>
+
+              <div class="url-input-row">
+                <input
+                  type="text"
+                  id="button-url-input"
+                  placeholder="example.com or https://example.com"
+                  autocomplete="off"
+                  required
+                />
+                <span id="button-editor-error" class="form-error">
+                  Invalid URL
+                </span>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="secondary-btn" id="button-editor-cancel">
+                Cancel
+              </button>
+              <button type="submit" class="primary-btn">
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Action Modal -->
+    <div 
+      id="confirm-overlay"
+      class="modal-overlay"
+      hidden aria-hidden="true"
+      >
+      <div
+        class="modal modal-container confirm-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-title"
+      >
+        <header class="modal-header">
+          <h2 id="confirm-title">Confirm action</h2>
+          <button
+            class="modal-close"
+            type="button"
+            aria-label="Close confirmation"
+          >
+            ✕
+          </button>
+        </header>
+
+        <div class="modal-body">
+          <p id="confirm-message"></p>
+          <div class="modal-actions">
+            <button type="button" class="secondary-btn" id="confirm-cancel">
+              Cancel
+            </button>
+            <button type="button" class="danger-btn" id="confirm-accept">
+              Delete
+            </button>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div class="panel" id="panel-dashboard-management">
-          <h3>Dashboard Management</h3>
-          <p>Create, rename, or delete dashboards.</p>
+    <!-- Delete Default Dashboard Modal -->
+    <div
+      id="delete-default-dashboard-overlay"
+      class="modal-overlay"
+      hidden
+      aria-hidden="true"
+    >
+      <div 
+        class="modal modal-container confirm-modal" 
+        role="dialog" 
+        aria-modal="true"
+        aria-labelledby="delete-default-dashboard-title"
+      >
+        <header class="modal-header">
+          <h2 id="delete-default-dashboard-title">
+            Delete Default Dashboard
+          </h2>
 
+          <button
+            class="modal-close"
+            type="button"
+            aria-label="Close delete default dialog"
+            id="delete-default-dashboard-close"
+          >
+            ✕
+          </button>
+        </header>
+
+        <div class="modal-body">
           <fieldset class="setting-group">
-            <legend>Default dashboard:</legend>
+            <legend>New default dashboard</legend>
+
+
+          <div>
+            <p class="setting-description">
+              You are deleting the default dashboard.
+              Please choose a new default dashboard to continue.
+            </p>
 
             <label class="setting-row">
-              <span>Default dashboard</span>
-              <select id="default-dashboard-select"></select>
+              <span>New default dashboard</span>
+              <select id="delete-default-dashboard-select"></select>
             </label>
-          </fieldset>
+          </div>
 
-          <fieldset class="setting-group">
-            <legend>Dashboards:</legend>
-
-            <div class="dashboard-management-list" id="dashboard-management-list"></div>
+          <!-- ✅ ACTIONS BLOCK -->
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="secondary-btn"
+              id="delete-default-dashboard-cancel"
+            >
+              Cancel
+            </button>
 
             <button
               type="button"
-              id="create-dashboard-btn"
-              class="layout-action-btn"
-              style="margin-top: 12px;"
+              class="danger-btn"
+              id="delete-default-dashboard-confirm"
+              disabled
             >
-              <span class="action-icon"><i class="fa-solid fa-plus"></i></span>
-              Create new dashboard
+              Delete
             </button>
-          </fieldset>
-        </div>
-
-        <div class="panel" id="panel-data">
-          <h3>Data Management</h3>
-          <p>Back up or restore your system configuration.</p>
-
-          <fieldset class="setting-group">
-            <legend>Import / Export:</legend>
-
-            <div class="data-management-card">
-              <p class="setting-description">
-                Export or import a backup of your system or restore a previous configuration.
-              </p>
-
-              <div class="setting-actions">
-                <button
-                  type="button"
-                  class="secondary-btn"
-                  id="export-dashboard-btn"
-                >
-                  Export system backup
-                </button>
-
-                <button
-                  type="button"
-                  class="secondary-btn"
-                  id="import-dashboard-btn"
-                >
-                  Import system backup
-                </button>
-
-                <input
-                  type="file"
-                  id="import-dashboard-file"
-                  accept="application/json"
-                  hidden
-                >
-              </div>
-            </div>
-          </fieldset>
-          <fieldset class="setting-group">
-            <legend>Reset Dashboard:</legend>
-
-            <p class="setting-description">
-              Restore the dashboard to the default state, and will remove all custom settings and layout changes.
-            </p>
-
-            <div class="setting-actions">
-              <button
-                type="button"
-                class="danger-outline-btn"
-                id="reset-dashboard-btn"
-              >
-                <i class="fa-solid fa-triangle-exclamation"></i>
-                Reset dashboard
-              </button>
-            </div>
-          </fieldset>
-          <fieldset class="setting-group">
-            <legend>Reset System:</legend>
-
-            <p class="setting-description">
-              This will reset the entire system to the default state, and will remove all custom dashboards and settings.
-            </p>
-
-            <div class="setting-actions">
-              <button 
-              type="button"
-              class="danger-outline-btn"
-              id="reset-system-btn"
-              >
-              <i class="fa-solid fa-triangle-exclamation"></i>
-              Reset System
-            </button>
-        </div>
-      </section>
-    </div>
-  </div>
-  <!-- Button Editor Modal -->
-<div
-  id="button-editor-overlay"
-  class="modal-overlay"
-  hidden 
-  aria-hidden="true"
-  >
-  <div
-    class="modal modal-container"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="button-editor-title"
-  >
-    <header class="modal-header">
-      <h2 id="button-editor-title">Edit Button</h2>
-      <button
-        class="modal-close"
-        type="button"
-        aria-label="Close button editor"
-      >
-        ✕
-      </button>
-    </header>
-
-    <div class="modal-body">
-      <form id="button-editor-form" novalidate>
-        <div class="form-group">
-          <label for="button-label-input">Button name:</label>
-          <input
-            type="text"
-            id="button-label-input"
-            required
-            autocomplete="off"
-          />
-          <span id="button-name-error" class="form-error">
-            Invalid name
-          </span>
-        </div>
-
-        <div class="form-group url-group">
-          <label for="button-url-input">Button URL</label>
-
-          <div class="url-input-row">
-            <input
-              type="text"
-              id="button-url-input"
-              placeholder="example.com or https://example.com"
-              autocomplete="off"
-              required
-            />
-            <span id="button-editor-error" class="form-error">
-              Invalid URL
-            </span>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Import System Modal -->
+    <div
+      id="import-system-overlay"
+      class="modal-overlay"
+      hidden
+      aria-hidden="true">
+
+      <div
+        class="modal modal-container import-modal"
+        role="dialog"
+        aria-modal="true">
+
+        <header class="modal-header">
+          <h2>Import system backup</h2>
+          <button
+            type="button"
+            class="modal-close"
+            id="import-system-close"
+            aria-label="Close">
+            ✕
+          </button>
+        </header>
+
+        <div class="modal-body">
+          <p class="setting-description">
+            Importing a system backup will modify your current setup.
+          </p>
+
+          <p class="setting-description">
+            Choose how the imported data should be applied:
+          </p>
+
+          <div class="import-options">
+
+            <label class="import-option">
+              <input
+                type="radio"
+                name="import-mode"
+                value="merge"
+                checked>
+              <div>
+                <strong>Merge with existing system</strong>
+                <p class="muted">
+                  Keep existing dashboards and add or update data from the backup.
+                </p>
+              </div>
+            </label>
+
+            <label class="import-option import-option--danger">
+              <input
+                type="radio"
+                name="import-mode"
+                value="overwrite">
+              <div>
+                <strong>Overwrite existing system</strong>
+                <p class="muted">
+                  Delete all current dashboards and replace everything.
+                </p>
+              </div>
+            </label>
+          </div>
+
+          <label class="import-option import-option--inline">
+            <input
+              type="checkbox"
+              id="import-replace-preferences"
+              checked>
+            <span>Replace appearance and behavior settings</span>
+          </label>
+        </div>
+
         <div class="modal-actions">
-          <button type="button" class="secondary-btn" id="button-editor-cancel">
+          <button
+            type="button"
+            class="secondary-btn"
+            id="import-system-cancel">
             Cancel
           </button>
-          <button type="submit" class="primary-btn">
-            Save
+
+          <button
+            type="button"
+            class="danger-btn"
+            id="import-system-confirm">
+            Import
           </button>
         </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Confirm Action Modal -->
-<div 
-  id="confirm-overlay"
-  class="modal-overlay"
-  hidden aria-hidden="true"
-  >
-  <div
-    class="modal modal-container confirm-modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="confirm-title"
-  >
-    <header class="modal-header">
-      <h2 id="confirm-title">Confirm action</h2>
-      <button
-        class="modal-close"
-        type="button"
-        aria-label="Close confirmation"
-      >
-        ✕
-      </button>
-    </header>
-
-    <div class="modal-body">
-      <p id="confirm-message"></p>
-      <div class="modal-actions">
-        <button type="button" class="secondary-btn" id="confirm-cancel">
-          Cancel
-        </button>
-        <button type="button" class="danger-btn" id="confirm-accept">
-          Delete
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Delete Default Dashboard Modal -->
-<div
-  id="delete-default-dashboard-overlay"
-  class="modal-overlay"
-  hidden
-  aria-hidden="true"
->
-  <div 
-    class="modal modal-container confirm-modal" 
-    role="dialog" 
-    aria-modal="true"
-    aria-labelledby="delete-default-dashboard-title"
-  >
-    <header class="modal-header">
-      <h2 id="delete-default-dashboard-title">
-        Delete Default Dashboard
-      </h2>
-
-      <button
-        class="modal-close"
-        type="button"
-        aria-label="Close delete default dialog"
-        id="delete-default-dashboard-close"
-      >
-        ✕
-      </button>
-    </header>
-
-    <div class="modal-body">
-      <fieldset class="setting-group">
-        <legend>New default dashboard</legend>
-
-
-      <div>
-        <p class="setting-description">
-          You are deleting the default dashboard.
-          Please choose a new default dashboard to continue.
-        </p>
-
-        <label class="setting-row">
-          <span>New default dashboard</span>
-          <select id="delete-default-dashboard-select"></select>
-        </label>
-      </div>
-
-      <!-- ✅ ACTIONS BLOCK -->
-      <div class="modal-actions">
-        <button
-          type="button"
-          class="secondary-btn"
-          id="delete-default-dashboard-cancel"
-        >
-          Cancel
-        </button>
-
-        <button
-          type="button"
-          class="danger-btn"
-          id="delete-default-dashboard-confirm"
-          disabled
-        >
-          Delete
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Import System Modal -->
-<div
-  id="import-system-overlay"
-  class="modal-overlay"
-  hidden
-  aria-hidden="true">
-
-  <div
-    class="modal modal-container import-modal"
-    role="dialog"
-    aria-modal="true">
-
-    <header class="modal-header">
-      <h2>Import system backup</h2>
-      <button
-        type="button"
-        class="modal-close"
-        id="import-system-close"
-        aria-label="Close">
-        ✕
-      </button>
-    </header>
-
-    <div class="modal-body">
-
-      <p class="setting-description">
-        Importing a system backup will modify your current setup.
-      </p>
-
-      <p class="setting-description">
-        Choose how the imported data should be applied:
-      </p>
-
-      <div class="import-options">
-
-        <label class="import-option">
-          <input
-            type="radio"
-            name="import-mode"
-            value="merge"
-            checked>
-          <div>
-            <strong>Merge with existing system</strong>
-            <p class="muted">
-              Keep existing dashboards and add or update data from the backup.
-            </p>
-          </div>
-        </label>
-
-        <label class="import-option import-option--danger">
-          <input
-            type="radio"
-            name="import-mode"
-            value="overwrite">
-          <div>
-            <strong>Overwrite existing system</strong>
-            <p class="muted">
-              Delete all current dashboards and replace everything.
-            </p>
-          </div>
-        </label>
 
       </div>
-
-      <label class="import-option import-option--inline">
-        <input
-          type="checkbox"
-          id="import-replace-preferences"
-          checked>
-        <span>Replace appearance and behavior settings</span>
-      </label>
-
     </div>
-
-    <div class="modal-actions">
-      <button
-        type="button"
-        class="secondary-btn"
-        id="import-system-cancel">
-        Cancel
-      </button>
-
-      <button
-        type="button"
-        class="danger-btn"
-        id="import-system-confirm">
-        Import
-      </button>
-    </div>
-
-  </div>
-</div>
-</body>
+  </body>
 </html>

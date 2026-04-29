@@ -31,6 +31,8 @@ body {
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+
+  --header-height: 120px;
 }
 
 /* Theme definitions */
@@ -2312,4 +2314,92 @@ html:not(.identity-ready) .header-center {
 .setting-row select option {
   background-color: var(--bg-control);
   color: var(--text-main);
+}
+
+/* ============================
+   Toast notification system
+   ============================ */
+
+#toast-container {
+  position: fixed;
+  top: calc(var(--header-height) + 8px);
+  right: 12px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+.toast {
+  min-width: 280px;
+  max-width: 360px;
+  background: var(--panel-bg, #1f1f1f);
+  color: var(--text-primary, #fff);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  display: flex;
+  gap: 0.75rem;
+
+  animation: toast-slide-in 200ms ease-out;
+  pointer-events: auto;
+}
+
+
+.toast.success {
+  border-left: 4px solid #4ade80; /* green-400 */
+}
+
+.toast.error {
+  border-left: 4px solid #ef4444; /* red-500 */
+}
+
+/* Optional: slightly adjust text tone for errors */
+.toast.error .toast-header {
+  color: #fecaca; /* red-200 */
+}
+
+.toast.error .toast-body {
+  color: #fee2e2; /* red-100 */
+}
+
+.toast-header {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.toast-body {
+  font-size: 0.9rem;
+}
+
+.toast-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1rem;
+}
+
+.toast-close:hover {
+  opacity: 0.8;
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.toast.is-leaving {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 180ms ease-in, transform 180ms ease-in;
 }

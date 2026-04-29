@@ -281,6 +281,81 @@ function getTopModal() {
   return modalStack[modalStack.length - 1] || null;
 }
 
+// =====================================================
+// Toast notification helper
+// =====================================================
+
+
+function ensureToastContainer() {
+  let container = document.getElementById('toast-container');
+
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.setAttribute('aria-live', 'polite');
+    container.setAttribute('aria-atomic', 'true');
+
+    // Appends to <body>, making it global and lifecycle-safe
+    document.body.appendChild(container);
+  }
+
+  return container;
+}
+
+function showToast({
+  title = '',
+  lines = [],
+  type = 'success',
+  duration = 5000
+}) {
+  const container = ensureToastContainer();
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.setAttribute('role', 'status');
+
+  const content = document.createElement('div');
+  content.style.flex = '1';
+
+  if (title) {
+    const header = document.createElement('div');
+    header.className = 'toast-header';
+    header.textContent = title;
+    content.appendChild(header);
+  }
+
+  if (lines.length) {
+    const body = document.createElement('div');
+    body.className = 'toast-body';
+    body.innerHTML = lines.map(line => `<div>${line}</div>`).join('');
+    content.appendChild(body);
+  }
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'toast-close';
+  closeBtn.type = 'button';
+  closeBtn.setAttribute('aria-label', 'Dismiss notification');
+  closeBtn.innerHTML = '&times;';
+  function dismissToast() {
+  toast.classList.add('is-leaving');
+  toast.addEventListener(
+    'transitionend',
+    () => toast.remove(),
+    { once: true }
+  );
+}
+
+closeBtn.onclick = dismissToast;
+
+  toast.append(content, closeBtn);
+  container.appendChild(toast);
+
+  if (duration > 0) {
+    setTimeout(dismissToast, duration);
+  }
+}
+
 // ======================================================================
 // Dashboard state persistence helpers (currently only used for export/import, but will be expanded for auto-saving in the future)
 // ======================================================================
@@ -885,9 +960,7 @@ if (exportDashboardBtn) {
     try {
       const dashboards = [];
 
-      // Collect full data for each dashboard
       for (const { id } of availableDashboards) {
-        // Switch dashboard context to load its data
         await DashboardService.setActiveDashboardId(id);
         const state = await DashboardService.load();
         if (!state) continue;
@@ -902,21 +975,14 @@ if (exportDashboardBtn) {
         });
       }
 
-      // Restore active dashboard context
       await DashboardService.setActiveDashboardId(activeDashboardId);
 
       const exportPayload = {
         schemaVersion: 2,
         type: 'system',
         exportedAt: new Date().toISOString(),
-
         dashboards,
-
-        meta: {
-          activeDashboardId,
-          defaultDashboardId
-        },
-
+        meta: { activeDashboardId, defaultDashboardId },
         preferences: {
           appearance: structuredClone(userPreferences.appearance),
           behavior: structuredClone(userPreferences.behavior)
@@ -927,10 +993,9 @@ if (exportDashboardBtn) {
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
 
-      const date = new Date().toISOString().split('T')[0];
       const a = document.createElement('a');
       a.href = url;
-      a.download = `WebDash-System-Backup-${date}.json`;
+      a.download = buildExportFilename();
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -938,7 +1003,16 @@ if (exportDashboardBtn) {
 
     } catch (err) {
       console.error('[WebDash] System export failed:', err);
-      alert('Failed to export system backup.');
+
+      /* ✅ REPLACED CODE (complete) */
+      showToast({
+        title: 'Export failed',
+        lines: [
+          'Failed to export system backup.'
+        ],
+        type: 'error',
+        duration: 7000
+      });
     }
   });
 }
@@ -1019,13 +1093,20 @@ if (importDashboardBtn && importDashboardFile) {
     try {
       const text = await file.text();
       const payload = JSON.parse(text);
-
       validateSystemImport(payload);
       openImportSystemModal(payload);
-
     } catch (err) {
       console.error('[WebDash] Import failed:', err);
-      alert(err.message || 'Invalid or unsupported import file.');
+
+      /* ✅ REPLACED CODE (complete) */
+      showToast({
+        title: 'Import failed',
+        lines: [
+          err?.message || 'Invalid or unsupported import file.'
+        ],
+        type: 'error',
+        duration: 7000
+      });
     }
   });
 }
@@ -1104,27 +1185,23 @@ function showImportSuccess(summary) {
   const lines = [];
 
   if (summary.dashboardsCreated > 0) {
-    lines.push(
-      `${summary.dashboardsCreated} dashboard(s) added`
-    );
+    lines.push(`${summary.dashboardsCreated} dashboard(s) added`);
   }
-
   if (summary.dashboardsMerged > 0) {
-    lines.push(
-      `${summary.dashboardsMerged} dashboard(s) updated`
-    );
+    lines.push(`${summary.dashboardsMerged} dashboard(s) updated`);
   }
-
-  if (summary.preferencesReplaced) {
-    lines.push('Preferences replaced');
-  } else {
-    lines.push('Preferences preserved');
-  }
-
-  alert(
-    `System import completed successfully.\n\n` +
-    lines.join('\n')
+  lines.push(
+    summary.preferencesReplaced
+      ? 'Preferences replaced'
+      : 'Preferences preserved'
   );
+
+  showToast({
+    title: 'Import completed',
+    lines,
+    type: 'success',
+    duration: 5000
+  });
 }
 
 function isImportSystemOpen() {
