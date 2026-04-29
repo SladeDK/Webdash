@@ -1,64 +1,8 @@
 {
   "dashboards": {
-    "dashboard-1777034512935": {
-      "id": "dashboard-1777034512935",
+    "dashboard-1777466159864": {
+      "id": "dashboard-1777466159864",
       "name": "WebDash",
-      "categories": [
-        {
-          "id": "cat-getting-started",
-          "title": "Getting Started",
-          "order": 0,
-          "visible": true,
-          "items": [
-            {
-              "id": "btn-docs",
-              "label": "WebDash Github",
-              "url": "https://github.com/SladeDK/Webdash",
-              "order": 0,
-              "visible": true
-            },
-            {
-              "id": "btn-settings",
-              "label": "Google",
-              "url": "https://google.com",
-              "order": 1,
-              "visible": true
-            }
-          ]
-        }
-      ]
-    },
-    "dashboard-1777020535573": {
-      "id": "dashboard-1777020535573",
-      "name": "WebDash (imported)",
-      "categories": [
-        {
-          "id": "cat-getting-started",
-          "title": "Getting Started",
-          "order": 0,
-          "visible": true,
-          "items": [
-            {
-              "id": "btn-docs",
-              "label": "WebDash Github",
-              "url": "https://github.com/SladeDK/Webdash",
-              "order": 0,
-              "visible": true
-            },
-            {
-              "id": "btn-settings",
-              "label": "Google",
-              "url": "https://google.com",
-              "order": 1,
-              "visible": true
-            }
-          ]
-        }
-      ]
-    },
-    "dashboard-1777020559881": {
-      "id": "dashboard-1777020559881",
-      "name": "Test",
       "categories": [
         {
           "id": "cat-getting-started",
@@ -85,12 +29,12 @@
       ]
     }
   },
-  "activeDashboardId": "dashboard-1777020559881",
-  "defaultDashboardId": "dashboard-1777020535573",
+  "activeDashboardId": "dashboard-1777466159864",
+  "defaultDashboardId": "dashboard-1777466159864",
   "preferences": {
     "appearance": {
-      "theme": "theme-midnight",
-      "background": "bg-hex",
+      "theme": "system",
+      "background": "bg-plain",
       "identity": {
         "name": "WebDash",
         "icon": "assets/webdash-logo.png"

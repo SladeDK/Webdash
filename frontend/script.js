@@ -6,6 +6,14 @@ const HAS_SEEDED_DASHBOARD_KEY = "webdash.hasSeededDashboard";
 const DASHBOARD_STATE_KEY = 'webdash-dashboard-state';
 const AUTO_CLOSE_KEY = 'webdash-dropdown-autoclose';
 const autoCloseCheckbox = document.getElementById('pref-dropdown-autoclose');
+const IMPORT_MODE = {
+  MERGE: 'merge',
+  OVERWRITE: 'overwrite'
+};
+const importSystemOverlay = document.getElementById('import-system-overlay');
+const importSystemClose = document.getElementById('import-system-close');
+const importSystemCancel = document.getElementById('import-system-cancel');
+const importSystemConfirm = document.getElementById('import-system-confirm');
 
 // Miscellaneous
 let renamingCategoryId = null;
@@ -253,6 +261,24 @@ async function initApp() {
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
   renderDashboardList();
+}
+
+// =====================================================
+// Modal stack (single source of truth for modal state)
+// =====================================================
+const modalStack = [];
+
+function pushModal(overlay, onClose) {
+  modalStack.push({ overlay, onClose });
+}
+
+function popModal(overlay) {
+  const index = modalStack.findIndex(m => m.overlay === overlay);
+  if (index !== -1) modalStack.splice(index, 1);
+}
+
+function getTopModal() {
+  return modalStack[modalStack.length - 1] || null;
 }
 
 // ======================================================================
@@ -995,7 +1021,7 @@ if (importDashboardBtn && importDashboardFile) {
       const payload = JSON.parse(text);
 
       validateSystemImport(payload);
-      openSystemImportConfirm(payload);
+      openImportSystemModal(payload);
 
     } catch (err) {
       console.error('[WebDash] Import failed:', err);
@@ -1004,55 +1030,131 @@ if (importDashboardBtn && importDashboardFile) {
   });
 }
 
-function openSystemImportConfirm(payload) {
-  const wrapper = document.createElement('div');
+// --------------------------------------------------
+// Import System Modal helpers
+// --------------------------------------------------
+function openImportSystemModal(payload) {
+  const overlay = document.getElementById('import-system-overlay');
+  if (!overlay) {
+    console.error('[WebDash] Import system overlay not found');
+    return;
+  }
 
-  const message = document.createElement('p');
-  message.textContent =
-    'This will merge the imported system backup into your current setup.\n\n' +
-    '• Dashboards with matching IDs will be updated\n' +
-    '• Categories and buttons will be merged by ID\n' +
-    '• Existing items not present in the import will be kept';
+  overlay.hidden = false;
+  overlay.setAttribute('aria-hidden', 'false');
 
-  const prefsWrapper = document.createElement('label');
-  prefsWrapper.style.display = 'flex';
-  prefsWrapper.style.alignItems = 'center';
-  prefsWrapper.style.gap = '0.5rem';
-  prefsWrapper.style.marginTop = '1rem';
+  
+  // ✅ Sync preference checkbox with current mode
+  syncImportPreferenceState(overlay);
 
-  const prefsCheckbox = document.createElement('input');
-  prefsCheckbox.type = 'checkbox';
-  prefsCheckbox.checked = true;
-
-  const prefsLabel = document.createElement('span');
-  prefsLabel.textContent = 'Replace appearance and behavior settings';
-
-  prefsWrapper.appendChild(prefsCheckbox);
-  prefsWrapper.appendChild(prefsLabel);
-
-  wrapper.appendChild(message);
-  wrapper.appendChild(prefsWrapper);
-
-  openConfirm({
-    title: 'Import system backup',
-    message: wrapper,
-    confirmLabel: 'Import',
-    onConfirm: async () => {
-      await importSystem(payload, prefsCheckbox.checked);
-    }
+  overlay
+  .querySelectorAll('input[name="import-mode"]')
+  .forEach(radio => {
+    radio.addEventListener('change', () =>
+      syncImportPreferenceState(overlay)
+    );
   });
+
+  pushModal(importSystemOverlay, closeImportSystemModal);
+
+  const confirmBtn = overlay.querySelector('#import-system-confirm');
+  if (!confirmBtn) {
+    console.error('[WebDash] Import confirm button not found');
+    return;
+  }
+
+  confirmBtn.onclick = async () => {
+    const mode =
+      overlay.querySelector('input[name="import-mode"]:checked')?.value ??
+      IMPORT_MODE.MERGE;
+
+    const replacePreferences =
+      overlay.querySelector('#import-replace-preferences')?.checked ?? true;
+
+    closeImportSystemModal();
+    await importSystem(payload, mode, replacePreferences);
+  };
 }
 
-async function importSystem(payload, replacePreferences) {
-  // Map existing dashboards by ID
+function closeImportSystemModal() {
+  if (!importSystemOverlay) return;
+
+  // ✅ Move focus out of the modal BEFORE hiding it
+  importDashboardBtn?.focus();
+
+  importSystemOverlay.hidden = true;
+  importSystemOverlay.setAttribute('aria-hidden', 'true');
+
+  popModal(importSystemOverlay);
+}
+
+importSystemClose?.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  closeImportSystemModal();
+});
+
+importSystemCancel?.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  closeImportSystemModal();
+});
+
+function showImportSuccess(summary) {
+  const lines = [];
+
+  if (summary.dashboardsCreated > 0) {
+    lines.push(
+      `${summary.dashboardsCreated} dashboard(s) added`
+    );
+  }
+
+  if (summary.dashboardsMerged > 0) {
+    lines.push(
+      `${summary.dashboardsMerged} dashboard(s) updated`
+    );
+  }
+
+  if (summary.preferencesReplaced) {
+    lines.push('Preferences replaced');
+  } else {
+    lines.push('Preferences preserved');
+  }
+
+  alert(
+    `System import completed successfully.\n\n` +
+    lines.join('\n')
+  );
+}
+
+function isImportSystemOpen() {
+  const overlay = document.getElementById('import-system-overlay');
+  return overlay && !overlay.hidden;
+}
+
+async function importSystem(payload, mode, replacePreferences) {
+  if (mode === IMPORT_MODE.OVERWRITE) {
+    await overwriteSystemImport(payload, replacePreferences);
+  } else {
+    await mergeSystemImport(payload, replacePreferences);
+  }
+}
+
+async function mergeSystemImport(payload, replacePreferences) {
+  const importSummary = {
+    dashboardsCreated: 0,
+    dashboardsMerged: 0,
+    preferencesReplaced: false
+  };
+
   const localDashboards = new Map(
     availableDashboards.map(d => [d.id, d])
   );
 
-  // Merge or create dashboards
   for (const imported of payload.dashboards) {
     if (localDashboards.has(imported.id)) {
-      // Merge into existing dashboard
+      importSummary.dashboardsMerged++;
+
       await DashboardService.setActiveDashboardId(imported.id);
       const localState = await DashboardService.load();
 
@@ -1073,49 +1175,43 @@ async function importSystem(payload, replacePreferences) {
       };
 
       await DashboardService.save(mergedState);
+
     } else {
-        // -------------------------------
-        // Create new dashboard from import
-        // -------------------------------
+      importSummary.dashboardsCreated++;
 
-        const importedName = imported.identity.name;
+      const importedName = imported.identity.name;
+      const hasNameCollision = availableDashboards.some(
+        d => d.name.toLowerCase() === importedName.toLowerCase()
+      );
 
-        // Case-insensitive name collision check
-        const hasNameCollision = availableDashboards.some(d =>
-          d.name.toLowerCase() === importedName.toLowerCase()
-        );
+      const finalName = hasNameCollision
+        ? `${importedName} (imported)`
+        : importedName;
 
-        const finalName = hasNameCollision
-          ? `${importedName} (imported)`
-          : importedName;
+      await DashboardService.createDashboard({
+        id: imported.id,
+        name: finalName
+      });
 
-        await DashboardService.createDashboard({
-          id: imported.id,
-          name: finalName
-        });
+      await DashboardService.save({
+        id: imported.id,
+        name: finalName,
+        categories: structuredClone(imported.categories)
+      });
 
-        await DashboardService.save({
-          id: imported.id,
-          name: finalName,
-          categories: structuredClone(imported.categories)
-        });
-
-        // Keep metadata array in sync during import
-        availableDashboards.push({
-          id: imported.id,
-          name: finalName
-        });
+      availableDashboards.push({ id: imported.id, name: finalName });
     }
   }
 
-  // Preferences (optional)
   if (replacePreferences) {
-    userPreferences.appearance = structuredClone(payload.preferences.appearance);
-    userPreferences.behavior = structuredClone(payload.preferences.behavior);
+    importSummary.preferencesReplaced = true;
+    userPreferences.appearance =
+      structuredClone(payload.preferences.appearance);
+    userPreferences.behavior =
+      structuredClone(payload.preferences.behavior);
     await PreferencesService.save(userPreferences);
   }
 
-  // Restore default and active dashboards
   await DashboardService.setDefaultDashboardId(
     payload.meta.defaultDashboardId
   );
@@ -1123,14 +1219,95 @@ async function importSystem(payload, replacePreferences) {
     payload.meta.activeDashboardId
   );
 
-  // ✅ Re-bootstrap invariants and UI
+  await initApp();
+  showImportSuccess(importSummary);
+}
+
+async function overwriteSystemImport(payload, replacePreferences) {
+  // ----------------------------------------
+  // 1️⃣ Delete ALL existing dashboards
+  // ----------------------------------------
+  for (const { id } of availableDashboards) {
+    await fetch(`/api/dashboards/${id}`, { method: 'DELETE' });
+  }
+
+  availableDashboards = [];
+  dashboardState = null;
+  pageCategories = null;
+
+  // ----------------------------------------
+  // 2️⃣ Import dashboards fresh from backup
+  // ----------------------------------------
+  for (const imported of payload.dashboards) {
+    await DashboardService.createDashboard({
+      id: imported.id,
+      name: imported.identity.name
+    });
+
+    await DashboardService.save({
+      id: imported.id,
+      name: imported.identity.name,
+      categories: structuredClone(imported.categories)
+    });
+
+    availableDashboards.push({
+      id: imported.id,
+      name: imported.identity.name
+    });
+  }
+
+  // ----------------------------------------
+  // 3️⃣ Preferences (optional)
+  // ----------------------------------------
+  if (replacePreferences) {
+    userPreferences.appearance =
+      structuredClone(payload.preferences.appearance);
+    userPreferences.behavior =
+      structuredClone(payload.preferences.behavior);
+    await PreferencesService.save(userPreferences);
+  }
+
+  // ----------------------------------------
+  // 4️⃣ Restore dashboard metadata
+  // ----------------------------------------
+  defaultDashboardId = payload.meta.defaultDashboardId;
+  activeDashboardId = payload.meta.activeDashboardId;
+
+  await DashboardService.setDefaultDashboardId(defaultDashboardId);
+  await DashboardService.setActiveDashboardId(activeDashboardId);
+
+  // ----------------------------------------
+  // 5️⃣ Reinitialize app
+  // ----------------------------------------
   await initApp();
 
-  // ✅ Refresh Preferences UI if it is currently open
-  if (isPreferencesOpen()) {
-  syncDefaultDashboardSelector();
-  renderDashboardList();
-  renderDashboardManagementPanel();
+  showImportSuccess({
+    dashboardsCreated: payload.dashboards.length,
+    dashboardsMerged: 0,
+    preferencesReplaced: replacePreferences
+  });
+}
+
+function syncImportPreferenceState(overlay) {
+  const overwriteRadio =
+    overlay.querySelector('input[name="import-mode"][value="overwrite"]');
+  const replacePrefsCheckbox =
+    overlay.querySelector('#import-replace-preferences');
+
+  const optionWrapper =
+    replacePrefsCheckbox?.closest('.import-option');
+
+  if (!overwriteRadio || !replacePrefsCheckbox) return;
+
+  if (overwriteRadio.checked) {
+    // ✅ Force preferences replacement
+    replacePrefsCheckbox.checked = true;
+    replacePrefsCheckbox.disabled = true;
+    optionWrapper?.classList.add('import-option--disabled');
+  } else {
+    // ✅ Restore user control
+    replacePrefsCheckbox.disabled = false;
+    optionWrapper?.classList.remove('import-option--disabled');
   }
 }
 
@@ -2550,6 +2727,8 @@ function openPreferences() {
   preferencesOverlay.hidden = false;
   preferencesOverlay.setAttribute('aria-hidden', 'false');
 
+  pushModal(preferencesOverlay, closePreferences);
+
   const firstNav = preferencesOverlay.querySelector('.nav-item');
   firstNav?.focus();
 
@@ -2587,6 +2766,7 @@ function closePreferences() {
   preferencesOverlay.hidden = true;
   preferencesOverlay.setAttribute('aria-hidden', 'true');
   preferencesButton?.focus();
+  popModal(preferencesOverlay);
 }
 
 function isPreferencesOpen() {
@@ -2599,17 +2779,15 @@ preferencesButton?.addEventListener('click', openPreferences);
 // Close via X
 closeButton?.addEventListener('click', closePreferences);
 
-// Click outside modal to close
-preferencesOverlay?.addEventListener('mousedown', (e) => {
-  // ✅ Ignore clicks when delete-default modal is on top
-  if (deleteDefaultOverlay && !deleteDefaultOverlay.hidden) {
-    return;
-  }
+// Click outside Import modal to close ONLY import modal
+importSystemOverlay?.addEventListener('mousedown', (e) => {
+  if (e.target !== importSystemOverlay) return;
 
-  const modal = preferencesOverlay.querySelector('.modal-container');
-  if (modal && !modal.contains(e.target)) {
-    closePreferences();
-  }
+  // ✅ Prevent click from bubbling to Preferences overlay
+  e.preventDefault();
+  e.stopPropagation();
+
+  closeImportSystemModal();
 });
 
 document.addEventListener('keydown', (e) => {
@@ -2640,7 +2818,15 @@ document.addEventListener('keydown', (e) => {
     =============================== */
   if (e.key !== 'Escape') return;
 
-  // 1️⃣ Delete Default Dashboard modal (highest priority)
+  // 1️⃣ Import System Modal (highest priority)
+  if (isImportSystemOpen()) {
+    e.preventDefault();
+    e.stopPropagation();
+    closeImportSystemModal();
+    return;
+  }
+
+  // 2️⃣ Delete Default Dashboard Modal
   if (deleteDefaultOpen) {
     e.preventDefault();
     e.stopPropagation();
@@ -2648,7 +2834,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  // 2️⃣ Confirm modal
+  // 3️⃣ Confirm modal
   if (confirmOpen) {
     e.preventDefault();
     e.stopPropagation();
@@ -2656,7 +2842,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  // 3️⃣ Button editor
+  // 4️⃣ Button editor
   if (buttonEditorOpen) {
     e.preventDefault();
     e.stopPropagation();
@@ -2664,7 +2850,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  // 4️⃣ Preferences (lowest priority)
+  // 5️⃣ Preferences (lowest priority)
   if (preferencesOpen) {
     e.preventDefault();
     e.stopPropagation();
@@ -2698,7 +2884,6 @@ function openButtonEditor(context) {
   const title = document.getElementById('button-editor-title');
   const labelInput = document.getElementById('button-label-input');
   const urlInput = document.getElementById('button-url-input');
-  const modalContainer = overlay.querySelector('.modal-container');
   const errorEl = document.getElementById('button-editor-error');
 
   if (errorEl) {
@@ -2706,23 +2891,6 @@ function openButtonEditor(context) {
     errorEl.textContent = 'Please enter both a name and a valid URL.';
   }
   
-  // Clicking on the button editor overlay (but not the modal itself)
-  // should close ONLY the button editor
-  overlay.addEventListener('mousedown', (e) => {
-    if (e.target === overlay) {
-      e.preventDefault();
-      e.stopPropagation();
-      closeButtonEditor();
-    }
-  });
-  
-  // Prevent clicks inside button editor from closing parent modals
-  modalContainer.addEventListener('mousedown', e => {
-    e.stopPropagation();
-  });
-  modalContainer.addEventListener('click', e => {
-    e.stopPropagation();
-  });
   if (!overlay || !labelInput || !urlInput) return;
 
   if (context.mode === 'edit') {
@@ -2743,6 +2911,8 @@ function openButtonEditor(context) {
   overlay.hidden = false;
   overlay.setAttribute('aria-hidden', 'false');
 
+  pushModal(overlay, closeButtonEditor);
+
   requestAnimationFrame(() => {
     labelInput.focus();
   });
@@ -2755,6 +2925,8 @@ function closeButtonEditor() {
   overlay.hidden = true;
   overlay.setAttribute('aria-hidden', 'true');
   editingButtonContext = null;
+
+  popModal(overlay);
 }
 
 // =====================================================
@@ -2768,7 +2940,6 @@ function openConfirm({ title, message, confirmLabel = 'Delete', onConfirm }) {
   const titleEl = document.getElementById('confirm-title');
   const messageEl = document.getElementById('confirm-message');
   const confirmBtn = document.getElementById('confirm-accept');
-  const modalContainer = overlay?.querySelector('.modal-container');
 
   if (!overlay || !titleEl || !messageEl || !confirmBtn) return;
 
@@ -2789,20 +2960,10 @@ function openConfirm({ title, message, confirmLabel = 'Delete', onConfirm }) {
   // Store callback
   confirmCallback = onConfirm;
 
-  // Prevent clicks inside modal from bubbling
-  modalContainer?.addEventListener('mousedown', e => e.stopPropagation());
-  modalContainer?.addEventListener('click', e => e.stopPropagation());
-
-  // Clicking backdrop closes ONLY confirm modal
-  overlay.addEventListener('mousedown', e => {
-    if (e.target === overlay) {
-      e.stopPropagation();
-      closeConfirm();
-    }
-  });
-
   overlay.hidden = false;
   overlay.setAttribute('aria-hidden', 'false');
+
+  pushModal(overlay, closeConfirm);
 }
 
 function closeConfirm() {
@@ -2812,6 +2973,8 @@ function closeConfirm() {
   overlay.hidden = true;
   overlay.setAttribute('aria-hidden', 'true');
   confirmCallback = null;
+
+  popModal(overlay);
 }
 
 // --------------------------------------------------
@@ -2845,33 +3008,16 @@ const remaining = availableDashboards.filter(
   deleteDefaultOverlay.hidden = false;
   deleteDefaultOverlay.setAttribute('aria-hidden', 'false');
 
-  const modalContainer =
-  deleteDefaultOverlay.querySelector('.modal-container');
-
-  // Prevent clicks inside the modal from closing it
-  modalContainer.addEventListener('mousedown', e => {
-    e.stopPropagation();
-  });
-  modalContainer.addEventListener('click', e => {
-    e.stopPropagation();
-  });
+  pushModal(deleteDefaultOverlay, closeDeleteDefaultDashboardModal);
 }
 
 function closeDeleteDefaultDashboardModal() {
   pendingDefaultDeletionId = null;
   deleteDefaultOverlay.hidden = true;
   deleteDefaultOverlay.setAttribute('aria-hidden', 'true');
+
+  popModal(deleteDefaultOverlay);
 }
-
-deleteDefaultOverlay.addEventListener('mousedown', (e) => {
-  // Prevent this click from reaching Preferences overlay
-  e.stopPropagation();
-
-  // Close only if clicking the backdrop itself
-  if (e.target === deleteDefaultOverlay) {
-    closeDeleteDefaultDashboardModal();
-  }
-});
 
 // Enable confirm only when a selection is made
 deleteDefaultSelect.addEventListener('change', () => {
@@ -3104,6 +3250,24 @@ themeCards.forEach(card => {
     e.stopPropagation();
     changeTheme(card.dataset.theme);
   });
+});
+
+// =====================================================
+// Global click-outside handler (modal-stack driven)
+// =====================================================
+document.addEventListener('mousedown', (e) => {
+  const top = getTopModal();
+  if (!top) return;
+
+  const { overlay, onClose } = top;
+  const modal = overlay.querySelector('.modal-container');
+
+  // Only close if clicking outside the modal container
+  if (modal && !modal.contains(e.target)) {
+    e.preventDefault();
+    e.stopPropagation();
+    onClose();
+  }
 });
 
 // =====================================

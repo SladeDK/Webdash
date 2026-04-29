@@ -1106,6 +1106,110 @@ html.theme-glass .modal {
   gap: 1rem;
 }
 
+/* Import system modal — decision style */
+.import-modal {
+  height: auto;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.import-modal .modal-body {
+  flex: none;
+  padding: 1.25rem 1.5rem;
+}
+
+/* Import options layout */
+.import-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0 0.75rem;
+}
+
+.import-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: flex-start;
+
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+
+  cursor: pointer;
+}
+
+.import-option input[type="radio"] {
+  margin-top: 0.25rem;
+}
+
+.import-option strong {
+  display: block;
+  font-weight: 600;
+}
+
+.import-option .muted {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* Selected state */
+.import-option:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(
+    in srgb,
+    var(--accent) 8%,
+    transparent
+  );
+}
+
+/* Dangerous option */
+.import-option--danger:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(
+    in srgb,
+    var(--accent) 8%,
+    transparent
+  );
+}
+
+.import-modal {
+  max-width: 460px;
+  max-height: none;
+}
+
+.import-modal .modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.import-modal .modal-body > p {
+  text-align: center;
+}
+
+.import-option--inline {
+  margin-top: 0.5rem;
+}
+
+.import-modal .modal-actions {
+  justify-content: center;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Disabled import option */
+.import-option--disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.import-option--disabled label {
+  cursor: not-allowed;
+}
+
 /* Confirm message */
 #confirm-message {
   font-size: 0.95rem;

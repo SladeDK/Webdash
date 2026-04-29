@@ -478,7 +478,12 @@
     </div>
   </div>
   <!-- Button Editor Modal -->
-<div id="button-editor-overlay" class="modal-overlay" hidden aria-hidden="true">
+<div
+  id="button-editor-overlay"
+  class="modal-overlay"
+  hidden 
+  aria-hidden="true"
+  >
   <div
     class="modal modal-container"
     role="dialog"
@@ -539,8 +544,13 @@
     </div>
   </div>
 </div>
+
 <!-- Confirm Action Modal -->
-<div id="confirm-overlay" class="modal-overlay" hidden aria-hidden="true">
+<div 
+  id="confirm-overlay"
+  class="modal-overlay"
+  hidden aria-hidden="true"
+  >
   <div
     class="modal modal-container confirm-modal"
     role="dialog"
@@ -639,6 +649,98 @@
     </div>
   </div>
 </div>
+
+<!-- Import System Modal -->
+<div
+  id="import-system-overlay"
+  class="modal-overlay"
+  hidden
+  aria-hidden="true">
+
+  <div
+    class="modal modal-container import-modal"
+    role="dialog"
+    aria-modal="true">
+
+    <header class="modal-header">
+      <h2>Import system backup</h2>
+      <button
+        type="button"
+        class="modal-close"
+        id="import-system-close"
+        aria-label="Close">
+        ✕
+      </button>
+    </header>
+
+    <div class="modal-body">
+
+      <p class="setting-description">
+        Importing a system backup will modify your current setup.
+      </p>
+
+      <p class="setting-description">
+        Choose how the imported data should be applied:
+      </p>
+
+      <div class="import-options">
+
+        <label class="import-option">
+          <input
+            type="radio"
+            name="import-mode"
+            value="merge"
+            checked>
+          <div>
+            <strong>Merge with existing system</strong>
+            <p class="muted">
+              Keep existing dashboards and add or update data from the backup.
+            </p>
+          </div>
+        </label>
+
+        <label class="import-option import-option--danger">
+          <input
+            type="radio"
+            name="import-mode"
+            value="overwrite">
+          <div>
+            <strong>Overwrite existing system</strong>
+            <p class="muted">
+              Delete all current dashboards and replace everything.
+            </p>
+          </div>
+        </label>
+
+      </div>
+
+      <label class="import-option import-option--inline">
+        <input
+          type="checkbox"
+          id="import-replace-preferences"
+          checked>
+        <span>Replace appearance and behavior settings</span>
+      </label>
+
+    </div>
+
+    <div class="modal-actions">
+      <button
+        type="button"
+        class="secondary-btn"
+        id="import-system-cancel">
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="danger-btn"
+        id="import-system-confirm">
+        Import
+      </button>
+    </div>
+
+  </div>
 </div>
 </body>
 </html>
