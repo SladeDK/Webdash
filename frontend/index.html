@@ -738,5 +738,53 @@
 
       </div>
     </div>
+
+    <!-- Import Preview Modal -->
+    <div
+      id="import-preview-overlay"
+      class="modal-overlay"
+      hidden
+      aria-hidden="true"
+    >
+      <div
+        class="modal modal-container import-preview-modal"
+        role="dialog"
+        aria-modal="true"
+      >
+        <header class="modal-header">
+          <h2>Import preview</h2>
+          <button
+            type="button"
+            class="modal-close"
+            id="import-preview-close"
+            aria-label="Close preview"
+          >
+            ✕
+          </button>
+        </header>
+
+        <div class="modal-body">
+          <!-- Preview content rendered by JS -->
+          <div id="import-preview-content"></div>
+        </div>
+
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="secondary-btn"
+            id="import-preview-cancel"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            class="danger-btn"
+            id="import-preview-confirm"
+          >
+            Apply import
+          </button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

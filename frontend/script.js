@@ -19,6 +19,11 @@ const importSystemOverlay = document.getElementById('import-system-overlay');
 const importSystemClose = document.getElementById('import-system-close');
 const importSystemCancel = document.getElementById('import-system-cancel');
 const importSystemConfirm = document.getElementById('import-system-confirm');
+const importPreviewOverlay = document.getElementById('import-preview-overlay');
+const importPreviewContent = document.getElementById('import-preview-content');
+const importPreviewClose = document.getElementById('import-preview-close');
+const importPreviewCancel = document.getElementById('import-preview-cancel');
+const importPreviewConfirm = document.getElementById('import-preview-confirm');
 
 // Miscellaneous
 let renamingCategoryId = null;
@@ -1259,7 +1264,7 @@ function openImportSystemModal(payload) {
     return;
   }
 
-  confirmBtn.onclick = async () => {
+  confirmBtn.onclick = () => {
     const mode =
       overlay.querySelector('input[name="import-mode"]:checked')?.value ??
       IMPORT_MODE.MERGE;
@@ -1267,8 +1272,17 @@ function openImportSystemModal(payload) {
     const replacePreferences =
       overlay.querySelector('#import-replace-preferences')?.checked ?? true;
 
-    closeImportSystemModal();
-    await importSystem(payload, mode, replacePreferences);
+    const plan = buildImportChangePlan(payload, mode, replacePreferences);
+
+    openImportPreviewModal(plan, async () => {
+      closeImportSystemModal();
+      if (plan.type === SystemTransitionType.IMPORT_OVERWRITE) {
+        await overwriteSystemImport(payload, replacePreferences);
+      } 
+      else {
+        await mergeSystemImport(payload, replacePreferences);
+      }
+    });
   };
 }
 
@@ -1292,6 +1306,90 @@ importSystemCancel?.addEventListener('click', (e) => {
   e.stopPropagation();
   closeImportSystemModal();
 });
+
+function renderImportPreview(plan) {
+  if (!importPreviewContent) return;
+
+  const { summary } = plan;
+
+  let html = `
+    <div class="preview-section">
+      <h3>Overview</h3>
+      <p><strong>Import mode:</strong> ${summary.mode}</p>
+    </div>
+  `;
+
+  if (summary.dashboardsAfter) {
+    html += `
+      <div class="preview-section">
+        <h3>Dashboards (Overwrite)</h3>
+        <ul>
+          ${summary.dashboardsAfter
+            .map(d => `<li>${d.name}</li>`)
+            .join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  if (summary.dashboardsAdded || summary.dashboardsUpdated) {
+    html += `<div class="preview-section"><h3>Dashboards (Merge)</h3>`;
+
+    if (summary.dashboardsUpdated?.length) {
+      html += `<p><strong>Updated:</strong></p><ul>
+        ${summary.dashboardsUpdated
+          .map(d => `<li>${d.name}</li>`)
+          .join('')}
+      </ul>`;
+    }
+
+    if (summary.dashboardsAdded?.length) {
+      html += `<p><strong>Added:</strong></p><ul>
+        ${summary.dashboardsAdded
+          .map(d => `<li>${d.name}</li>`)
+          .join('')}
+      </ul>`;
+    }
+
+    html += `</div>`;
+  }
+
+  importPreviewContent.innerHTML = html;
+}
+
+function openImportPreviewModal(changePlan, onConfirm) {
+  if (!importPreviewOverlay) return;
+
+  importPreviewOverlay.hidden = false;
+  importPreviewOverlay.setAttribute('aria-hidden', 'false');
+
+  // Render preview UI
+  renderImportPreview(changePlan);
+
+  pushModal(importPreviewOverlay, closeImportPreviewModal);
+
+  requestAnimationFrame(() => {
+    focusFirstFocusableElement(importPreviewOverlay);
+  });
+
+  importPreviewConfirm.onclick = async () => {
+    closeImportPreviewModal();
+    if (typeof onConfirm === 'function') {
+      await onConfirm();
+    }
+  };
+}
+
+function closeImportPreviewModal() {
+  if (!importPreviewOverlay) return;
+
+  importPreviewOverlay.hidden = true;
+  importPreviewOverlay.setAttribute('aria-hidden', 'true');
+  popModal(importPreviewOverlay);
+}
+
+importPreviewClose?.addEventListener('click', closeImportPreviewModal);
+importPreviewCancel?.addEventListener('click', closeImportPreviewModal);
 
 function showImportSuccess(summary) {
   const lines = [];
@@ -1327,6 +1425,75 @@ async function importSystem(payload, mode, replacePreferences) {
   } else {
     await mergeSystemImport(payload, replacePreferences);
   }
+}
+
+function resolveValidDashboardId(candidateId, dashboards) {
+  if (dashboards.some(d => d.id === candidateId)) {
+    return candidateId;
+  }
+  return dashboards[0]?.id ?? null;
+}
+
+function buildOverwriteImportChangePlan(payload, replacePreferences) {
+  return {
+    type: SystemTransitionType.IMPORT_OVERWRITE,
+    summary: {
+      mode: 'Overwrite',
+      dashboardsBefore: availableDashboards.map(d => ({ ...d })),
+      dashboardsAfter: payload.dashboards.map(d => ({
+        id: d.id,
+        name: d.identity.name
+      }))
+    },
+    finalState: {
+      dashboards: payload.dashboards.map(d => ({
+        id: d.id,
+        name: d.identity.name
+      })),
+      activeDashboardId: payload.meta.activeDashboardId,
+      defaultDashboardId: payload.meta.defaultDashboardId,
+      preferences: replacePreferences ? payload.preferences : null
+    }
+  };
+}
+
+function buildMergeImportChangePlan(payload, replacePreferences) {
+  const existing = new Map(availableDashboards.map(d => [d.id, d]));
+
+  const added = [];
+  const updated = [];
+
+  payload.dashboards.forEach(d => {
+    if (existing.has(d.id)) {
+      updated.push({ id: d.id, name: d.identity.name });
+    } else {
+      added.push({ id: d.id, name: d.identity.name });
+    }
+  });
+
+  return {
+    type: SystemTransitionType.IMPORT_MERGE,
+    summary: {
+      mode: 'Merge',
+      dashboardsAdded: added,
+      dashboardsUpdated: updated
+    },
+    finalState: {
+      dashboards: availableDashboards
+        .concat(added)
+        .map(d => ({ id: d.id, name: d.name })),
+      activeDashboardId: payload.meta.activeDashboardId,
+      defaultDashboardId: payload.meta.defaultDashboardId,
+      preferences: replacePreferences ? payload.preferences : null
+    }
+  };
+}
+
+function buildImportChangePlan(payload, mode, replacePreferences) {
+  if (mode === IMPORT_MODE.OVERWRITE) {
+    return buildOverwriteImportChangePlan(payload, replacePreferences);
+  }
+  return buildMergeImportChangePlan(payload, replacePreferences);
 }
 
 async function mergeSystemImport(payload, replacePreferences) {

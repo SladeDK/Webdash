@@ -1,7 +1,7 @@
 {
   "dashboards": {
-    "dashboard-1777532796628": {
-      "id": "dashboard-1777532796628",
+    "dashboard-1777537273066": {
+      "id": "dashboard-1777537273066",
       "name": "WebDash",
       "categories": [
         {
@@ -29,8 +29,8 @@
       ]
     }
   },
-  "activeDashboardId": "dashboard-1777532796628",
-  "defaultDashboardId": "dashboard-1777532796628",
+  "activeDashboardId": "dashboard-1777537273066",
+  "defaultDashboardId": "dashboard-1777537273066",
   "preferences": {
     "appearance": {
       "theme": "system",
