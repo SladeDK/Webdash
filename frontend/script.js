@@ -269,16 +269,55 @@ async function initApp() {
 const modalStack = [];
 
 function pushModal(overlay, onClose) {
-  modalStack.push({ overlay, onClose });
+  const restoreFocusTo = document.activeElement;
+
+  modalStack.push({
+    overlay,
+    onClose,
+    restoreFocusTo
+  });
 }
 
 function popModal(overlay) {
   const index = modalStack.findIndex(m => m.overlay === overlay);
-  if (index !== -1) modalStack.splice(index, 1);
+  if (index === -1) return;
+
+  const [{ restoreFocusTo }] = modalStack.splice(index, 1);
+
+  // ✅ Restore focus AFTER removal
+  requestAnimationFrame(() => {
+    if (restoreFocusTo && typeof restoreFocusTo.focus === 'function') {
+      restoreFocusTo.focus();
+    }
+  });
 }
 
 function getTopModal() {
   return modalStack[modalStack.length - 1] || null;
+}
+
+function focusFirstElement(container) {
+  const focusable = container.querySelector(
+    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  );
+
+  focusable?.focus();
+}
+
+function focusFirstFocusableElement(overlay) {
+  const focusableSelectors = [
+    'button:not([disabled])',
+    '[href]',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+  ];
+
+  const focusable = overlay.querySelector(focusableSelectors.join(','));
+  if (focusable && typeof focusable.focus === 'function') {
+    focusable.focus();
+  }
 }
 
 // =====================================================
@@ -1138,6 +1177,10 @@ function openImportSystemModal(payload) {
 
   pushModal(importSystemOverlay, closeImportSystemModal);
 
+  requestAnimationFrame(() => {
+    focusFirstFocusableElement(overlay);
+  });
+
   const confirmBtn = overlay.querySelector('#import-system-confirm');
   if (!confirmBtn) {
     console.error('[WebDash] Import confirm button not found');
@@ -1159,9 +1202,6 @@ function openImportSystemModal(payload) {
 
 function closeImportSystemModal() {
   if (!importSystemOverlay) return;
-
-  // ✅ Move focus out of the modal BEFORE hiding it
-  importDashboardBtn?.focus();
 
   importSystemOverlay.hidden = true;
   importSystemOverlay.setAttribute('aria-hidden', 'true');
@@ -2806,8 +2846,10 @@ function openPreferences() {
 
   pushModal(preferencesOverlay, closePreferences);
 
-  const firstNav = preferencesOverlay.querySelector('.nav-item');
-  firstNav?.focus();
+  
+  requestAnimationFrame(() => {
+    focusFirstFocusableElement(preferencesOverlay);
+  });
 
   // --------------------------------------------------
   // Wire "Reset system" button (Preferences lifecycle)
@@ -2842,7 +2884,6 @@ function openPreferences() {
 function closePreferences() {
   preferencesOverlay.hidden = true;
   preferencesOverlay.setAttribute('aria-hidden', 'true');
-  preferencesButton?.focus();
   popModal(preferencesOverlay);
 }
 
@@ -2991,7 +3032,7 @@ function openButtonEditor(context) {
   pushModal(overlay, closeButtonEditor);
 
   requestAnimationFrame(() => {
-    labelInput.focus();
+    focusFirstFocusableElement(overlay);
   });
 }
 
@@ -3041,6 +3082,10 @@ function openConfirm({ title, message, confirmLabel = 'Delete', onConfirm }) {
   overlay.setAttribute('aria-hidden', 'false');
 
   pushModal(overlay, closeConfirm);
+
+  requestAnimationFrame(() => {
+    focusFirstFocusableElement(overlay);
+  });
 }
 
 function closeConfirm() {
@@ -3086,6 +3131,10 @@ const remaining = availableDashboards.filter(
   deleteDefaultOverlay.setAttribute('aria-hidden', 'false');
 
   pushModal(deleteDefaultOverlay, closeDeleteDefaultDashboardModal);
+
+  requestAnimationFrame(() => {
+    focusFirstFocusableElement(deleteDefaultOverlay);
+  });
 }
 
 function closeDeleteDefaultDashboardModal() {
