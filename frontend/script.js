@@ -10,6 +10,11 @@ const IMPORT_MODE = {
   MERGE: 'merge',
   OVERWRITE: 'overwrite'
 };
+const SystemTransitionType = Object.freeze({
+  IMPORT_OVERWRITE: 'IMPORT_OVERWRITE',
+  IMPORT_MERGE: 'IMPORT_MERGE',
+  RESET_SYSTEM: 'RESET_SYSTEM'
+});
 const importSystemOverlay = document.getElementById('import-system-overlay');
 const importSystemClose = document.getElementById('import-system-close');
 const importSystemCancel = document.getElementById('import-system-cancel');
@@ -261,6 +266,69 @@ async function initApp() {
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
   renderDashboardList();
+}
+
+// =====================================================
+// System transition helpers (structural foundation)
+// =====================================================
+async function applySystemState({
+  type,
+  dashboards,
+  activeDashboardId: nextActiveDashboardId,
+  defaultDashboardId: nextDefaultDashboardId,
+  preferences
+}) {
+  if (!type) {
+    console.warn('[WebDash] applySystemState called without transition type');
+  }
+
+  // ---------------------------
+  // 1️⃣ Apply dashboards
+  // ---------------------------
+  availableDashboards = dashboards.map(d => ({
+    id: d.id,
+    name: d.name
+  }));
+
+  // ---------------------------
+  // 2️⃣ Apply preferences (if provided)
+  // ---------------------------
+  if (preferences) {
+    userPreferences.appearance = structuredClone(preferences.appearance);
+    userPreferences.behavior = structuredClone(preferences.behavior);
+    await PreferencesService.save(userPreferences);
+  }
+
+  // ---------------------------
+  // 3️⃣ Apply dashboard metadata
+  // ---------------------------
+  if (nextDefaultDashboardId) {
+    await DashboardService.setDefaultDashboardId(nextDefaultDashboardId);
+    defaultDashboardId = nextDefaultDashboardId;
+  }
+
+  if (nextActiveDashboardId) {
+    await DashboardService.setActiveDashboardId(nextActiveDashboardId);
+    activeDashboardId = nextActiveDashboardId;
+  }
+
+  // ---------------------------
+  // 4️⃣ Reinitialize app
+  // ---------------------------
+  await initApp();
+
+  // ---------------------------
+  // 5️⃣ Sync Preferences UI if open
+  // ---------------------------
+  if (isPreferencesOpen()) {
+    syncDefaultDashboardSelector();
+    renderDashboardManagementPanel();
+  }
+
+  // ---------------------------
+  // 6️⃣ Transition hook (future)
+  // ---------------------------
+  // e.g. logSystemTransition(type, ...)
 }
 
 // =====================================================
@@ -884,7 +952,11 @@ if (identityIconWrapper && identityIconInput) {
 
     // Basic validation (keep it simple for now)
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file.');
+      showToast({
+        title: 'Invalid file',
+        lines: ['Please select a valid image file (PNG, JPG, etc.).'],
+        type: 'error'
+      });
       identityIconInput.value = '';
       return;
     }
@@ -1319,24 +1391,22 @@ async function mergeSystemImport(payload, replacePreferences) {
       availableDashboards.push({ id: imported.id, name: finalName });
     }
   }
+    
+  // ✅ Build system intent
+  const dashboards = availableDashboards.map(d => ({
+    id: d.id,
+    name: d.name
+  }));
 
-  if (replacePreferences) {
-    importSummary.preferencesReplaced = true;
-    userPreferences.appearance =
-      structuredClone(payload.preferences.appearance);
-    userPreferences.behavior =
-      structuredClone(payload.preferences.behavior);
-    await PreferencesService.save(userPreferences);
-  }
+  // ✅ Apply unified system transition
+  await applySystemState({
+    type: SystemTransitionType.IMPORT_MERGE,
+    dashboards,
+    activeDashboardId: payload.meta.activeDashboardId,
+    defaultDashboardId: payload.meta.defaultDashboardId,
+    preferences: replacePreferences ? payload.preferences : null
+  });
 
-  await DashboardService.setDefaultDashboardId(
-    payload.meta.defaultDashboardId
-  );
-  await DashboardService.setActiveDashboardId(
-    payload.meta.activeDashboardId
-  );
-
-  await initApp();
   showImportSuccess(importSummary);
 }
 
@@ -1373,30 +1443,16 @@ async function overwriteSystemImport(payload, replacePreferences) {
     });
   }
 
-  // ----------------------------------------
-  // 3️⃣ Preferences (optional)
-  // ----------------------------------------
-  if (replacePreferences) {
-    userPreferences.appearance =
-      structuredClone(payload.preferences.appearance);
-    userPreferences.behavior =
-      structuredClone(payload.preferences.behavior);
-    await PreferencesService.save(userPreferences);
-  }
-
-  // ----------------------------------------
-  // 4️⃣ Restore dashboard metadata
-  // ----------------------------------------
-  defaultDashboardId = payload.meta.defaultDashboardId;
-  activeDashboardId = payload.meta.activeDashboardId;
-
-  await DashboardService.setDefaultDashboardId(defaultDashboardId);
-  await DashboardService.setActiveDashboardId(activeDashboardId);
-
-  // ----------------------------------------
-  // 5️⃣ Reinitialize app
-  // ----------------------------------------
-  await initApp();
+  await applySystemState({
+    type: SystemTransitionType.IMPORT_OVERWRITE,
+    dashboards: payload.dashboards.map(d => ({
+      id: d.id,
+      name: d.identity.name
+    })),
+    activeDashboardId: payload.meta.activeDashboardId,
+    defaultDashboardId: payload.meta.defaultDashboardId,
+    preferences: replacePreferences ? payload.preferences : null
+  });
 
   showImportSuccess({
     dashboardsCreated: payload.dashboards.length,
@@ -1406,13 +1462,10 @@ async function overwriteSystemImport(payload, replacePreferences) {
 }
 
 function syncImportPreferenceState(overlay) {
-  const overwriteRadio =
-    overlay.querySelector('input[name="import-mode"][value="overwrite"]');
-  const replacePrefsCheckbox =
-    overlay.querySelector('#import-replace-preferences');
+  const overwriteRadio = overlay.querySelector('input[name="import-mode"][value="overwrite"]');
+  const replacePrefsCheckbox = overlay.querySelector('#import-replace-preferences');
 
-  const optionWrapper =
-    replacePrefsCheckbox?.closest('.import-option');
+  const optionWrapper = replacePrefsCheckbox?.closest('.import-option');
 
   if (!overwriteRadio || !replacePrefsCheckbox) return;
 
@@ -1421,7 +1474,8 @@ function syncImportPreferenceState(overlay) {
     replacePrefsCheckbox.checked = true;
     replacePrefsCheckbox.disabled = true;
     optionWrapper?.classList.add('import-option--disabled');
-  } else {
+  } 
+  else {
     // ✅ Restore user control
     replacePrefsCheckbox.disabled = false;
     optionWrapper?.classList.remove('import-option--disabled');
@@ -1525,7 +1579,7 @@ async function resetDashboard(dashboardId = activeDashboardId) {
 }
 
 async function resetSystem() {
-  // 1️⃣ Clear user preferences
+  // 1️⃣ Clear user preferences storage
   localStorage.removeItem(USER_PREFS_KEY);
 
   // 2️⃣ Clear all dashboards on backend
@@ -1547,26 +1601,22 @@ async function resetSystem() {
 
   await DashboardService.save(template);
 
-  // 5️⃣ Set active + default dashboard
-  activeDashboardId = template.id;
-  defaultDashboardId = template.id;
+  // ✅ STEP 4.2 – system state description
+  const dashboards = [
+    {
+      id: template.id,
+      name: template.name
+    }
+  ];
 
-  await DashboardService.setActiveDashboardId(template.id);
-  await DashboardService.setDefaultDashboardId(template.id);
-
-  // 6️⃣ Reinitialize app state cleanly
-  dashboardState = template;
-  pageCategories = dashboardState.categories;
-
-  userPreferences = createDefaultPreferences();
-  await PreferencesService.save(userPreferences);
-
-  setActiveTheme(userPreferences.appearance.theme);
-  setActiveBackground(userPreferences.appearance.background);
-  applyIdentityToUI();
-
-  // 7️⃣ Re-render everything
-  await initApp();
+  // ✅ STEP 4.4 – apply system transition
+  await applySystemState({
+    type: SystemTransitionType.RESET_SYSTEM,
+    dashboards,
+    activeDashboardId: template.id,
+    defaultDashboardId: template.id,
+    preferences: createDefaultPreferences()
+  });
 }
 
 // =====================================================
@@ -2888,7 +2938,8 @@ function closePreferences() {
 }
 
 function isPreferencesOpen() {
-  return preferencesOverlay && !preferencesOverlay.hidden;
+  const overlay = document.getElementById('preferences-overlay');
+  return overlay && !overlay.hidden;
 }
 
 // Open button

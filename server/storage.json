@@ -1,48 +1,27 @@
 {
   "dashboards": {
-    "dashboard-main": {
-      "id": "dashboard-main",
+    "dashboard-1777532796628": {
+      "id": "dashboard-1777532796628",
       "name": "WebDash",
       "categories": [
         {
-          "id": "cat-general",
-          "title": "General (Updated)",
+          "id": "cat-getting-started",
+          "title": "Getting Started",
           "order": 0,
           "visible": true,
           "items": [
             {
-              "id": "btn-google",
-              "label": "Google Search",
-              "url": "https://google.com",
-              "order": 1,
+              "id": "btn-docs",
+              "label": "WebDash Github",
+              "url": "https://github.com/SladeDK/Webdash",
+              "order": 0,
               "visible": true
             },
             {
-              "id": "btn-stackoverflow",
-              "label": "Stack Overflow",
-              "url": "https://stackoverflow.com",
-              "order": 0,
-              "visible": true
-            }
-          ]
-        }
-      ]
-    },
-    "dashboard-personal": {
-      "id": "dashboard-personal",
-      "name": "WebDash",
-      "categories": [
-        {
-          "id": "cat-personal",
-          "title": "Personal",
-          "order": 0,
-          "visible": true,
-          "items": [
-            {
-              "id": "btn-reddit",
-              "label": "Reddit",
-              "url": "https://reddit.com",
-              "order": 0,
+              "id": "btn-settings",
+              "label": "Google",
+              "url": "https://google.com",
+              "order": 1,
               "visible": true
             }
           ]
@@ -50,20 +29,20 @@
       ]
     }
   },
-  "activeDashboardId": "dashboard-personal",
-  "defaultDashboardId": "dashboard-main",
+  "activeDashboardId": "dashboard-1777532796628",
+  "defaultDashboardId": "dashboard-1777532796628",
   "preferences": {
     "appearance": {
-      "theme": "light",
-      "background": "bg-gradient",
+      "theme": "system",
+      "background": "bg-plain",
       "identity": {
-        "name": "Personal Dash",
-        "icon": null
+        "name": "WebDash",
+        "icon": "assets/webdash-logo.png"
       }
     },
     "behavior": {
-      "autoCloseDropdowns": false,
-      "openLinksInNewTab": false
+      "autoCloseDropdowns": true,
+      "openLinksInNewTab": true
     }
   },
   "dashboardState": {
