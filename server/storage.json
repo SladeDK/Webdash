@@ -12,7 +12,7 @@
           "items": [
             {
               "id": "btn-google",
-              "label": "Google",
+              "label": "Google Search",
               "url": "https://google.com",
               "order": 0,
               "visible": true

@@ -2597,10 +2597,6 @@ html:not(.identity-ready) .header-center {
   font-weight: 600;
 }
 
-.dashboard-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
 .setting-row select {
   min-width: 220px;
   padding: 6px 10px;
@@ -2795,4 +2791,18 @@ html:not(.identity-ready) .header-center {
 /* Removed – destructive */
 .change-label.removed {
   color: var(--preview-removed);
+}
+
+.dashboard-item {
+  cursor: default;
+}
+
+.item-entity {
+  font-weight: 500;
+}
+
+.import-preview-modal {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+  overflow-y: auto;
 }

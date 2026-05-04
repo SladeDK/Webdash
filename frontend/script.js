@@ -1313,9 +1313,9 @@ function renderImportPreview(plan) {
   let html = '';
   const dashboards = plan.dashboards ?? { added: [], updated: [], removed: [] };
 
-  // =========================
-  // Affected Dashboards (summary)
-  // =========================
+  // ==================================================
+  // AFFECTED DASHBOARDS
+  // ==================================================
   html += `
     <div class="preview-section">
       <h3>Affected Dashboards:</h3>
@@ -1328,306 +1328,235 @@ function renderImportPreview(plan) {
       <ul class="dashboard-summary">
   `;
 
-  // ---- REMOVED dashboards ----
   dashboards.removed.forEach(d => {
     html += `
-    <li class="dashboard-item removed">
-      <div class="dashboard-name">${d.name.before}</div>
-      <div class="dashboard-state">Removed</div>
-    </li>`;
+      <li class="dashboard-item removed">
+        <div class="dashboard-name">${d.name.before}</div>
+        <div class="dashboard-state">Removed</div>
+      </li>
+    `;
   });
 
-  // ---- ADDED dashboards ----
   dashboards.added.forEach(d => {
     html += `
-    <li class="dashboard-item added">
-      <div class="dashboard-name">${d.name.after}</div>
-      <div class="dashboard-state">Added</div>
-    </li>`;
+      <li class="dashboard-item added">
+        <div class="dashboard-name">${d.name.after}</div>
+        <div class="dashboard-state">Added</div>
+      </li>
+    `;
   });
 
-  // ---- UPDATED dashboards (rename +/or internal changes)
   dashboards.updated.forEach(d => {
     const renamed = d.name.before !== d.name.after;
     const hasInternalChanges =
       d.categories &&
-      (d.categories.added.length ||
-      d.categories.updated.length ||
-      d.categories.removed.length ||
-      d.categories.updated.some(
-        c => c.items &&
-          (c.items.added.length ||
-            c.items.updated.length ||
-            c.items.removed.length)
-      ));
+      (
+        d.categories.added.length ||
+        d.categories.updated.length ||
+        d.categories.removed.length ||
+        d.categories.updated.some(c =>
+          c.items &&
+          (c.items.added.length || c.items.updated.length || c.items.removed.length)
+        )
+      );
 
-      html += `
-    <li class="dashboard-item">
-      <div class="dashboard-name">
-        ${renamed
-          ? `${d.name.before} <span class="rename-arrow">→</span> ${d.name.after}`
-          : d.name.after}
-      </div>
-      <div class="dashboard-changes">
-        ${renamed ? `<div class="change-label renamed">Renamed</div>` : ``}
-        ${hasInternalChanges ? `<div class="change-label internal">Modified Internally</div>` : ``}
-      </div>
-    </li>`;
+    html += `
+      <li class="dashboard-item">
+        <div class="dashboard-name">
+          ${renamed
+            ? `${d.name.before} <span class="rename-arrow">→</span> ${d.name.after}`
+            : d.name.after}
+        </div>
+        <div class="dashboard-changes">
+          ${renamed ? `<div class="change-label renamed">Renamed</div>` : ``}
+          ${hasInternalChanges ? `<div class="change-label internal">Modified Internally</div>` : ``}
+        </div>
+      </li>
+    `;
   });
 
   html += `
-    </ul>
-  </div>
+      </ul>
+    </div>
   `;
 
-  // =========================
-  // Category changes
-  // =========================
-  const updatedDashboards = dashboards?.updated ?? [];
+  // ==================================================
+  // AFFECTED CATEGORIES
+  // ==================================================
+  html += `
+    <div class="preview-section">
+      <h3>Affected Categories:</h3>
 
-  const dashboardsWithCategoryChanges = updatedDashboards.filter(d =>
-    d.categories && (
-      // Category-level changes
-      d.categories.added.length ||
-      d.categories.updated.length ||
-      d.categories.removed.length ||
-
-      // ✅ Button-level changes inside categories
-      d.categories.updated.some(cat =>
-        cat.items &&
-        (
-          cat.items.added.length ||
-          cat.items.updated.length ||
-          cat.items.removed.length
-        )
-      )
-    )
-  );
-
-  // ✅ Categories section should appear for MERGE (if dashboards updated)
-  // ✅ AND always for OVERWRITE
-  if (
-    plan.type === SystemTransitionType.IMPORT_OVERWRITE ||
-    updatedDashboards.length > 0
-  ) {
-    html += `
-      <div class="preview-section">
-        <h3>
-          Change Details:
-          <button
-            class="preview-toggle"
-            type="button"
-            aria-expanded="false"
-          >
-            Show
-          </button>
-        </h3>
-        <div class="preview-collapsible" hidden>
-    `;
-
-    // ✅ OVERWRITE-specific messaging
-    if (plan.type === SystemTransitionType.IMPORT_OVERWRITE) {
-      html += `
-        <p class="preview-muted">
-          All categories will be replaced with those from the import file.
-        </p>
-      `;
-
-      // ✅ Describe resulting categories (not diffs)
-      const allDashboards = [
-        ...dashboards.added,
-        ...dashboards.updated
-      ];
-
-      allDashboards.forEach(dashboard => {
-        const importedDashboard = plan.meta?.importedDashboards?.find(
-          d => d.id === dashboard.id
-        );
-
-        if (!importedDashboard || !importedDashboard.categories?.length) return;
-
-        html += `
-          <div class="preview-subsection">
-            <strong>Dashboard: ${dashboard.name.after}</strong>
-            <ul>
-        `;
-
-        importedDashboard.categories.forEach(cat => {
-          html += `
-            <li>
-              ${cat.title}
-          `;
-
-          // ✅ Resulting buttons (overwrite = no diffs)
-          if (Array.isArray(cat.items) && cat.items.length > 0) {
-            html += `<ul class="preview-items">`;
-
-            cat.items.forEach(item => {
-              html += `
-                <li>
-                  ${item.label}
-                </li>
-              `;
-            });
-
-            html += `</ul>`;
-          }
-
-          html += `
-            </li>
-          `;
-        });
-
-        html += `
-            </ul>
-          </div>
-        `;
-      });
-    }
-
-    // ✅ MERGE with no category changes
-    else if (dashboardsWithCategoryChanges.length === 0) {
-      html += `
-        <p class="preview-muted">
-          Nothing will be added, edited, or removed.
-        </p>
-      `;
-    }
-
-    // ✅ MERGE with actual category changes
-    else {
-      dashboardsWithCategoryChanges.forEach(dashboard => {
-        html += `
-          <div class="preview-subsection">
-            <strong>Dashboard: ${dashboard.name.after}</strong>
-            <ul>
-        `;
-
-        dashboard.categories.updated.forEach(cat => {
-          const renamed = cat.name.before !== cat.name.after;
-
-          html += `
-            <li class="${renamed ? 'updated' : ''}">
-              <strong>
-                ${renamed
-                  ? `${cat.name.before} → ${cat.name.after}`
-                  : cat.name.after}
-              </strong>
-          `;
-
-          // ✅ Button-level diffs (MERGE only)
-          if (cat.items) {
-            const hasItemChanges =
-              cat.items.added.length ||
-              cat.items.updated.length ||
-              cat.items.removed.length;
-
-            if (hasItemChanges) {
-              html += `<ul class="preview-items">`;
-
-              cat.items.updated.forEach(item => {
-                const nameChanged = item.name.before !== item.name.after;
-                const urlChanged = item.url?.before !== item.url?.after;
-
-                html += `
-                  <li class="change-row">
-                    <div class="change-main">
-                      ${nameChanged
-                        ? `${item.name.before} → ${item.name.after}`
-                        : item.name.after}
-                      ${urlChanged
-                        ? `<div class="change-sub">
-                            ${item.url.before} → ${item.url.after}
-                          </div>`
-                        : ''}
-                    </div>
-                    <div class="change-meta">
-                      ${nameChanged ? `<div class="change-label renamed">Renamed</div>` : ``}
-                      ${urlChanged ? `<div class="change-label updated">Updated</div>` : ``}
-                    </div>
-                  </li>
-                `;
-              });
-
-              cat.items.added.forEach(item => {
-                html += `
-                  <li class="change-row">
-                    <div class="change-main">
-                      ${item.name.after}
-                      <div class="change-sub">
-                        ${item.url?.after}
-                      </div>
-                    </div>
-                    <div class="change-meta">
-                      <div class="change-label added">Added</div>
-                    </div>
-                  </li>
-                `;
-              });
-
-              cat.items.removed.forEach(item => {
-                html += `
-                  <li class="removed">
-                    ${item.name.before} → REMOVED
-                  </li>
-                `;
-              });
-
-              html += `</ul>`;
-            }
-          }
-          html += `
-            </li>
-          `;
-        });
-
-        dashboard.categories.added.forEach(cat => {
-          html += `
-            <li class="added">
-              ${cat.name.after} → ADDED
-            </li>
-          `;
-        });
-
-        dashboard.categories.removed.forEach(cat => {
-          html += `
-            <li class="removed">
-              ${cat.name.before} → REMOVED
-            </li>
-          `;
-        });
-
-        html += `
-            </ul>
-          </div>
-        `;
-      });
-    }
-
-    html += `
-        </div>
+      <div class="dashboard-summary-header">
+        <div class="dashboard-header-name">Category Path</div>
+        <div class="dashboard-header-changes">Changes</div>
       </div>
-    `;
-  }
 
-  importPreviewContent.innerHTML = html;
+      <ul class="dashboard-summary">
+  `;
 
-  // =========================
-  // Toggle logic (local, safe)
-  // =========================
-  importPreviewContent
-    .querySelectorAll('.preview-toggle')
-    .forEach(btn => {
-      btn.addEventListener('click', () => {
-        const section = btn.closest('.preview-section');
-        const collapsible = section.querySelector('.preview-collapsible');
-        const expanded = btn.getAttribute('aria-expanded') === 'true';
+  dashboards.updated.forEach(d => {
+    if (!d.categories) return;
 
-        btn.setAttribute('aria-expanded', String(!expanded));
-        btn.textContent = expanded ? 'Show' : 'Hide';
-        collapsible.hidden = expanded;
+    d.categories.updated.forEach(cat => {
+      const renamed = cat.name.before !== cat.name.after;
+
+      html += `
+        <li class="dashboard-item">
+          <div class="dashboard-name">
+            <div class="preview-muted">
+              Dashboard · ${d.name.after}
+            </div>
+            <div class="item-entity">
+              ${renamed ? `${cat.name.before} → ${cat.name.after}` : cat.name.after}
+            </div>
+          </div>
+          <div class="dashboard-changes">
+            ${renamed ? `<div class="change-label updated">Renamed</div>` : ``}
+            <div class="change-label internal">Modified Internally</div>
+          </div>
+        </li>
+      `;
+    });
+
+    d.categories.added.forEach(cat => {
+      html += `
+        <li class="dashboard-item">
+          <div class="dashboard-name">
+            <div class="preview-muted">
+              Dashboard · ${d.name.after}
+            </div>
+            <div class="item-entity">
+              ${cat.name.after}
+            </div>
+          </div>
+          <div class="dashboard-changes">
+            <div class="change-label added">Added</div>
+            <div class="change-label internal">Modified Internally</div>
+          </div>
+        </li>
+      `;
+    });
+
+    d.categories.removed.forEach(cat => {
+      html += `
+        <li class="dashboard-item removed">
+          <div class="dashboard-name">
+            <div class="preview-muted">
+              Dashboard · ${d.name.after}
+            </div>
+            <div class="item-entity">
+              ${cat.name.before}
+            </div>
+          </div>
+          <div class="dashboard-changes">
+            <div class="change-label removed">Removed</div>
+          </div>
+        </li>
+      `;
+    });
+  });
+
+  html += `
+      </ul>
+    </div>
+  `;
+
+  // ==================================================
+  // AFFECTED BUTTONS
+  // ==================================================
+  html += `
+    <div class="preview-section">
+      <h3>Affected Buttons:</h3>
+
+      <div class="dashboard-summary-header">
+        <div class="dashboard-header-name">Button Path</div>
+        <div class="dashboard-header-changes">Changes</div>
+      </div>
+
+      <ul class="dashboard-summary">
+  `;
+
+  dashboards.updated.forEach(d => {
+    if (!d.categories) return;
+
+    d.categories.updated.forEach(cat => {
+      if (!cat.items) return;
+
+      cat.items.updated.forEach(item => {
+        const renamed = item.name.before !== item.name.after;
+        const urlChanged = item.url.before !== item.url.after;
+
+        html += `
+          <li class="dashboard-item">
+            <div class="dashboard-name">
+              <div class="preview-muted">
+                Dashboard · ${d.name.after} → Category · ${cat.name.after}
+              </div>
+
+              <div class="item-entity">
+                ${renamed ? `${item.name.before} → ${item.name.after}` : item.name.after}
+              </div>
+
+              <div class="preview-muted">
+                ${urlChanged
+                  ? `${item.url.before} → ${item.url.after}`
+                  : item.url.after}
+              </div>
+            </div>
+            <div class="dashboard-changes">
+              ${renamed ? `<div class="change-label updated">Renamed</div>` : ``}
+              ${urlChanged ? `<div class="change-label updated">Modified URL</div>` : ``}
+            </div>
+          </li>
+        `;
+      });
+
+      cat.items.added.forEach(item => {
+        html += `
+          <li class="dashboard-item">
+            <div class="dashboard-name">
+              <div class="preview-muted">
+                Dashboard · ${d.name.after} → Category · ${cat.name.after}
+              </div>
+              <div class="item-entity">
+                ${item.name.after}
+              </div>
+              <div class="preview-muted">${item.url.after}</div>
+            </div>
+            <div class="dashboard-changes">
+              <div class="change-label added">Added</div>
+            </div>
+          </li>
+        `;
+      });
+
+      cat.items.removed.forEach(item => {
+        html += `
+          <li class="dashboard-item removed">
+            <div class="dashboard-name">
+              <div class="preview-muted">
+                Dashboard · ${d.name.after} → Category · ${cat.name.after}
+              </div>
+              <div class="item-entity">
+                ${item.name.before}
+              </div>
+            </div>
+            <div class="dashboard-changes">
+              <div class="change-label removed">Removed</div>
+            </div>
+          </li>
+        `;
       });
     });
+  });
+
+  html += `
+      </ul>
+    </div>
+  `;
+
+  importPreviewContent.innerHTML = html;
 }
 
 function openImportPreviewModal(changePlan, onConfirm) {
