@@ -1264,7 +1264,7 @@ function openImportSystemModal(payload) {
     return;
   }
 
-  confirmBtn.onclick = () => {
+  confirmBtn.onclick = async () => {
     const mode =
       overlay.querySelector('input[name="import-mode"]:checked')?.value ??
       IMPORT_MODE.MERGE;
@@ -1272,14 +1272,14 @@ function openImportSystemModal(payload) {
     const replacePreferences =
       overlay.querySelector('#import-replace-preferences')?.checked ?? true;
 
-    const plan = buildImportChangePlan(payload, mode, replacePreferences);
+    // ✅ Build preview context FIRST
+    const plan = await buildPreviewContext(payload, mode);
 
     openImportPreviewModal(plan, async () => {
       closeImportSystemModal();
       if (plan.type === SystemTransitionType.IMPORT_OVERWRITE) {
         await overwriteSystemImport(payload, replacePreferences);
-      } 
-      else {
+      } else {
         await mergeSystemImport(payload, replacePreferences);
       }
     });
@@ -1310,51 +1310,324 @@ importSystemCancel?.addEventListener('click', (e) => {
 function renderImportPreview(plan) {
   if (!importPreviewContent) return;
 
-  const { summary } = plan;
+  let html = '';
+  const dashboards = plan.dashboards ?? { added: [], updated: [], removed: [] };
 
-  let html = `
+  // =========================
+  // Affected Dashboards (summary)
+  // =========================
+  html += `
     <div class="preview-section">
-      <h3>Overview</h3>
-      <p><strong>Import mode:</strong> ${summary.mode}</p>
-    </div>
+      <h3>Affected Dashboards:</h3>
+
+      <div class="dashboard-summary-header">
+        <div class="dashboard-header-name">Dashboard</div>
+        <div class="dashboard-header-changes">Changes</div>
+      </div>
+
+      <ul class="dashboard-summary">
   `;
 
-  if (summary.dashboardsAfter) {
+  // ---- REMOVED dashboards ----
+  dashboards.removed.forEach(d => {
+    html += `
+    <li class="dashboard-item removed">
+      <div class="dashboard-name">${d.name.before}</div>
+      <div class="dashboard-state">Removed</div>
+    </li>`;
+  });
+
+  // ---- ADDED dashboards ----
+  dashboards.added.forEach(d => {
+    html += `
+    <li class="dashboard-item added">
+      <div class="dashboard-name">${d.name.after}</div>
+      <div class="dashboard-state">Added</div>
+    </li>`;
+  });
+
+  // ---- UPDATED dashboards (rename +/or internal changes)
+  dashboards.updated.forEach(d => {
+    const renamed = d.name.before !== d.name.after;
+    const hasInternalChanges =
+      d.categories &&
+      (d.categories.added.length ||
+      d.categories.updated.length ||
+      d.categories.removed.length ||
+      d.categories.updated.some(
+        c => c.items &&
+          (c.items.added.length ||
+            c.items.updated.length ||
+            c.items.removed.length)
+      ));
+
+      html += `
+    <li class="dashboard-item">
+      <div class="dashboard-name">
+        ${renamed
+          ? `${d.name.before} <span class="rename-arrow">→</span> ${d.name.after}`
+          : d.name.after}
+      </div>
+      <div class="dashboard-changes">
+        ${renamed ? `<div class="change-label renamed">Renamed</div>` : ``}
+        ${hasInternalChanges ? `<div class="change-label internal">Modified Internally</div>` : ``}
+      </div>
+    </li>`;
+  });
+
+  html += `
+    </ul>
+  </div>
+  `;
+
+  // =========================
+  // Category changes
+  // =========================
+  const updatedDashboards = dashboards?.updated ?? [];
+
+  const dashboardsWithCategoryChanges = updatedDashboards.filter(d =>
+    d.categories && (
+      // Category-level changes
+      d.categories.added.length ||
+      d.categories.updated.length ||
+      d.categories.removed.length ||
+
+      // ✅ Button-level changes inside categories
+      d.categories.updated.some(cat =>
+        cat.items &&
+        (
+          cat.items.added.length ||
+          cat.items.updated.length ||
+          cat.items.removed.length
+        )
+      )
+    )
+  );
+
+  // ✅ Categories section should appear for MERGE (if dashboards updated)
+  // ✅ AND always for OVERWRITE
+  if (
+    plan.type === SystemTransitionType.IMPORT_OVERWRITE ||
+    updatedDashboards.length > 0
+  ) {
     html += `
       <div class="preview-section">
-        <h3>Dashboards (Overwrite)</h3>
-        <ul>
-          ${summary.dashboardsAfter
-            .map(d => `<li>${d.name}</li>`)
-            .join('')}
-        </ul>
+        <h3>
+          Change Details:
+          <button
+            class="preview-toggle"
+            type="button"
+            aria-expanded="false"
+          >
+            Show
+          </button>
+        </h3>
+        <div class="preview-collapsible" hidden>
+    `;
+
+    // ✅ OVERWRITE-specific messaging
+    if (plan.type === SystemTransitionType.IMPORT_OVERWRITE) {
+      html += `
+        <p class="preview-muted">
+          All categories will be replaced with those from the import file.
+        </p>
+      `;
+
+      // ✅ Describe resulting categories (not diffs)
+      const allDashboards = [
+        ...dashboards.added,
+        ...dashboards.updated
+      ];
+
+      allDashboards.forEach(dashboard => {
+        const importedDashboard = plan.meta?.importedDashboards?.find(
+          d => d.id === dashboard.id
+        );
+
+        if (!importedDashboard || !importedDashboard.categories?.length) return;
+
+        html += `
+          <div class="preview-subsection">
+            <strong>Dashboard: ${dashboard.name.after}</strong>
+            <ul>
+        `;
+
+        importedDashboard.categories.forEach(cat => {
+          html += `
+            <li>
+              ${cat.title}
+          `;
+
+          // ✅ Resulting buttons (overwrite = no diffs)
+          if (Array.isArray(cat.items) && cat.items.length > 0) {
+            html += `<ul class="preview-items">`;
+
+            cat.items.forEach(item => {
+              html += `
+                <li>
+                  ${item.label}
+                </li>
+              `;
+            });
+
+            html += `</ul>`;
+          }
+
+          html += `
+            </li>
+          `;
+        });
+
+        html += `
+            </ul>
+          </div>
+        `;
+      });
+    }
+
+    // ✅ MERGE with no category changes
+    else if (dashboardsWithCategoryChanges.length === 0) {
+      html += `
+        <p class="preview-muted">
+          Nothing will be added, edited, or removed.
+        </p>
+      `;
+    }
+
+    // ✅ MERGE with actual category changes
+    else {
+      dashboardsWithCategoryChanges.forEach(dashboard => {
+        html += `
+          <div class="preview-subsection">
+            <strong>Dashboard: ${dashboard.name.after}</strong>
+            <ul>
+        `;
+
+        dashboard.categories.updated.forEach(cat => {
+          const renamed = cat.name.before !== cat.name.after;
+
+          html += `
+            <li class="${renamed ? 'updated' : ''}">
+              <strong>
+                ${renamed
+                  ? `${cat.name.before} → ${cat.name.after}`
+                  : cat.name.after}
+              </strong>
+          `;
+
+          // ✅ Button-level diffs (MERGE only)
+          if (cat.items) {
+            const hasItemChanges =
+              cat.items.added.length ||
+              cat.items.updated.length ||
+              cat.items.removed.length;
+
+            if (hasItemChanges) {
+              html += `<ul class="preview-items">`;
+
+              cat.items.updated.forEach(item => {
+                const nameChanged = item.name.before !== item.name.after;
+                const urlChanged = item.url?.before !== item.url?.after;
+
+                html += `
+                  <li class="change-row">
+                    <div class="change-main">
+                      ${nameChanged
+                        ? `${item.name.before} → ${item.name.after}`
+                        : item.name.after}
+                      ${urlChanged
+                        ? `<div class="change-sub">
+                            ${item.url.before} → ${item.url.after}
+                          </div>`
+                        : ''}
+                    </div>
+                    <div class="change-meta">
+                      ${nameChanged ? `<div class="change-label renamed">Renamed</div>` : ``}
+                      ${urlChanged ? `<div class="change-label updated">Updated</div>` : ``}
+                    </div>
+                  </li>
+                `;
+              });
+
+              cat.items.added.forEach(item => {
+                html += `
+                  <li class="change-row">
+                    <div class="change-main">
+                      ${item.name.after}
+                      <div class="change-sub">
+                        ${item.url?.after}
+                      </div>
+                    </div>
+                    <div class="change-meta">
+                      <div class="change-label added">Added</div>
+                    </div>
+                  </li>
+                `;
+              });
+
+              cat.items.removed.forEach(item => {
+                html += `
+                  <li class="removed">
+                    ${item.name.before} → REMOVED
+                  </li>
+                `;
+              });
+
+              html += `</ul>`;
+            }
+          }
+          html += `
+            </li>
+          `;
+        });
+
+        dashboard.categories.added.forEach(cat => {
+          html += `
+            <li class="added">
+              ${cat.name.after} → ADDED
+            </li>
+          `;
+        });
+
+        dashboard.categories.removed.forEach(cat => {
+          html += `
+            <li class="removed">
+              ${cat.name.before} → REMOVED
+            </li>
+          `;
+        });
+
+        html += `
+            </ul>
+          </div>
+        `;
+      });
+    }
+
+    html += `
+        </div>
       </div>
     `;
   }
 
-  if (summary.dashboardsAdded || summary.dashboardsUpdated) {
-    html += `<div class="preview-section"><h3>Dashboards (Merge)</h3>`;
-
-    if (summary.dashboardsUpdated?.length) {
-      html += `<p><strong>Updated:</strong></p><ul>
-        ${summary.dashboardsUpdated
-          .map(d => `<li>${d.name}</li>`)
-          .join('')}
-      </ul>`;
-    }
-
-    if (summary.dashboardsAdded?.length) {
-      html += `<p><strong>Added:</strong></p><ul>
-        ${summary.dashboardsAdded
-          .map(d => `<li>${d.name}</li>`)
-          .join('')}
-      </ul>`;
-    }
-
-    html += `</div>`;
-  }
-
   importPreviewContent.innerHTML = html;
+
+  // =========================
+  // Toggle logic (local, safe)
+  // =========================
+  importPreviewContent
+    .querySelectorAll('.preview-toggle')
+    .forEach(btn => {
+      btn.addEventListener('click', () => {
+        const section = btn.closest('.preview-section');
+        const collapsible = section.querySelector('.preview-collapsible');
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+
+        btn.setAttribute('aria-expanded', String(!expanded));
+        btn.textContent = expanded ? 'Show' : 'Hide';
+        collapsible.hidden = expanded;
+      });
+    });
 }
 
 function openImportPreviewModal(changePlan, onConfirm) {
@@ -1434,66 +1707,230 @@ function resolveValidDashboardId(candidateId, dashboards) {
   return dashboards[0]?.id ?? null;
 }
 
-function buildOverwriteImportChangePlan(payload, replacePreferences) {
-  return {
-    type: SystemTransitionType.IMPORT_OVERWRITE,
-    summary: {
-      mode: 'Overwrite',
-      dashboardsBefore: availableDashboards.map(d => ({ ...d })),
-      dashboardsAfter: payload.dashboards.map(d => ({
-        id: d.id,
-        name: d.identity.name
-      }))
-    },
-    finalState: {
-      dashboards: payload.dashboards.map(d => ({
-        id: d.id,
-        name: d.identity.name
-      })),
-      activeDashboardId: payload.meta.activeDashboardId,
-      defaultDashboardId: payload.meta.defaultDashboardId,
-      preferences: replacePreferences ? payload.preferences : null
+// =====================================================
+// Preview builder (async, isolated from UI state)
+// =====================================================
+async function buildPreviewContext(payload, mode) {
+  // 1️⃣ Preserve current active dashboard
+  const originalActiveId = activeDashboardId;
+
+  // 2️⃣ Load ALL local dashboards into a snapshot map
+  const localDashboardStates = new Map();
+
+  for (const { id } of availableDashboards) {
+    await DashboardService.setActiveDashboardId(id);
+    const state = await DashboardService.load();
+    if (state) {
+      localDashboardStates.set(id, structuredClone(state));
     }
+  }
+
+  // 3️⃣ Restore original active dashboard
+  if (originalActiveId) {
+    await DashboardService.setActiveDashboardId(originalActiveId);
+  }
+
+  // 4️⃣ Build a complete change plan using snapshots
+  const plan =
+    mode === IMPORT_MODE.OVERWRITE
+      ? buildOverwriteImportChangePlan(payload)
+      : buildMergeImportChangePlan(payload, localDashboardStates);
+
+  // ✅ PREVIEW-ONLY metadata (used for overwrite category descriptions)
+  plan.meta = {
+    ...plan.meta,
+    importedDashboards: structuredClone(payload.dashboards)
   };
+
+  return plan;
 }
 
-function buildMergeImportChangePlan(payload, replacePreferences) {
-  const existing = new Map(availableDashboards.map(d => [d.id, d]));
+// =====================================================
+// Change-plan helpers (PURE)
+// =====================================================
+
+function indexById(items) {
+  return new Map(items.map(item => [item.id, item]));
+}
+
+function diffCategories(localCategories = [], importedCategories = []) {
+  const localMap = indexById(localCategories);
+  const importedMap = indexById(importedCategories);
 
   const added = [];
   const updated = [];
+  const removed = []; // reserved for future explicit deletes
 
-  payload.dashboards.forEach(d => {
-    if (existing.has(d.id)) {
-      updated.push({ id: d.id, name: d.identity.name });
+  importedCategories.forEach(cat => {
+    const local = localMap.get(cat.id);
+
+    if (!local) {
+      added.push({
+        id: cat.id,
+        name: { before: null, after: cat.title },
+        status: 'added',
+        items: diffItems([], cat.items)
+      });
     } else {
-      added.push({ id: d.id, name: d.identity.name });
+      const items = diffItems(local.items, cat.items);
+
+      if (
+        local.title !== cat.title ||
+        items.added.length ||
+        items.updated.length
+      ) {
+        updated.push({
+          id: cat.id,
+          name: { before: local.title, after: cat.title },
+          status: 'updated',
+          items
+        });
+      }
+    }
+  });
+
+  // ❌ NO removal-by-omission in MERGE
+  return { added, updated, removed };
+}
+
+function diffItems(localItems = [], importedItems = []) {
+  const localMap = indexById(localItems);
+  const importedMap = indexById(importedItems);
+
+  const added = [];
+  const updated = [];
+  const removed = []; // kept for future explicit deletes
+
+  // Added or updated
+  importedItems.forEach(item => {
+    const local = localMap.get(item.id);
+
+    if (!local) {
+      added.push({
+        id: item.id,
+        name: { before: null, after: item.label },
+        url: { before: null, after: item.url },
+        status: 'added'
+      });
+    } else if (
+      local.label !== item.label ||
+      local.url !== item.url
+    ) {
+      updated.push({
+        id: item.id,
+        name: { before: local.label, after: item.label },
+        url: { before: local.url, after: item.url },
+        status: 'updated'
+      });
+    }
+  });
+
+  // ❌ NO removal-by-omission in MERGE
+  return { added, updated, removed };
+}
+
+function buildMergeImportChangePlan(payload, localDashboardStates = new Map()) {
+  const localMap = new Map(
+    availableDashboards.map(d => [d.id, d])
+  );
+
+  const dashboards = {
+    added: [],
+    updated: [],
+    removed: []
+  };
+
+  // Added + updated dashboards
+  payload.dashboards.forEach(imported => {
+    const local = localMap.get(imported.id);
+
+    if (!local) {
+      dashboards.added.push({
+        id: imported.id,
+        name: { before: null, after: imported.identity.name },
+        status: 'added'
+      });
+      return;
+    }
+
+    const localState = localDashboardStates.get(imported.id);
+
+    dashboards.updated.push({
+      id: imported.id,
+      name: {
+        before: local.name,
+        after: imported.identity.name
+      },
+      status: 'updated',
+      categories: localState
+        ? diffCategories(
+            localState.categories,
+            imported.categories
+          )
+        : {
+            added: [],
+            updated: [],
+            removed: []
+          }
+    });
+  });
+
+  // Removed dashboards
+  availableDashboards.forEach(local => {
+    if (!payload.dashboards.some(d => d.id === local.id)) {
+      dashboards.removed.push({
+        id: local.id,
+        name: { before: local.name, after: null },
+        status: 'removed'
+      });
     }
   });
 
   return {
     type: SystemTransitionType.IMPORT_MERGE,
-    summary: {
-      mode: 'Merge',
-      dashboardsAdded: added,
-      dashboardsUpdated: updated
-    },
-    finalState: {
-      dashboards: availableDashboards
-        .concat(added)
-        .map(d => ({ id: d.id, name: d.name })),
-      activeDashboardId: payload.meta.activeDashboardId,
-      defaultDashboardId: payload.meta.defaultDashboardId,
-      preferences: replacePreferences ? payload.preferences : null
-    }
+    dashboards,
+    meta: payload.meta,
+    preferences: payload.preferences
   };
 }
 
-function buildImportChangePlan(payload, mode, replacePreferences) {
-  if (mode === IMPORT_MODE.OVERWRITE) {
-    return buildOverwriteImportChangePlan(payload, replacePreferences);
-  }
-  return buildMergeImportChangePlan(payload, replacePreferences);
+function buildOverwriteImportChangePlan(payload) {
+  const dashboards = {
+    added: [],
+    updated: [],
+    removed: []
+  };
+
+  // Everything local is removed
+  availableDashboards.forEach(local => {
+    dashboards.removed.push({
+      id: local.id,
+      name: { before: local.name, after: null },
+      status: 'removed'
+    });
+  });
+
+  // Everything imported is added
+  payload.dashboards.forEach(imported => {
+    dashboards.added.push({
+      id: imported.id,
+      name: { before: null, after: imported.identity.name },
+      status: 'added'
+    });
+  });
+
+  return {
+    type: SystemTransitionType.IMPORT_OVERWRITE,
+    dashboards,
+    meta: payload.meta,
+    preferences: payload.preferences
+  };
+}
+
+function buildImportChangePlan(payload, mode) {
+  return mode === IMPORT_MODE.OVERWRITE
+    ? buildOverwriteImportChangePlan(payload)
+    : buildMergeImportChangePlan(payload);
 }
 
 async function mergeSystemImport(payload, replacePreferences) {
@@ -3129,7 +3566,6 @@ importSystemOverlay?.addEventListener('mousedown', (e) => {
 document.addEventListener('keydown', (e) => {
   const confirmOverlay = document.getElementById('confirm-overlay');
   const buttonEditorOverlay = document.getElementById('button-editor-overlay');
-
   const confirmOpen = confirmOverlay && !confirmOverlay.hidden;
   const buttonEditorOpen = buttonEditorOverlay && !buttonEditorOverlay.hidden;
   const preferencesOpen = preferencesOverlay && !preferencesOverlay.hidden;
@@ -3141,7 +3577,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && confirmOpen) {
     e.preventDefault();
     e.stopPropagation();
-
     if (typeof confirmCallback === 'function') {
       confirmCallback();
     }
@@ -3150,48 +3585,16 @@ document.addEventListener('keydown', (e) => {
   }
 
   /* ===============================
-    ESCAPE = close topmost modal
-    =============================== */
+     ESCAPE = close topmost modal (stack‑based)
+     =============================== */
   if (e.key !== 'Escape') return;
 
-  // 1️⃣ Import System Modal (highest priority)
-  if (isImportSystemOpen()) {
-    e.preventDefault();
-    e.stopPropagation();
-    closeImportSystemModal();
-    return;
-  }
+  const top = getTopModal();
+  if (!top) return;
 
-  // 2️⃣ Delete Default Dashboard Modal
-  if (deleteDefaultOpen) {
-    e.preventDefault();
-    e.stopPropagation();
-    closeDeleteDefaultDashboardModal();
-    return;
-  }
-
-  // 3️⃣ Confirm modal
-  if (confirmOpen) {
-    e.preventDefault();
-    e.stopPropagation();
-    closeConfirm();
-    return;
-  }
-
-  // 4️⃣ Button editor
-  if (buttonEditorOpen) {
-    e.preventDefault();
-    e.stopPropagation();
-    closeButtonEditor();
-    return;
-  }
-
-  // 5️⃣ Preferences (lowest priority)
-  if (preferencesOpen) {
-    e.preventDefault();
-    e.stopPropagation();
-    closePreferences();
-  }
+  e.preventDefault();
+  e.stopPropagation();
+  top.onClose();
 });
 
 // ---------- Panel switching ----------

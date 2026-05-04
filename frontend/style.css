@@ -33,6 +33,11 @@ body {
   --radius-lg: 12px;
 
   --header-height: 120px;
+
+  --preview-added: #3a9e3f;     /* green */
+  --preview-updated: #f59e0b;   /* amber */
+  --preview-removed: #d32f2f;   /* red */
+  --preview-internal: #1669e9;  /* blue */
 }
 
 /* Theme definitions */
@@ -1210,6 +1215,301 @@ html.theme-glass .modal {
 
 .import-option--disabled label {
   cursor: not-allowed;
+}
+
+/* =====================================
+   Import Preview Modal
+===================================== */
+
+
+#import-preview-content {
+  width: 100%;
+}
+
+#import-preview-content .preview-section {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* =====================================
+   Import Preview – Affected Dashboards
+===================================== */
+
+/* Affected Dashboards – header row */
+.dashboard-summary-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+
+  padding: 0.25rem 0.5rem;
+  margin-bottom: 0.25rem;
+
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dashboard-header-changes {
+  text-align: right;
+}
+
+#import-preview-content .dashboard-summary {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+#import-preview-content .dashboard-summary li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  cursor: default;
+}
+
+/* Primary: dashboard name */
+#import-preview-content .dashboard-summary li strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Secondary: change summary */
+#import-preview-content .dashboard-summary li .preview-muted {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.dashboard-summary {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dashboard-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.dashboard-changes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+
+/* =====================================
+   Import Preview – Internal-only changes
+===================================== */
+
+#import-preview-content
+.dashboard-summary
+li.dashboard-internal strong {
+  color: var(--preview-internal);
+}
+
+#import-preview-content
+.dashboard-summary
+li.dashboard-internal {
+  border-left: 3px solid color-mix(
+    in srgb,
+    var(--preview-internal) 55%,
+    transparent
+  );
+}
+
+
+/* =====================================
+   Import Preview – Summary vs Details
+===================================== */
+
+/* Summary section should feel calmer */
+.preview-section.preview-summary {
+  background: color-mix(
+    in srgb,
+    var(--bg-control) 65%,
+    transparent
+  );
+  border-style: dashed;
+}
+
+/* Slightly reduce padding to make it denser */
+.preview-section.preview-summary {
+  padding: 0.6rem 0.85rem;
+}
+
+/* Detail sections feel more structured */
+.preview-section:not(.preview-summary) {
+  background: var(--bg-card);
+}
+
+/* Summary typography should be calm */
+.preview-summary h4 {
+  font-size: 0.85rem;
+}
+
+.preview-summary p {
+  font-size: 0.75rem;
+}
+
+/* =====================================
+ Import Preview Modal – Layout Fix
+===================================== */
+
+/* Resize the actual modal container */
+.modal.import-preview {
+  width: 860px;
+  max-width: 95vw;
+  max-height: 85vh;
+}
+
+/* Ensure vertical layout behaves like Preferences */
+.modal.import-preview .modal-content {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scroll only inside body */
+.modal.import-preview .modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+/* Footer stays fixed */
+.modal.import-preview .modal-actions {
+  flex-shrink: 0;
+}
+
+/* Import preview – WebDash-aligned structure */
+
+.preview-section {
+  width: 100%;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-control);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+/* Section titles (Dashboard, Category) */
+.preview-section h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Subtle helper text */
+.preview-section p {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Lists become compact and readable */
+.preview-section ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.preview-section li {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin: 0.25rem 0;
+}
+
+/* Item hierarchy */
+.preview-section > ul > li {
+  font-weight: 500;
+}
+
+/* URLs / secondary info */
+.preview-muted {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+  word-break: break-all;
+}
+
+/* Import preview – semantic change indicators */
+
+.preview-section .added {
+  color: var(--preview-added);
+}
+
+.preview-section .updated {
+  color: var(--preview-updated);
+}
+
+.preview-section .removed {
+  color: var(--preview-removed);
+  font-weight: 500;
+}
+
+/* Allow property-level highlighting (e.g. URLs only) */
+.preview-muted.updated {
+  color: var(--preview-updated);
+}
+
+/* Import preview modal sizing */
+.import-preview-modal {
+  display: flex;
+  flex-direction: column;
+
+  width: 860px;
+  max-width: 95vw;
+
+  max-height: 85vh;
+}
+
+.import-preview-modal .modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+
+  padding: 1.5rem;
+}
+
+.import-preview-modal .modal-actions {
+  flex-shrink: 0;
+  padding-bottom: 1rem;
+}
+
+/* Import preview sections should span the modal width */
+#import-preview-content .preview-section {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#import-preview-content {
+  display: flex;
+  flex-direction: column;
+}
+
+#import-preview-content {
+  width: 100%;
+}
+
+#import-preview-content .preview-section {
+  width: 100%;
+}
+
+#import-preview-content .preview-section {
+  flex: 0 0;
 }
 
 /* Confirm message */
@@ -2402,4 +2702,97 @@ html:not(.identity-ready) .header-center {
   opacity: 0;
   transform: translateY(-6px);
   transition: opacity 180ms ease-in, transform 180ms ease-in;
+}
+
+.preview-section li.added {
+  color: var(--preview-added);
+}
+
+.preview-section .updated {
+  color: var(--preview-updated);
+}
+
+.preview-section li.removed {
+  color: var(--preview-removed);
+  font-weight: 600;
+}
+
+.preview-muted {
+  font-size: 0.875em;
+  margin-top: 0.25rem;
+  color: var(--muted-text-color, #6b7280);
+}
+
+.preview-section li.updated .preview-muted {
+  color: inherit;
+}
+
+/* Import preview — dashboards modified internally (informational, non-destructive) */
+.dashboard-item.modified {
+  background-color: rgba(59, 130, 246, 0.08); /* soft blue */
+  border-left: 4px solid #3b82f6;
+}
+
+.dashboard-item.modified .dashboard-state,
+.dashboard-item.modified .dashboard-secondary {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* Change Details rows */
+.change-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  padding: 0.25rem 0;
+}
+
+.change-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.change-sub {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.change-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* Import preview – change labels */
+.change-label {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-top: 2px;
+
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.4;
+
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* Renamed – informational */
+.change-label.renamed {
+  color: var(--preview-updated);
+}
+
+/* Modified internally – attention */
+.change-label.internal {
+  color: var(--preview-internal);
+}
+
+/* Added – positive */
+.change-label.added {
+  color: var(--preview-added);
+}
+
+/* Removed – destructive */
+.change-label.removed {
+  color: var(--preview-removed);
 }
