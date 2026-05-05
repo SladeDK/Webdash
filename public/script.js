@@ -6,6 +6,7 @@ const HAS_SEEDED_DASHBOARD_KEY = "webdash.hasSeededDashboard";
 const DASHBOARD_STATE_KEY = 'webdash-dashboard-state';
 const AUTO_CLOSE_KEY = 'webdash-dropdown-autoclose';
 const autoCloseCheckbox = document.getElementById('pref-dropdown-autoclose');
+const syncAppearanceCheckbox = document.getElementById('pref-sync-dashboard-appearance');
 const IMPORT_MODE = {
   MERGE: 'merge',
   OVERWRITE: 'overwrite'
@@ -42,6 +43,7 @@ let isCreatingDashboard = false;
 let renamingDashboardId = null;
 let dashboardValidationError = null;
 let appReady = false;
+let userPreferences = null;
 
 const DashboardService = {
   async load() {
@@ -258,6 +260,7 @@ async function initApp() {
     await PreferencesService.save(userPreferences);
   }
 
+  initSyncAppearanceBehavior();
   ensureIdentityDefaults();
   applyIdentityToUI();
   document.documentElement.classList.add('identity-ready');
@@ -265,6 +268,8 @@ async function initApp() {
   // Apply visual preferences immediately
   setActiveTheme(userPreferences.appearance.theme);
   setActiveBackground(userPreferences.appearance.background);
+
+  applyDashboardAppearance(); // ✅ ensures correct startup state
 
   if (openLinksCheckbox) {
     openLinksCheckbox.checked =
@@ -353,6 +358,7 @@ async function applySystemState({
   // ---------------------------
   if (isPreferencesOpen()) {
     syncDefaultDashboardSelector();
+    syncLayoutDashboardSelector();
     renderDashboardManagementPanel();
   }
 
@@ -513,9 +519,15 @@ async function switchDashboard(dashboardId) {
 
   dashboardState = newDashboardState;
   pageCategories = dashboardState.categories;
+  
+  applyDashboardAppearance();
 
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
+  
+  if (isPreferencesOpen()) {
+    syncLayoutDashboardSelector();
+  }
 }
 
 // ======================================================================
@@ -545,6 +557,7 @@ async function createAndSwitchDashboard({ id, name }) {
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
   syncDefaultDashboardSelector();
+  syncLayoutDashboardSelector();
   renderDashboardList();
   renderDashboardManagementPanel();
 }
@@ -598,6 +611,36 @@ function syncDefaultDashboardSelector() {
 
     defaultDashboardId = newDefault;
     await DashboardService.setDefaultDashboardId(newDefault);
+  };
+}
+
+function syncLayoutDashboardSelector() {
+  const select = document.getElementById('layout-dashboard-select');
+  if (!select) return;
+
+  select.onchange = null;
+  select.innerHTML = '';
+
+  availableDashboards.forEach(({ id, name }) => {
+    const option = document.createElement('option');
+    option.value = id;
+
+    // ✅ Always trust metadata name first
+    option.textContent = name || getDashboardDisplayName(id);
+    option.selected = id === activeDashboardId;
+
+    select.appendChild(option);
+  });
+
+  select.onchange = async () => {
+    const selectedId = select.value;
+    if (selectedId === activeDashboardId) return;
+
+    await switchDashboard(selectedId);
+
+    if (isPreferencesOpen()) {
+      syncLayoutDashboardSelector();
+    }
   };
 }
 
@@ -663,6 +706,37 @@ autoCloseCheckbox.addEventListener('change', () => {
   userPreferences.behavior.autoCloseDropdowns = autoCloseDropdowns;
   PreferencesService.save(userPreferences);
 });
+
+// =====================================================
+// Preferences → Behavior (Sync dashboard appearance)
+// =====================================================
+
+function initSyncAppearanceBehavior() {
+  const checkbox =
+    document.getElementById('pref-sync-dashboard-appearance');
+
+  if (!checkbox || !userPreferences) return;
+
+  // ✅ Default ON unless explicitly disabled
+  checkbox.checked =
+    userPreferences.behavior.syncDashboardAppearance !== false;
+
+  // ✅ Prevent duplicate listeners
+  if (checkbox._wired) return;
+  checkbox._wired = true;
+
+  checkbox.addEventListener('change', async () => {
+    const enabled = checkbox.checked;
+
+    userPreferences.behavior.syncDashboardAppearance = enabled;
+    await PreferencesService.save(userPreferences);
+
+    // ✅ Only propagate when turning ON
+    if (enabled) {
+      await syncAppearanceToAllDashboards();
+    }
+  });
+}
 
 document.addEventListener('click', (e) => {
   if (!autoCloseDropdowns) return;
@@ -2078,6 +2152,33 @@ openLinksCheckbox.addEventListener('change', () => {
 });
 }
 
+async function syncAppearanceToAllDashboards() {
+  if (!dashboardState || !availableDashboards.length) return;
+
+  const currentTheme = userPreferences.appearance.theme;
+  const currentBackground = userPreferences.appearance.background;
+
+  const originalActiveId = activeDashboardId;
+
+  for (const { id } of availableDashboards) {
+    if (id === originalActiveId) continue;
+
+    await DashboardService.setActiveDashboardId(id);
+    const state = await DashboardService.load();
+    if (!state) continue;
+
+    state.appearance = {
+      theme: currentTheme,
+      background: currentBackground
+    };
+
+    await DashboardService.save(state);
+  }
+
+  // Restore original dashboard
+  await DashboardService.setActiveDashboardId(originalActiveId);
+}
+
 // ==========================================================
 // Preferences → Data Management (Complete dashboard reset)
 // ==========================================================
@@ -2094,7 +2195,8 @@ function createDefaultPreferences() {
     },
     behavior: {
       autoCloseDropdowns: true,
-      openLinksInNewTab: true
+      openLinksInNewTab: true,
+      syncDashboardAppearance: true,
     }
   };
 }
@@ -2226,8 +2328,19 @@ window
 // =====================================
 
 function setActiveBackground(bg) {
-  document.documentElement.classList.remove(...BACKGROUNDS);
-  document.documentElement.classList.add(bg);
+  const root = document.documentElement;
+
+  const currentBg = BACKGROUNDS.find(b =>
+    root.classList.contains(b)
+  );
+
+  if (currentBg === bg) return;
+
+  if (currentBg) {
+    root.classList.replace(currentBg, bg);
+  } else {
+    root.classList.add(bg);
+  }
 }
 
 document.documentElement.classList.add('bg-visible');
@@ -2484,6 +2597,7 @@ async function renameDashboardDisplayName(dashboardId, newName) {
     renamingDashboardId = null;
 
     syncDefaultDashboardSelector();
+    syncLayoutDashboardSelector();
     clearDashboardValidationError();
     renderDashboardManagementPanel();
     return;
@@ -2518,6 +2632,7 @@ async function renameDashboardDisplayName(dashboardId, newName) {
   renamingDashboardId = null;
 
   syncDefaultDashboardSelector();
+  syncLayoutDashboardSelector();
   renderDashboardManagementPanel();
   renderDashboardList();
 }
@@ -2585,6 +2700,7 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
   // Final UI sync
   // --------------------------------------------------
   syncDefaultDashboardSelector();
+  syncLayoutDashboardSelector();
   renderDashboardManagementPanel();
   renderDashboardList();
 }
@@ -3468,6 +3584,7 @@ function openPreferences() {
   }
 
   syncDefaultDashboardSelector();
+  syncLayoutDashboardSelector();
   renderDashboardManagementPanel();
 }
 
@@ -3661,10 +3778,10 @@ function closeConfirm() {
 // Delete Default Dashboard Modal helpers
 // --------------------------------------------------
 function openDeleteDefaultDashboardModal(dashboardId) {
-deleteDefaultSelect.innerHTML = '';
+  deleteDefaultSelect.innerHTML = '';
 
-const remaining = availableDashboards.filter(
-  d => d.id !== dashboardId
+  const remaining = availableDashboards.filter(
+    d => d.id !== dashboardId
   );
 
   const placeholder = document.createElement('option');
@@ -3907,11 +4024,49 @@ function syncThemeCards() {
 // Unified state change functions
 // =====================================
 
+function applyDashboardAppearance() {
+  const syncOn =
+    userPreferences?.behavior?.syncDashboardAppearance !== false;
+
+  if (syncOn) {
+    // Global appearance
+    setActiveTheme(userPreferences.appearance.theme);
+    setActiveBackground(userPreferences.appearance.background);
+    return;
+  }
+
+  // Per-dashboard appearance (fallback to global)
+  const appearance = dashboardState?.appearance;
+
+  setActiveTheme(
+    appearance?.theme ?? userPreferences.appearance.theme
+  );
+
+  setActiveBackground(
+    appearance?.background ?? userPreferences.appearance.background
+  );
+}
+
 function changeTheme(theme) {
   setActiveTheme(theme);
-
   userPreferences.appearance.theme = theme;
+
+  const syncOn =
+    userPreferences.behavior.syncDashboardAppearance !== false;
+
   PreferencesService.save(userPreferences);
+
+  if (syncOn) {
+    // Propagate change globally
+    syncAppearanceToAllDashboards();
+  } else if (dashboardState) {
+    // Store locally (future‑safe)
+    dashboardState.appearance = {
+      ...dashboardState.appearance,
+      theme
+    };
+    DashboardService.save(dashboardState);
+  }
 
   syncThemeCards();
   syncBackgroundCards();
@@ -3920,9 +4075,24 @@ function changeTheme(theme) {
 
 function changeBackground(bg) {
   setActiveBackground(bg);
-
   userPreferences.appearance.background = bg;
+
+  const syncOn =
+    userPreferences.behavior.syncDashboardAppearance !== false;
+
   PreferencesService.save(userPreferences);
+
+  if (syncOn) {
+    // Propagate change globally
+    syncAppearanceToAllDashboards();
+  } else if (dashboardState) {
+    // Store locally (future‑safe)
+    dashboardState.appearance = {
+      ...dashboardState.appearance,
+      background: bg
+    };
+    DashboardService.save(dashboardState);
+  }
 
   syncBackgroundCards();
   syncThemeCards();

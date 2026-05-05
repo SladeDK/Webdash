@@ -328,11 +328,24 @@
             <div class="panel" id="panel-behavior">
               <h3>Behavior</h3>
               <p>How the interface behaves.</p>
+
+              <fieldset class="setting-group">
+                <legend>Appearance:</legend>
+                
+                <label class="setting-row" for="pref-sync-dashboard-appearance">
+                  <span>Synchronize theme and background across dashboards</span>
+                  <span class="toggle">
+                    <input type="checkbox" id="pref-sync-dashboard-appearance">
+                    <span class="toggle-track"></span>
+                  </span>
+                </label>
+              </fieldset>
+
               <fieldset class="setting-group">
                 <legend>Dropdowns:</legend>
 
                 <label class="setting-row" for="pref-dropdown-autoclose">
-                  <span>Automatically close dropdowns when clicking outside</span>
+                  <span>Automatically close dropdowns when clicking outside (WIP)</span>
                   <span class="toggle">
                     <input type="checkbox" id="pref-dropdown-autoclose">
                     <span class="toggle-track"></span>
@@ -356,6 +369,15 @@
             <div class="panel" id="panel-layout">
               <h3>Dashboard Layout</h3>
               <p>Customize your dashboard layout.</p>
+              <div class="setting-row">
+              <label for="layout-dashboard-select">
+                Dashboard to edit
+              </label>
+
+              <select id="layout-dashboard-select">
+                <!-- populated dynamically -->
+              </select>
+            </div>
               <div class="layout-editor">
                 <!-- Always visible, never buried -->
                 <div class="layout-header">
