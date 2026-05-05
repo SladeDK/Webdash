@@ -1,51 +1,39 @@
-import express from 'express';
-import fs from 'fs';
-import path from 'path';
-import cors from 'cors';
-import { fileURLToPath } from 'url';
+import express from "express";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3000;
 
 // ------------------------------------------------------------------
-// Path setup (MUST come before STORAGE_FILE is used)
+// Path setup
 // ------------------------------------------------------------------
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Frontend directory (Option 3)
-const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
+// Frontend directory
+const FRONTEND_DIR = path.join(__dirname, "..", "public");
 
-// Data storage file
-const STORAGE_FILE = path.join(__dirname, 'storage.json');
+// Data storage directory and file
+const DATA_PATH = process.env.DATA_PATH || path.join(__dirname, "..", "data");
+const STORAGE_FILE = path.join(DATA_PATH, "storage.json");
 
-// ------------------------------------------------------------------
-// Middleware
-// ------------------------------------------------------------------
-app.use(express.json());
+// Ensure data directory exists
+if (!fs.existsSync(DATA_PATH)) {
+  fs.mkdirSync(DATA_PATH, { recursive: true });
+}
 
-// CORS is optional now since same-origin, but safe to keep
-// app.use(cors());
-
-// Serve frontend
-app.use(express.static(FRONTEND_DIR));
-
-// Root route
-app.get('/', (req, res) => {
-  res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
-});
-
-// ------------------------------------------------------------------
 // Ensure storage file exists
-// ------------------------------------------------------------------
 if (!fs.existsSync(STORAGE_FILE)) {
   fs.writeFileSync(
     STORAGE_FILE,
     JSON.stringify(
       {
         dashboards: { default: null },
-        activeDashboardId: 'default',
-        defaultDashboardId: 'default',
+        activeDashboardId: "default",
+        defaultDashboardId: "default",
         preferences: null
       },
       null,
@@ -55,26 +43,33 @@ if (!fs.existsSync(STORAGE_FILE)) {
 }
 
 // ------------------------------------------------------------------
+// Middleware
+// ------------------------------------------------------------------
+
+app.use(express.json());
+app.use(express.static(FRONTEND_DIR));
+
+// ------------------------------------------------------------------
 // Storage helpers
 // ------------------------------------------------------------------
+
 function readStorage() {
   try {
-    const raw = fs.readFileSync(STORAGE_FILE, 'utf8').trim();
-    if (!raw) {
-      return {
-        dashboards: { default: null },
-        activeDashboardId: 'default',
-        defaultDashboardId: 'default',
-        preferences: null
-      };
-    }
-    return JSON.parse(raw);
+    const raw = fs.readFileSync(STORAGE_FILE, "utf8").trim();
+    return raw
+      ? JSON.parse(raw)
+      : {
+          dashboards: { default: null },
+          activeDashboardId: "default",
+          defaultDashboardId: "default",
+          preferences: null
+        };
   } catch (err) {
-    console.error('Storage read failed, resetting:', err);
+    console.error("Storage read failed, resetting:", err);
     return {
       dashboards: { default: null },
-      activeDashboardId: 'default',
-      defaultDashboardId: 'default',
+      activeDashboardId: "default",
+      defaultDashboardId: "default",
       preferences: null
     };
   }
@@ -223,8 +218,9 @@ app.post('/api/dashboards/:id/rename', (req, res) => {
 });
 
 // ------------------------------------------------------------------
-// Start server
+// Start server (ONLY ONCE)
 // ------------------------------------------------------------------
-app.listen(PORT, () => {
-  console.log(`WebDash running at http://localhost:${PORT}`);
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`WebDash running on port ${PORT}`);
 });
