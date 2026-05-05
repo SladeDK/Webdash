@@ -41,6 +41,7 @@ let pendingDefaultDeletionId = null;
 let isCreatingDashboard = false;
 let renamingDashboardId = null;
 let dashboardValidationError = null;
+let appReady = false;
 
 const DashboardService = {
   async load() {
@@ -266,6 +267,11 @@ async function initApp() {
   if (autoCloseCheckbox) {
     autoCloseCheckbox.checked = autoCloseDropdowns;
   }
+
+  appReady = true;
+
+  // ✅ Signal that categories are ready
+  document.body.classList.add('categories-initialized');
 
   // 3️⃣ Initial render
   renderCategories(pageCategories);
@@ -549,11 +555,11 @@ async function createAndSwitchDashboard({ id, name }) {
 // ======================================================================
 
 function getDashboardDisplayName(dashboardId) {
-  // Use display name if present on the dashboard object
+  if (!dashboardId) return 'WebDash';
   if (dashboardState && dashboardState.id === dashboardId) {
-    return dashboardState.name || dashboardId;
+    return dashboardState.name || 'WebDash';
   }
-  return dashboardId;
+  return dashboardId === 'default' ? 'WebDash' : dashboardId;
 }
 
 // ======================================================================
@@ -2232,6 +2238,7 @@ document.documentElement.classList.add('bg-visible');
 // =====================================
 
 function renderCategories(categories) {
+  if (!appReady) return;
   const container = document.querySelector('.categories');
   if (!container) return;
 
@@ -2276,6 +2283,7 @@ function renderCategories(categories) {
 // ===================================
 
 function renderDashboardList() {
+  if (!appReady) return;
   const container = document.getElementById('dashboard-list');
   if (!container) return;
 
@@ -2587,6 +2595,7 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
 // =====================================
 
 function renderLayoutEditor(categories) {
+  if (!appReady) return;
   const container = document.getElementById('layout-categories');
   if (!container) return;
 
@@ -3977,10 +3986,8 @@ document
   ?.addEventListener('click', () => {
     syncThemeCards();
     syncBackgroundCards();
-  });
-
-// ✅ Signal that categories are ready
-document.body.classList.add('categories-initialized');
+  }
+);
 
 // ============================
 // Initialize app state and render UI
