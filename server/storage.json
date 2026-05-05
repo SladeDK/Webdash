@@ -1,26 +1,26 @@
 {
   "dashboards": {
-    "dashboard-main": {
-      "id": "dashboard-main",
-      "name": "Main",
+    "dashboard-1777968458898": {
+      "id": "dashboard-1777968458898",
+      "name": "WebDash",
       "categories": [
         {
-          "id": "cat-general",
-          "title": "General",
+          "id": "cat-getting-started",
+          "title": "Getting Started",
           "order": 0,
           "visible": true,
           "items": [
             {
-              "id": "btn-google",
-              "label": "Google Search",
-              "url": "https://google.com",
+              "id": "btn-docs",
+              "label": "WebDash Github",
+              "url": "https://github.com/SladeDK/Webdash",
               "order": 0,
               "visible": true
             },
             {
-              "id": "btn-github",
-              "label": "GitHub",
-              "url": "https://github.com",
+              "id": "btn-settings",
+              "label": "Google",
+              "url": "https://google.com",
               "order": 1,
               "visible": true
             }
@@ -29,15 +29,15 @@
       ]
     }
   },
-  "activeDashboardId": "dashboard-main",
-  "defaultDashboardId": "dashboard-main",
+  "activeDashboardId": "dashboard-1777968458898",
+  "defaultDashboardId": "dashboard-1777968458898",
   "preferences": {
     "appearance": {
-      "theme": "dark",
+      "theme": "system",
       "background": "bg-plain",
       "identity": {
         "name": "WebDash",
-        "icon": null
+        "icon": "assets/webdash-logo.png"
       }
     },
     "behavior": {

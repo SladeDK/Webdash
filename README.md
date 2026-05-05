@@ -1,0 +1,105 @@
+# WebDash
+A self-hosted, configurable dashboard for organizing services, links, and systems in one place.
+
+WebDash is designed to be easy to deploy, easy to customize, and fully self-hosted. It works well on local machines, home servers, NAS devices, and small VPS setups.
+
+## Features
+
+- Multiple dashboards
+- Custom categories and buttons
+- Drag-and-drop layout editor
+- Import and export of full system backups
+- Theme and background system
+- No external services or cloud dependencies
+- Designed for private and local deployments
+
+---
+
+
+## Quick Start (Docker – Recommended)
+### Prerequisites:
+
+- Docker
+- Docker Compose
+
+### Run:
+
+```bash
+git clone https://github.com/your-username/webdash.git
+cd webdash
+docker compose up -d
+```
+Then open your browser at:
+```http://localhost:3000```
+All data is stored locally and persists across restarts.
+
+## Local Development (No Docker)
+### Prerequisites:
+
+- Node.js 18 or newer
+- npm
+
+Run:
+
+```bash
+npm install
+node server/server.js
+```
+
+Then visit:
+```http://localhost:3000```
+
+## Configuration
+WebDash is configured using environment variables.
+Create a .env file based on the example:
+```bash
+cp .env.example .env
+```
+### Available variables:
+- PORT:
+  - HTTP server port
+  - Default: 3000
+- DATA_PATH:
+  - Directory used for persisted data
+  - Default: ./data
+
+## Deployment Options
+WebDash is platform-agnostic and can be deployed on:
+
+- Local machines
+- Home servers or NAS devices
+- Raspberry Pi
+- VPS (self-hosted)
+- Docker with a reverse proxy (Nginx, Traefik, Caddy)
+
+Once running, WebDash does not require internet access.
+
+## Tech Stack
+
+- Vanilla JavaScript
+- HTML and CSS
+- Node.js
+- Docker (optional)
+
+No frameworks.
+No databases.
+No cloud services.
+
+## Security Notes
+
+WebDash does not include authentication by default<br>
+Intended for trusted or private networks<br>
+If exposed publicly, a reverse proxy with authentication is strongly recommended
+
+
+## License
+MIT License
+You are free to use, modify, and redistribute this software.
+
+## Contributing
+Contributions are welcome.
+Please keep pull requests focused and avoid introducing heavy dependencies.
+
+## Project Status
+WebDash is stable and usable, with ongoing improvements planned.
+Bug reports and feature ideas are welcome via GitHub Issues.
