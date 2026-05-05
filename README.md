@@ -27,6 +27,7 @@ WebDash is designed to be easy to deploy, easy to customize, and fully self-host
 ```bash
 git clone https://github.com/sladedk/webdash.git
 cd webdash
+cp .env.example .env
 docker compose up -d
 ```
 Then open your browser at:
