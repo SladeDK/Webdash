@@ -1,67 +1,112 @@
-# Project Title
-Webdash
+# WebDash
+A self-hosted, configurable dashboard for organizing services, links, and systems in one place.
 
-## Description
-Your own customizable startup page for your browser, which only displays the links you want it to.<br />
-By editing the index.html file, you can choose which links should be used, how they should open, and which category they should belong in.
+WebDash is designed to be easy to deploy, easy to customize, and fully self-hosted. It works well on local machines, home servers, NAS devices, and small VPS setups.
 
-## Table of Contents
-- [Description](#description)
-- [Installation](#installation)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
-- [Contact](#contact)
+## Features
+
+- Multiple dashboards
+- Custom categories and buttons
+- Drag-and-drop layout editor
+- Import and export of full system backups
+- Theme and background system
+- No external services or cloud dependencies
+- Designed for private and local deployments
+
+---
 
 
-## Installation
-To install and set up the Webdash project, follow these steps:
+## Quick Start (Docker – Recommended)
+### Prerequisites:
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/SladeDK/webdash.git
-   cd webdash
-   ```
+- Docker
+- Docker Compose
 
-2. **Install dependencies:**
-    <br />Make sure you have nginx installed.
-    <br /><ins>*NOTE: You can still use the config_www files with other web-engines*</ins>
+### Run:
 
-3. **Move and edit the necessary files:**
-    <br />Copy the files from the website-configs into "/var/www/html/" folder.
-    ```bash
-    sudo rm /var/www/html/index.nginx* -rf
+```bash
+git clone https://github.com/your-username/webdash.git
+cd webdash
+docker compose up -d
+```
+Then open your browser at:
+```http://localhost:3000```
+All data is stored locally and persists across restarts.
 
-    sudo mv ./config_www/* /var/www/html/.
-    ```
+## Local Development (No Docker)
+### Prerequisites:
 
-    Copy the files from the config_nginx_site-confs into "/etc/nginx/sites-enabled/" folder.
-    <br /><ins>*NOTE: Remember to change the subdomain name within the default.conf, to your desired subdomain*</ins>
-    ```bash
-    sudo rm /etc/nginx/sites-available/* -rf
-    sudo rm /etc/nginx/sites-enabled/default -rf
+- Node.js 18 or newer
+- npm
 
-    sudo mv ./config_nginx_site-confs/* /etc/nginx/sites-available/default.conf
-    sudo ln -sf /etc/nginx/sites-available/default.conf /etc/nginx/sites-enabled/default.conf
-    ```
-   
-4. **Start Nginx & sites:**
-    ```bash
-    systemctl enable nginx --now
-    nginx -s reload
-    ```
+Run:
 
-5. **Open in browser:**
-    <br />Open your browser and navigate to http://web.webdash.dk or http://home.webdash.dk to see your customizable startup pages.
-    <br /><ins>*NOTE: If a DNS hasn't been configured to point to the IP of the respective subdomains, you'll have to configure that alternatively you can input the IP of the device instead*</ins>
+```bash
+npm install
+node server/server.js
+```
 
-6. **Edit the index.html file:**
-    <br />Customize the index.html file to add your desired links, categories, and how they should open.
+Then visit:
+```http://localhost:3000```
+
+## Configuration
+WebDash is configured using environment variables.
+Create a .env file based on the example:
+```bash
+cp .env.example .env
+```
+### Available variables:
+- PORT:
+  - HTTP server port
+  - Default: 3000
+- DATA_PATH:
+  - Directory used for persisted data
+  - Default: ./data
+
+## Deployment Options
+WebDash is platform-agnostic and can be deployed on:
+
+- Local machines
+- Home servers or NAS devices
+- Raspberry Pi
+- VPS (self-hosted)
+- Docker with a reverse proxy (Nginx, Traefik, Caddy)
+
+Once running, WebDash does not require internet access.
+
+## Tech Stack
+
+- Vanilla JavaScript
+- HTML and CSS
+- Node.js
+- Docker (optional)
+
+No frameworks.
+No databases.
+No cloud services.
+
+## Security Notes
+
+WebDash does not include authentication by default<br>
+Intended for trusted or private networks<br>
+If exposed publicly, a reverse proxy with authentication is strongly recommended
+
 
 ## License
-Information about the license under which your project is distributed.
 
-## Acknowledgements
-Credits to contributors, libraries, or resources that helped with the project.
+WebDash is licensed under the Creative Commons Attribution-NonCommercial 4.0
+International License (CC BY-NC 4.0).
 
-## Contact
-Information on how to contact the project maintainers.
+You are free to use, modify, and redistribute this project for non-commercial
+purposes, provided that you give appropriate credit and clearly reference the
+original project.
+
+Commercial use is not permitted without explicit permission.
+
+## Contributing
+Contributions are welcome.
+Please keep pull requests focused and avoid introducing heavy dependencies.
+
+## Project Status
+WebDash is stable and usable, with ongoing improvements planned.
+Bug reports and feature ideas are welcome via GitHub Issues.

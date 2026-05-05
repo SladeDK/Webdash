@@ -1,1 +1,27 @@
-.vscode
+# Node dependencies
+node_modules/
+server/node_modules/
+
+# Runtime / persistent data
+server/storage.json
+data/
+
+# Environment files
+.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Editor / IDE files
+.vscode/
+.idea/
+*.swp
+
+# Docker local overrides (optional)
+docker-compose.override.yml

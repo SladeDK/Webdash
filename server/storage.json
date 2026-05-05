@@ -1,0 +1,76 @@
+{
+  "dashboards": {
+    "dashboard-1777968458898": {
+      "id": "dashboard-1777968458898",
+      "name": "WebDash",
+      "categories": [
+        {
+          "id": "cat-getting-started",
+          "title": "Getting Started",
+          "order": 0,
+          "visible": true,
+          "items": [
+            {
+              "id": "btn-docs",
+              "label": "WebDash Github",
+              "url": "https://github.com/SladeDK/Webdash",
+              "order": 0,
+              "visible": true
+            },
+            {
+              "id": "btn-settings",
+              "label": "Google",
+              "url": "https://google.com",
+              "order": 1,
+              "visible": true
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "activeDashboardId": "dashboard-1777968458898",
+  "defaultDashboardId": "dashboard-1777968458898",
+  "preferences": {
+    "appearance": {
+      "theme": "system",
+      "background": "bg-plain",
+      "identity": {
+        "name": "WebDash",
+        "icon": "assets/webdash-logo.png"
+      }
+    },
+    "behavior": {
+      "autoCloseDropdowns": true,
+      "openLinksInNewTab": true
+    }
+  },
+  "dashboardState": {
+    "id": "default-dashboard",
+    "name": "My Dashboard",
+    "categories": [
+      {
+        "id": "cat-getting-started",
+        "title": "Getting Started",
+        "order": 0,
+        "visible": true,
+        "items": [
+          {
+            "id": "btn-settings",
+            "label": "Google",
+            "url": "https://google.com",
+            "order": 1,
+            "visible": true
+          },
+          {
+            "id": "btn-docs",
+            "label": "WebDash Github",
+            "url": "https://github.com/SladeDK/Webdash",
+            "order": 0,
+            "visible": true
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+services:
+  webdash:
+    container_name: webdash
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
