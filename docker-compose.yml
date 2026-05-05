@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   webdash:
     container_name: webdash
