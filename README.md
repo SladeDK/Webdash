@@ -93,8 +93,15 @@ If exposed publicly, a reverse proxy with authentication is strongly recommended
 
 
 ## License
-MIT License
-You are free to use, modify, and redistribute this software.
+
+WebDash is licensed under the Creative Commons Attribution-NonCommercial 4.0
+International License (CC BY-NC 4.0).
+
+You are free to use, modify, and redistribute this project for non-commercial
+purposes, provided that you give appropriate credit and clearly reference the
+original project.
+
+Commercial use is not permitted without explicit permission.
 
 ## Contributing
 Contributions are welcome.
