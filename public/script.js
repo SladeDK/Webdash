@@ -149,7 +149,7 @@ document.addEventListener('submit', e => {
 // Default dashboard state (used for resets and as a reference for expected data shape)
 // =====================================================================================
 const DEFAULT_DASHBOARD_STATE = {
-  id: "default-dashboard",
+  id: null,
   name: "WebDash",
   categories: [
     {
@@ -179,13 +179,13 @@ const DEFAULT_DASHBOARD_STATE = {
 
 function getDefaultDashboardTemplate(overrides = {}) {
   const base = structuredClone(DEFAULT_DASHBOARD_STATE);
-
   return {
     ...base,
-    id: overrides.id ?? base.id,
-    name: overrides.name ?? base.name
+    id: overrides.id ?? "default",
+    name: overrides.name ?? "WebDash"
   };
 }
+
 
 // ======================================================================
 // Dashboard state initialization logic with first-ever load detection
@@ -207,7 +207,9 @@ async function initializeDashboardState() {
 // ====================================================================
 
 async function initApp() {
-  // 0️⃣ Dashboard metadata (NEW)
+  // ----------------------------------
+  // 0️⃣ Initial dashboard metadata
+  // ----------------------------------
   availableDashboards = await DashboardService.listDashboards();
   activeDashboardId = await DashboardService.getActiveDashboardId();
   defaultDashboardId = await DashboardService.getDefaultDashboardId();
@@ -218,7 +220,6 @@ async function initApp() {
     !availableDashboards.some(d => d.id === defaultDashboardId)
   ) {
     defaultDashboardId = availableDashboards[0]?.id ?? null;
-
     if (defaultDashboardId) {
       await DashboardService.setDefaultDashboardId(defaultDashboardId);
     }
@@ -230,19 +231,28 @@ async function initApp() {
     !availableDashboards.some(d => d.id === activeDashboardId)
   ) {
     activeDashboardId = defaultDashboardId;
-
     if (activeDashboardId) {
       await DashboardService.setActiveDashboardId(activeDashboardId);
     }
   }
 
-  // 1️⃣ Dashboard data
+  // ----------------------------------
+  // 1️⃣ Ensure dashboard DATA exists
+  // ----------------------------------
   await initializeDashboardState();
   pageCategories = dashboardState.categories;
 
-  // 2️⃣ Preferences
-  userPreferences = await PreferencesService.load();
+  // ✅ CRITICAL FIX:
+  // Re-fetch metadata AFTER initialization,
+  // because initializeDashboardState() can mutate backend state
+  availableDashboards = await DashboardService.listDashboards();
+  activeDashboardId = await DashboardService.getActiveDashboardId();
+  defaultDashboardId = await DashboardService.getDefaultDashboardId();
 
+  // ----------------------------------
+  // 2️⃣ Preferences
+  // ----------------------------------
+  userPreferences = await PreferencesService.load();
   if (!userPreferences) {
     userPreferences = createDefaultPreferences();
     await PreferencesService.save(userPreferences);
@@ -252,31 +262,41 @@ async function initApp() {
   applyIdentityToUI();
   document.documentElement.classList.add('identity-ready');
 
-  // Apply visual preferences immediately to prevent flashing of defaults
+  // Apply visual preferences immediately
   setActiveTheme(userPreferences.appearance.theme);
   setActiveBackground(userPreferences.appearance.background);
 
-  // Sync behavior-related UI elements with loaded preferences
   if (openLinksCheckbox) {
     openLinksCheckbox.checked =
       userPreferences.behavior.openLinksInNewTab !== false;
   }
 
   autoCloseDropdowns = userPreferences.behavior.autoCloseDropdowns !== false;
-
   if (autoCloseCheckbox) {
     autoCloseCheckbox.checked = autoCloseDropdowns;
   }
 
+  // ----------------------------------
+  // 3️⃣ Render
+  // ----------------------------------
   appReady = true;
 
-  // ✅ Signal that categories are ready
   document.body.classList.add('categories-initialized');
 
-  // 3️⃣ Initial render
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
   renderDashboardList();
+
+  // ✅ Final stabilisation pass (harmless but guarantees UI correctness)
+  queueMicrotask(() => {
+    renderDashboardList();
+  });
+}
+
+async function refreshDashboardMetadata() {
+  availableDashboards = await DashboardService.listDashboards();
+  activeDashboardId = await DashboardService.getActiveDashboardId();
+  defaultDashboardId = await DashboardService.getDefaultDashboardId();
 }
 
 // =====================================================
@@ -471,27 +491,6 @@ closeBtn.onclick = dismissToast;
 
   if (duration > 0) {
     setTimeout(dismissToast, duration);
-  }
-}
-
-// ======================================================================
-// Dashboard state persistence helpers (currently only used for export/import, but will be expanded for auto-saving in the future)
-// ======================================================================
-function saveDashboardState() {
-  localStorage.setItem(
-    DASHBOARD_STATE_KEY,
-    JSON.stringify(dashboardState)
-  );
-}
-
-function loadDashboardState() {
-  const raw = localStorage.getItem(DASHBOARD_STATE_KEY);
-  if (!raw) return null;
-
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
   }
 }
 

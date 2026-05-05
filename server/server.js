@@ -112,7 +112,7 @@ app.get('/api/dashboards', (req, res) => {
   const dashboards = Object.entries(data.dashboards || {}).map(
     ([id, dashboard]) => ({
       id,
-      name: dashboard?.name || id
+      name: dashboard?.name || "WebDash"
     })
   );
 
