@@ -31,6 +31,7 @@ let renamingCategoryId = null;
 let renamingItemId = null;
 let editingButtonContext = null;
 let draggedCategoryId = null;
+let draggedItemContext = null;
 let dashboardState = null;
 let pageCategories = null;
 let autoCloseDropdowns;
@@ -263,6 +264,8 @@ async function initApp() {
   initSyncAppearanceBehavior();
   ensureIdentityDefaults();
   applyIdentityToUI();
+  initSyncDashboardIdentityBehavior();
+  syncIdentityInputState();
   document.documentElement.classList.add('identity-ready');
 
   // Apply visual preferences immediately
@@ -519,6 +522,12 @@ async function switchDashboard(dashboardId) {
 
   dashboardState = newDashboardState;
   pageCategories = dashboardState.categories;
+
+  if (userPreferences.appearance.identity.syncWithDashboard) {
+    userPreferences.appearance.identity.name = dashboardState.name;
+    await PreferencesService.save(userPreferences);
+    applyIdentityToUI();
+  }
   
   applyDashboardAppearance();
 
@@ -738,6 +747,62 @@ function initSyncAppearanceBehavior() {
   });
 }
 
+// =====================================================
+// Preferences → Behavior (Sync dashboard identity)
+// =====================================================
+
+function initSyncDashboardIdentityBehavior() {
+  const checkbox = document.getElementById('pref-sync-dashboard-identity');
+  if (!checkbox || !userPreferences) return;
+
+  checkbox.checked =
+    userPreferences.appearance.identity.syncWithDashboard !== false;
+
+  if (checkbox._wired) return;
+  checkbox._wired = true;
+
+  checkbox.addEventListener('change', async () => {
+    const enabled = checkbox.checked;
+    userPreferences.appearance.identity.syncWithDashboard = enabled;
+
+    if (enabled) {
+      // ✅ Force identity to match current dashboard
+      userPreferences.appearance.identity.name =
+        dashboardState?.name ?? 'Dashboard';
+    }
+
+    await PreferencesService.save(userPreferences);
+    applyIdentityToUI();
+    syncIdentityInputState();
+  });
+}
+
+function syncIdentityInputState() {
+  const input = document.querySelector('.identity-name-input');
+  if (!input) return;
+
+  const synced =
+    userPreferences.appearance.identity.syncWithDashboard !== false;
+
+  if (synced) {
+    input.readOnly = true;
+    input.tabIndex = -1;   // ✅ cannot be focused
+    input.blur();          // ✅ drop focus immediately
+    input.classList.add('is-synced');
+    input.setAttribute('aria-readonly', 'true');
+    input.setAttribute(
+      'title',
+      'Identity name is synchronized with the active dashboard'
+    );
+  } else {
+    input.readOnly = false;
+    input.tabIndex = 0;
+    input.classList.remove('is-synced');
+    input.removeAttribute('aria-readonly');
+    input.removeAttribute('title');
+  }
+}
+
 document.addEventListener('click', (e) => {
   if (!autoCloseDropdowns) return;
   closeAll();
@@ -951,7 +1016,12 @@ function ensureIdentityDefaults() {
   if (!userPreferences.appearance.identity) {
     userPreferences.appearance.identity = getDefaultIdentity();
   }
+  
+  if (typeof userPreferences.appearance.identity.syncWithDashboard !== 'boolean') {
+    userPreferences.appearance.identity.syncWithDashboard = true;
+  }
 }
+
 
 function resetIdentity() {
   const defaults = getDefaultIdentity();
@@ -1001,9 +1071,11 @@ const identityNameInput =
 
 /* While typing: allow empty, do NOT auto-fill */
 identityNameInput.addEventListener('input', () => {
-  const trimmed = identityNameInput.value.trim();
+  if (userPreferences.appearance.identity.syncWithDashboard) {
+    return;
+  }
 
-  // Only update state + UI if there is actual text
+  const trimmed = identityNameInput.value.trim();
   if (trimmed) {
     userPreferences.appearance.identity.name = trimmed;
     PreferencesService.save(userPreferences);
@@ -1845,7 +1917,7 @@ function buildMergeImportChangePlan(payload, localDashboardStates = new Map()) {
   const dashboards = {
     added: [],
     updated: [],
-    removed: []
+    removed: [] // ✅ explicitly kept empty
   };
 
   // Added + updated dashboards
@@ -1881,17 +1953,6 @@ function buildMergeImportChangePlan(payload, localDashboardStates = new Map()) {
             removed: []
           }
     });
-  });
-
-  // Removed dashboards
-  availableDashboards.forEach(local => {
-    if (!payload.dashboards.some(d => d.id === local.id)) {
-      dashboards.removed.push({
-        id: local.id,
-        name: { before: local.name, after: null },
-        status: 'removed'
-      });
-    }
   });
 
   return {
@@ -2190,7 +2251,8 @@ function createDefaultPreferences() {
       background: 'bg-plain',
       identity: {
         name: INITIAL_IDENTITY.name,
-        icon: INITIAL_IDENTITY.icon
+        icon: INITIAL_IDENTITY.icon,
+        syncWithDashboard: true
       }
     },
     behavior: {
@@ -2455,33 +2517,57 @@ function renderDashboardManagementPanel() {
       input.className = 'rename-input';
       input.value = name;
 
+      const wrapper = document.createElement('div');
+      wrapper.className = 'rename-wrapper';
+
       requestAnimationFrame(() => {
         input.focus();
         input.select();
       });
 
-      input.onkeydown = async (e) => {
-        if (e.key === 'Enter') {
-          const newName = input.value.trim();
-          if (!newName) return;
-
-          renamingDashboardId = null;
-          await renameDashboardDisplayName(id, newName);
-        }
-
-        if (e.key === 'Escape') {
-          renamingDashboardId = null;
-          renderDashboardManagementPanel();
-        }
+      const save = async () => {
+        const newName = input.value.trim();
+        if (!newName) return;
+        renamingDashboardId = null;
+        await renameDashboardDisplayName(id, newName);
       };
 
-      // ✅ Blur = cancel rename (consistent with Escape)
-      input.addEventListener('blur', () => {
+      const cancel = () => {
         renamingDashboardId = null;
         renderDashboardManagementPanel();
+      };
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          save();
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          cancel();
+        }
       });
 
-      title = input;
+      // ✅ NO blur auto-cancel anymore
+
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'icon-button confirm';
+      saveBtn.title = 'Save';
+      saveBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+      saveBtn.onclick = save;
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'icon-button cancel';
+      cancelBtn.title = 'Cancel';
+      cancelBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+      cancelBtn.onclick = cancel;
+
+      wrapper.append(input, saveBtn, cancelBtn);
+      title = wrapper;
     } else {
         const span = document.createElement('span');
         span.className = 'category-title';
@@ -2629,6 +2715,17 @@ async function renameDashboardDisplayName(dashboardId, newName) {
     dashboardState.name = trimmed;
   }
 
+  // ✅ Sync identity name if enabled AND this is the active dashboard
+  if (
+    dashboardState &&
+    dashboardState.id === dashboardId &&
+    userPreferences.appearance.identity.syncWithDashboard
+  ) {
+    userPreferences.appearance.identity.name = trimmed;
+    await PreferencesService.save(userPreferences);
+    applyIdentityToUI();
+  }
+
   renamingDashboardId = null;
 
   syncDefaultDashboardSelector();
@@ -2727,18 +2824,9 @@ function renderLayoutEditor(categories) {
         <div class="layout-category-header">
           <span class="drag-handle" title="Reorder">☰</span>
 
-          ${renamingCategoryId === category.id
-            ? `<input
-                  class="rename-input"
-                  type="text"
-                  data-category-id="${category.id}"
-                  value="${category.title}"
-              />`
-            : `<span class="category-title">${category.title}</span>`
-          }
+          <div class="category-title-slot"></div>
 
           <div class="category-actions">
-            <!-- Visibility toggle (Phase C.2) -->
             <button
               type="button"
               class="icon-button visibility-btn ${category.visible === false ? 'is-hidden' : ''}"
@@ -2746,23 +2834,23 @@ function renderLayoutEditor(categories) {
               title="Toggle visibility"
               data-category-id="${category.id}"
             >
-              ${category.visible === false ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>'}
+              ${category.visible === false
+                ? '<i class="fa-solid fa-eye-slash"></i>'
+                : '<i class="fa-solid fa-eye"></i>'}
             </button>
 
             <button
               type="button"
               class="icon-button rename-category-btn"
-              aria-label="Rename category"
               title="Rename category"
               data-category-id="${category.id}"
             >
               <i class="fa-solid fa-pen-to-square"></i>
             </button>
-            
+
             <button
               type="button"
               class="icon-button delete-category-btn"
-              aria-label="Delete category"
               title="Delete category"
               data-category-id="${category.id}"
             >
@@ -2770,63 +2858,109 @@ function renderLayoutEditor(categories) {
             </button>
           </div>
         </div>
+
         <div class="layout-category-items">
           ${category.items.map(item => `
-          <div class="layout-item" data-item-id="${item.id}">
-            <span class="drag-handle" title="Reorder">☰</span>
+            <div class="layout-item" data-item-id="${item.id}">
+              <span class="drag-handle" title="Reorder">☰</span>
 
-            ${renamingItemId === item.id
-              ? `
-                <input
-                  class="rename-input rename-item-input"
-                  type="text"
-                  data-item-id="${item.id}"
-                  value="${item.label}"
-                />
-              `
-              : `
-                <span class="item-label">${item.label}</span>
-              `
-            }
+              ${renamingItemId === item.id
+                ? `
+                  <input
+                    class="rename-input rename-item-input"
+                    type="text"
+                    data-item-id="${item.id}"
+                    value="${item.label}"
+                  />
+                `
+                : `
+                  <span class="item-label">${item.label}</span>
+                `
+              }
 
               <div class="item-actions">
-
-                <button
-                  type ="button"
-                  class="icon-button rename-item-btn"
-                  aria-label="Rename button"
-                  title="Rename button"
-                  data-item-id="${item.id}"
-                >
+                <button type="button" class="icon-button rename-item-btn" data-item-id="${item.id}">
                   <i class="fa-solid fa-pen-to-square"></i>
                 </button>
-
-                <button
-                  type="button"
-                  class="icon-button delete-item-btn"
-                  aria-label="Delete button"
-                  title="Delete button"
-                  data-item-id="${item.id}"
-                >
+                <button type="button" class="icon-button delete-item-btn" data-item-id="${item.id}">
                   <i class="fa-solid fa-xmark"></i>
                 </button>
               </div>
             </div>
           `).join('')}
 
-          <!-- Add button action -->
           <button
             type="button"
             class="layout-action-btn add-item-btn"
             data-category-id="${category.id}"
-            aria-label="Add button"
-            title="Add button"
           >
             <span class="action-icon"><i class="fa-solid fa-plus"></i></span>
             <span>Add button</span>
           </button>
         </div>
       `;
+
+      // ✅ CATEGORY RENAME SLOT (SAFE REPLACEMENT)
+      const titleSlot = categoryRow.querySelector('.category-title-slot');
+
+      if (renamingCategoryId === category.id) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'rename-wrapper';
+
+        const input = document.createElement('input');
+        input.className = 'rename-input';
+        input.type = 'text';
+        input.value = category.title;
+
+        requestAnimationFrame(() => {
+          input.focus();
+          input.select();
+        });
+
+        const save = () => {
+          const trimmed = input.value.trim();
+          if (!trimmed) return;
+          renameCategory(category.id, trimmed);
+          renamingCategoryId = null;
+          renderLayoutEditor(pageCategories);
+        };
+
+        const cancel = () => {
+          renamingCategoryId = null;
+          renderLayoutEditor(pageCategories);
+        };
+
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            save();
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            cancel();
+          }
+        });
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'icon-button confirm';
+        saveBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+        saveBtn.onclick = save;
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'icon-button cancel';
+        cancelBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        cancelBtn.onclick = cancel;
+
+        wrapper.append(input, saveBtn, cancelBtn);
+        titleSlot.appendChild(wrapper);
+      } else {
+        const span = document.createElement('span');
+        span.className = 'category-title';
+        span.textContent = category.title;
+        titleSlot.appendChild(span);
+      }
 
       container.appendChild(categoryRow);
     });
@@ -2848,37 +2982,6 @@ function renderLayoutEditor(categories) {
   container.querySelectorAll('.rename-category-btn').forEach(button => {
     button.onclick = () => {
       renamingCategoryId = button.dataset.categoryId;
-      renderLayoutEditor(pageCategories);
-    };
-  });
-  // Wire rename inputs (Phase C.3) — normalized UX
-  container.querySelectorAll('.rename-input').forEach(input => {
-    const categoryId = input.dataset.categoryId;
-
-    requestAnimationFrame(() => {
-      input.focus();
-      input.select();
-    });
-
-    input.onkeydown = e => {
-      if (e.key === 'Enter') {
-        const trimmed = input.value.trim();
-        if (trimmed) {
-          renameCategory(categoryId, trimmed);
-        }
-        renamingCategoryId = null;
-        renderLayoutEditor(pageCategories);
-      }
-
-      if (e.key === 'Escape') {
-        renamingCategoryId = null;
-        renderLayoutEditor(pageCategories);
-      }
-    };
-
-    // ✅ Blur = cancel (same as Escape)
-    input.onblur = () => {
-      renamingCategoryId = null;
       renderLayoutEditor(pageCategories);
     };
   });
@@ -3639,10 +3742,18 @@ document.addEventListener('keydown', (e) => {
   }
 
   /* ===============================
-     ESCAPE = close topmost modal (stack‑based)
+     ESCAPE handling (layered)
      =============================== */
   if (e.key !== 'Escape') return;
 
+  // ✅ 1. Inline rename always wins
+  if (renamingDashboardId !== null || renamingCategoryId !== null) {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+
+  // ✅ 2. Modal stack behavior
   const top = getTopModal();
   if (!top) return;
 

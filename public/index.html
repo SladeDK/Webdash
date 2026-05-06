@@ -342,6 +342,18 @@
               </fieldset>
 
               <fieldset class="setting-group">
+                <legend>Dashboard Identity:</legend>
+                
+                <label class="setting-row" for="pref-sync-dashboard-identity">
+                  <span>Synchronize dashboard name and identity</span>
+                  <span class="toggle">
+                    <input type="checkbox" id="pref-sync-dashboard-identity">
+                    <span class="toggle-track"></span>
+                  </span>
+                </label>
+              </fieldset>
+
+              <fieldset class="setting-group">
                 <legend>Dropdowns:</legend>
 
                 <label class="setting-row" for="pref-dropdown-autoclose">
@@ -369,27 +381,34 @@
             <div class="panel" id="panel-layout">
               <h3>Dashboard Layout</h3>
               <p>Here you can create, edit, reorder, and delete categories and buttons.</p>
-              <div class="setting-row">
-              <label for="layout-dashboard-select">
-                Dashboard to edit:
-              </label>
+              <fieldset class="setting-group">
+                <legend>Dashboard:</legend>
+                <div class="setting-row">
+                  <label for="layout-dashboard-select">
+                    Dashboard to edit:
+                  </label>
 
-              <select id="layout-dashboard-select">
-                <!-- populated dynamically -->
-              </select>
-            </div>
-              <div class="layout-editor">
-                <!-- Always visible, never buried -->
-                <div class="layout-header">
-                  <button id="add-category-btn" type="button" class="layout-action-btn">
-                    <span class="action-icon"><i class="fa-solid fa-plus"></i></span>
-                    <span>Add category</span>
-                  </button>
+                  <select id="layout-dashboard-select">
+                    <!-- populated dynamically -->
+                  </select>
                 </div>
+              </fieldset>
+              
+              <fieldset class="setting-group">
+                <legend>Categories / Buttons:</legend>
+                <div class="layout-editor">
+                  <!-- Always visible, never buried -->
+                  <div class="layout-header">
+                    <button id="add-category-btn" type="button" class="layout-action-btn">
+                      <span class="action-icon"><i class="fa-solid fa-plus"></i></span>
+                      <span>Add category</span>
+                    </button>
+                  </div>
 
-                <!-- JS renders categories + buttons here -->
-                <div id="layout-categories"></div>
-              </div>
+                  <!-- JS renders categories + buttons here -->
+                  <div id="layout-categories"></div>
+                </div>
+              </fieldset>
             </div>
 
             <div class="panel" id="panel-dashboard-management">

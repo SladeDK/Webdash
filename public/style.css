@@ -40,6 +40,9 @@ body {
   --preview-updated: #f59e0b;   /* amber */
   --preview-removed: #d32f2f;   /* red */
   --preview-internal: #1669e9;  /* blue */
+
+  --action-green: #4ade80;
+  --action-red: #ef4444;
 }
 
 /* =====================================================
@@ -80,6 +83,13 @@ html.theme-dark {
   --text-muted: #b0b0b0;
 
   --border-color: rgba(255, 255, 255, 0.15);
+
+  /* ✅ Dropdowns */
+  --dropdown-bg: var(--bg-card);
+  --dropdown-hover: var(--bg-control-hover);
+  --dropdown-text: var(--text-main);
+  --dropdown-border: var(--border-color);
+  --dropdown-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
 }
 
 /* Alternative theme: Midnight */
@@ -97,6 +107,13 @@ html.theme-midnight {
   --text-muted: #a3b4cc;
 
   --border-color: rgba(255, 255, 255, 0.15);
+
+  /* ✅ Dropdowns */
+  --dropdown-bg: var(--bg-card);
+  --dropdown-hover: var(--bg-control-hover);
+  --dropdown-text: var(--text-main);
+  --dropdown-border: var(--border-color);
+  --dropdown-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
 }
 
 html.theme-slate {
@@ -113,6 +130,13 @@ html.theme-slate {
   --text-muted: #b0b7c0;
 
   --border-color: rgba(255, 255, 255, 0.15);
+
+  /* ✅ Dropdowns */
+  --dropdown-bg: var(--bg-card);
+  --dropdown-hover: var(--bg-control-hover);
+  --dropdown-text: var(--text-main);
+  --dropdown-border: var(--border-color);
+  --dropdown-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
 }
 
 html.theme-nord {
@@ -129,7 +153,15 @@ html.theme-nord {
   --text-muted: #d8dee9;
 
   --border-color: rgba(255, 255, 255, 0.15);
+
+  /* ✅ Dropdowns */
+  --dropdown-bg: var(--bg-card);
+  --dropdown-hover: var(--bg-control-hover);
+  --dropdown-text: var(--text-main);
+  --dropdown-border: var(--border-color);
+  --dropdown-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
 }
+
 
 html.theme-carbon {
   --bg-main: #0f1112;
@@ -145,13 +177,18 @@ html.theme-carbon {
   --text-muted: #aab2b2;
 
   --border-color: rgba(255, 255, 255, 0.15);
+
+  /* ✅ Dropdowns */
+  --dropdown-bg: var(--bg-card);
+  --dropdown-hover: var(--bg-control-hover);
+  --dropdown-text: var(--text-main);
+  --dropdown-border: var(--border-color);
+  --dropdown-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
 }
 
 html.theme-light {
   --bg-main: #ffffff;
-
   --bg-header: #e0f0ff;
-
   --bg-card: #e0f0ff;
 
   --bg-control: #e6edf5;
@@ -164,6 +201,13 @@ html.theme-light {
   --text-muted: #5b6b7a;
 
   --border-color: rgba(0, 0, 0, 0.12);
+
+  /* ✅ Dropdowns (explicit for contrast) */
+  --dropdown-bg: #ffffff;
+  --dropdown-hover: #f3f6fa;
+  --dropdown-text: var(--text-main);
+  --dropdown-border: rgba(0, 0, 0, 0.18);
+  --dropdown-shadow: 0 10px 22px rgba(0, 0, 0, 0.15);
 }
 
 /* Glass theme */
@@ -185,6 +229,14 @@ html.theme-glass {
 
   /* glass edge color */
   --border-color: rgba(255, 255, 255, 0.28);
+
+  
+  /* ✅ Dropdowns */
+  --dropdown-bg: rgba(32, 40, 56, 0.9);
+  --dropdown-hover: rgba(45, 55, 75, 0.95);
+  --dropdown-text: var(--text-main);
+  --dropdown-border: var(--border-color);
+  --dropdown-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
 }
 
 Background contrast around glass panels 
@@ -319,9 +371,9 @@ h1, h2 {
 .header-right { justify-self: end; }
 
 .dropdown-btn {
-  background: var(--bg-control);
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
+  background: var(--dropdown-bg);
+  border: 1px solid var(--dropdown-border);
+  color: var(--dropdown-text);
   padding: 0.5rem 0.75rem;
   cursor: pointer;
   
@@ -346,7 +398,7 @@ h1, h2 {
 }
 
 .dropdown-btn:hover {
-  background: #333;
+  background: var(--dropdown-hover);
   border-color: var(--accent);
 }
 
@@ -358,9 +410,11 @@ h1, h2 {
   min-width: 220px;
   max-width: 320px;
 
-  background: rgba(18, 24, 38, 0.98);
+  background: var(--dropdown-bg);
+  color: var(--dropdown-text);
+  border: var(--dropdown-border);
   border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 30px var(--dropdown-shadow);
   z-index: 1000;
 
   /* IMPORTANT */
@@ -387,18 +441,20 @@ h1, h2 {
   transform: translateY(0);
   pointer-events: auto;
   visibility: visible;
+  border: 1px solid;
 }
 
 .dropdown-menu a,
 .dropdown-menu button {
   display: block;
   padding: 0.6rem 0.75rem;
-  color: var(--text-main);
+  color: var(--dropdown-text);
   background: none;
   border: none;
   text-align: left;
   width: 100%;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .dropdown-menu a:hover {
@@ -2676,11 +2732,11 @@ html:not(.identity-ready) .header-center {
 
 
 .toast.success {
-  border-left: 4px solid #4ade80; /* green-400 */
+  border-left: 4px solid var(--action-green);
 }
 
 .toast.error {
-  border-left: 4px solid #ef4444; /* red-500 */
+  border-left: 4px solid var(--action-red);
 }
 
 /* Optional: slightly adjust text tone for errors */
@@ -2837,4 +2893,44 @@ html:not(.identity-ready) .header-center {
   scrollbar-width: thin;
   scrollbar-color: var(--border-color) transparent;
   overflow-y: auto;
+}
+
+.identity-name-input.is-synced {
+  cursor: not-allowed;
+  opacity: 0.85;              /* readable */
+  background-color: var(--bg-card);  /* subtle contrast */
+  color: var(--text-muted);
+  user-select: text;          /* allow text selection if user wants to copy */
+  background-image: url("data:image/svg+xml,%3Csvg ...lock icon...%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 14px;
+  padding-right: 2.2rem;
+}
+
+/* Kill all focus/active visuals when synced */
+.identity-name-input.is-synced:focus,
+.identity-name-input.is-synced:focus-visible,
+.identity-name-input.is-synced:active {
+  outline: none;
+  box-shadow: none;
+  border-color: #444; /* or your normal idle border */
+}
+
+.rename-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.rename-wrapper .rename-input {
+  flex: 1;
+}
+
+.icon-button.confirm {
+  color: var(--action-green, #4ade80);
+}
+
+.icon-button.cancel {
+  color: var(--action-red, #f87171);
 }
