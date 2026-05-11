@@ -7,10 +7,87 @@
 //  * and persistence services. Structural layout is intentional
 //  * and should be considered stable.
 
+const __DEV__ = true;
 
 // ======================================================================
 // Dashboard lifecycle / core actions
 // ======================================================================
+
+// Dashboard invariant assertions (dev-time)
+function assertDashboardInvariants(context = '') {
+  // Active dashboard must exist
+  if (!activeDashboardId) {
+    console.error(
+      '[Invariant] activeDashboardId is null or undefined',
+      context
+    );
+  }
+
+  // Active dashboard must be in availableDashboards
+  if (
+    activeDashboardId &&
+    !availableDashboards.some(d => d.id === activeDashboardId)
+  ) {
+    console.error(
+      '[Invariant] activeDashboardId not present in availableDashboards',
+      { activeDashboardId, availableDashboards, context }
+    );
+  }
+
+  // dashboardState must match activeDashboardId once loaded
+  if (
+    appReady &&
+    dashboardState &&
+    dashboardState.id !== activeDashboardId
+  ) {
+    console.error(
+      '[Invariant] dashboardState.id does not match activeDashboardId',
+      {
+        dashboardStateId: dashboardState.id,
+        activeDashboardId,
+        context
+      }
+    );
+  }
+
+  // pageCategories must reference dashboardState.categories
+  if (
+    dashboardState &&
+    pageCategories !== dashboardState.categories
+  ) {
+    console.error(
+      '[Invariant] pageCategories desynced from dashboardState.categories',
+      context
+    );
+  }
+}
+
+// Dashboard invariant guards (development-only)
+function enforceDashboardInvariants(context = '') {
+  if (!activeDashboardId) {
+    throw new Error(
+      `[Invariant Violation] activeDashboardId is missing (${context})`
+    );
+  }
+
+  if (
+    !availableDashboards.some(d => d.id === activeDashboardId)
+  ) {
+    throw new Error(
+      `[Invariant Violation] activeDashboardId not found in availableDashboards (${context})`
+    );
+  }
+
+  if (
+    appReady &&
+    dashboardState &&
+    dashboardState.id !== activeDashboardId
+  ) {
+    throw new Error(
+      `[Invariant Violation] dashboardState.id does not match activeDashboardId (${context})`
+    );
+  }
+}
 
 async function switchDashboard(dashboardId) {
   if (dashboardId === activeDashboardId) return;
@@ -39,6 +116,11 @@ async function switchDashboard(dashboardId) {
   }
 
   await finalizeActiveDashboardChange();
+  assertDashboardInvariants('after switchDashboard');
+  
+  if (__DEV__) {
+    enforceDashboardInvariants('after switchDashboard');
+  }
 }
 
 async function createAndSwitchDashboard({ id, name }) {
@@ -68,6 +150,7 @@ async function createAndSwitchDashboard({ id, name }) {
   renderDashboardList();
   renderDashboardManagementPanel();
   await finalizeActiveDashboardChange();
+  assertDashboardInvariants('after createAndSwitchDashboard');
 }
 
 async function deleteDashboard(dashboardId, autoSwitch = true) {
@@ -118,6 +201,7 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
     renderCategories(pageCategories);
     renderLayoutEditor(pageCategories);
     await finalizeActiveDashboardChange();
+    assertDashboardInvariants('after deleteDashboard fallback');
   }
 
   syncDefaultDashboardSelector();

@@ -3,6 +3,29 @@
 // =====================================================
 const modalStack = [];
 
+// Modal invariant assertions (dev-time)
+function assertModalInvariants(context = '') {
+  if (modalStack.length === 0) return;
+
+  const top = getTopModal();
+  if (!top || !top.overlay) {
+    console.error(
+      '[Invariant] modalStack corrupted or top modal invalid',
+      { modalStack, context }
+    );
+  }
+
+  // Overlays in stack must be visible
+  modalStack.forEach(({ overlay }, index) => {
+    if (overlay.hidden) {
+      console.error(
+        '[Invariant] modal in stack is hidden',
+        { index, overlay, context }
+      );
+    }
+  });
+}
+
 function pushModal(overlay, onClose) {
   const restoreFocusTo = document.activeElement;
 
@@ -11,6 +34,7 @@ function pushModal(overlay, onClose) {
     onClose,
     restoreFocusTo
   });
+  assertModalInvariants('after pushModal');
 }
 
 function popModal(overlay) {
@@ -18,6 +42,7 @@ function popModal(overlay) {
   if (index === -1) return;
 
   const [{ restoreFocusTo }] = modalStack.splice(index, 1);
+  assertModalInvariants('after popModal');
 
   // Restore focus AFTER removal
   requestAnimationFrame(() => {

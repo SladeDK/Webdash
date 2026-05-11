@@ -1,6 +1,17 @@
-// ============================
+// ========================================================
 // Dropdown menu logic (with optional auto-close behavior)
-// ============================
+// ========================================================
+
+// Dropdown invariant assertions (dev-time)
+function assertDropdownInvariant(context = '') {
+  const openMenus = document.querySelectorAll('.dropdown-menu.open');
+  if (openMenus.length > 1) {
+    console.error(
+      '[Invariant] Multiple dropdown menus are open',
+      { count: openMenus.length, openMenus, context }
+    );
+  }
+}
 
 // Per-dropdown behavior
 document.querySelectorAll('.dropdown').forEach(dropdown => {
@@ -12,6 +23,7 @@ document.querySelectorAll('.dropdown').forEach(dropdown => {
     menu.classList.add('open');
     menu.setAttribute('aria-hidden', 'false');
     button.setAttribute('aria-expanded', 'true');
+    assertDropdownInvariant('after openMenu');
   }
 
   function closeMenu() {
@@ -50,6 +62,7 @@ function closeAll() {
     menu.classList.remove('open');
     button.setAttribute('aria-expanded', 'false');
   });
+  assertDropdownInvariant('after closeAll');
 }
 
 // Explicit close buttons inside dropdowns

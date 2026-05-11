@@ -1,4 +1,4 @@
-# WebDash - v1.0.0
+# WebDash - v0.3.1
 A self-hosted, configurable dashboard for organizing services, links, and systems in one place.
 
 WebDash is designed to be easy to deploy, easy to customize, and fully self-hosted. It works well on local machines, home servers, NAS devices, and small VPS setups.
@@ -92,6 +92,10 @@ WebDash does not include authentication by default<br>
 Intended for trusted or private networks<br>
 If exposed publicly, a reverse proxy with authentication is strongly recommended
 
+
+## AI Disclosure
+
+AI was used in the creation of parts of this project.
 
 ## License
 
