@@ -17,7 +17,7 @@ const SCROLL_SPEED = 10;  // px per frame at full speed
 // Reorder helpers / mutation helpers
 // =====================================================
 
-function reorderItems(categoryId, sourceItemId, targetItemId) {
+async function reorderItems(categoryId, sourceItemId, targetItemId) {
   const category = pageCategories.find(c => c.id === categoryId);
   if (!category) return;
 
@@ -28,9 +28,7 @@ function reorderItems(categoryId, sourceItemId, targetItemId) {
 
   const [moved] = category.items.splice(sourceIndex, 1);
   category.items.splice(targetIndex, 0, moved);
-  DashboardService.save(dashboardState);
-  renderCategories(pageCategories);
-  renderLayoutEditor(pageCategories);
+  await commitDashboardChange('reorderItems');
 }
 
 // =====================================================

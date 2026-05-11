@@ -13,21 +13,19 @@ function createEmptyButton() {
 // Create and add button to category
 // =====================================
 
-function addButtonToCategory(categoryId) {
+async function addButtonToCategory(categoryId) {
   const category = pageCategories.find(c => c.id === categoryId);
   if (!category) return;
 
   const newButton = createEmptyButton();
   category.items.push(newButton);
-  DashboardService.save(dashboardState);
-  renderCategories(pageCategories);
-  renderLayoutEditor(pageCategories);
+  await commitDashboardChange('addItem');
 }
 
 // =====================================
 // Delete button
 // =====================================
-function deleteButton(itemId) {
+async function deleteButton(itemId) {
   for (const category of pageCategories) {
     const index = category.items.findIndex(item => item.id === itemId);
     if (index !== -1) {
@@ -36,16 +34,15 @@ function deleteButton(itemId) {
       openConfirm({
         title: 'Delete button',
         message: `Delete button "${item.label}"?\nThis action cannot be undone.`,
-        onConfirm: () => {
+        onConfirm: async () => {
           const latestIndex = category.items.findIndex(
             i => i.id === itemId
           );
           if (latestIndex === -1) return;
 
           category.items.splice(latestIndex, 1);
-          DashboardService.save(dashboardState);
-          renderCategories(pageCategories);
-          renderLayoutEditor(pageCategories);
+
+          await commitDashboardChange('deleteItem');
         }
       });
 
@@ -114,7 +111,7 @@ function closeButtonEditor() {
 // Rename item (rename button)
 // =====================================
 
-function renameItem(itemId, newLabel) {
+async function renameItem(itemId, newLabel) {
   const trimmed = newLabel.trim();
   if (!trimmed) return;
 
@@ -122,9 +119,7 @@ function renameItem(itemId, newLabel) {
     const item = category.items.find(i => i.id === itemId);
     if (item) {
       item.label = trimmed;
-      DashboardService.save(dashboardState);
-      renderCategories(pageCategories);
-      renderLayoutEditor(pageCategories);
+      await commitDashboardChange('renameItem');
       return;
     }
   }
@@ -143,7 +138,7 @@ buttonEditorOverlay
   ?.querySelector('.modal-close')
   ?.addEventListener('click', closeButtonEditor);
 
-buttonEditorForm?.addEventListener('submit', e => {
+buttonEditorForm?.addEventListener('submit', async e => {
   const nameErrorEl = document.getElementById('button-name-error');
   const urlErrorEl = document.getElementById('button-editor-error');
   const label = document.getElementById('button-label-input').value.trim();
@@ -254,12 +249,7 @@ buttonEditorForm?.addEventListener('submit', e => {
 
     item.label = label;
     item.url = normalizedUrl;
-    DashboardService.save(dashboardState);
-    renderCategories(pageCategories);
-    renderLayoutEditor(pageCategories);
+    await commitDashboardChange('updateItem');
   }
-
-  renderCategories(pageCategories);
-  renderLayoutEditor(pageCategories);
   closeButtonEditor();
 });

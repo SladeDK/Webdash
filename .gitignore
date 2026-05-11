@@ -25,3 +25,6 @@ Thumbs.db
 
 # Docker local overrides (optional)
 docker-compose.override.yml
+
+# Project work files and notes
+work-files

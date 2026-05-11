@@ -8,7 +8,7 @@
 //  * and should be considered stable.
 
 // ======================================================================
-// Dashboard lifecycle / core actions
+// Dashboard invariants (authoritative rules)
 // ======================================================================
 
 // Dashboard invariant assertions (dev-time)
@@ -87,38 +87,107 @@ function enforceDashboardInvariants(context = '') {
   }
 }
 
-async function switchDashboard(dashboardId) {
-  if (dashboardId === activeDashboardId) return;
+// ======================================================================
+// Dashboard commit & persistence helpers (NO identity changes)
+// ======================================================================
 
-  await DashboardService.setActiveDashboardId(dashboardId);
+//  * Commits the current dashboard state.
+//  *
+//  * Responsibilities:
+//  * - Persist dashboardState
+//  * - Re-render dashboard-dependent UI
+//  * - Enforce invariants (dev-only)
+//  *
+//  * IMPORTANT:
+//  * - This function makes NO state mutations.
+//  * - All invariants MUST already hold before calling.
+//  * - This is a COMMIT, not a mutation or transition.
 
-  setActiveDashboardId(dashboardId, 'switchDashboard');
+async function commitDashboardChange(context = '') {
+  // Persist dashboard state
+  await DashboardService.save(dashboardState);
 
-  const newDashboardState = await DashboardService.load();
-  if (!newDashboardState) {
-    console.warn('[WebDash] Switched dashboard has no data');
-    return;
-  }
-
-  dashboardState = newDashboardState;
-  pageCategories = dashboardState.categories;
-  
-  applyDashboardAppearance();
-  
+  // Re-render dashboard UI
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
-  
-  
-  if (isPreferencesOpen()) {
-    syncLayoutDashboardSelector();
+
+  // Dev-time safety net
+  assertSystemInvariants(
+    context
+      ? `commitDashboardChange: ${context}`
+      : 'commitDashboardChange'
+  );
+}
+
+//  * Fully transitions the app to the given dashboard ID.
+//  * This is an IDENTITY TRANSACTION.
+//  *
+//  * Guarantees:
+//  * - dashboardState + pageCategories are hydrated first
+//  * - activeDashboardId is committed last
+//  * - UI + preferences are finalized
+//  * - invariants hold after completion
+
+async function transitionToDashboard(dashboardId, context = '') {
+  // 1. Tell backend which dashboard is active
+  await DashboardService.setActiveDashboardId(dashboardId);
+
+  // 2. Load authoritative dashboard state
+  const newDashboardState = await DashboardService.load();
+  if (!newDashboardState) {
+    throw new Error(
+      `[WebDash] Failed to load dashboard "${dashboardId}" (${context})`
+    );
   }
 
+  // 3. Hydrate frontend state FIRST
+  dashboardState = newDashboardState;
+  pageCategories = dashboardState.categories;
+
+  // 4. Apply dashboard-scoped appearance
+  applyDashboardAppearance();
+
+  // 5. NOW commit identity (invariants must already hold)
+  setActiveDashboardId(dashboardId, context);
+
+  // 6. Render UI
+  renderCategories(pageCategories);
+  renderLayoutEditor(pageCategories);
+
+  // 7. Finalize identity-dependent side effects
   await finalizeActiveDashboardChange();
-  assertDashboardInvariants('after switchDashboard');
-  
-  if (__DEV__) {
-    enforceDashboardInvariants('after switchDashboard');
-  }
+
+  // 8. Safety net
+  assertSystemInvariants(
+    context ? `transitionToDashboard: ${context}` : 'transitionToDashboard'
+  );
+}
+
+//  * Commits a pre-hydrated dashboard as the active dashboard.
+//  * Used when dashboardState is already known locally.
+async function commitPrehydratedDashboard(dashboardId, context = '') {
+  // dashboardState + pageCategories MUST already be set correctly
+  applyDashboardAppearance();
+
+  setActiveDashboardId(dashboardId, context);
+
+  renderCategories(pageCategories);
+  renderLayoutEditor(pageCategories);
+
+  await finalizeActiveDashboardChange();
+
+  assertSystemInvariants(
+    context ? `commitPrehydratedDashboard: ${context}` : 'commitPrehydratedDashboard'
+  );
+}
+
+// ======================================================================
+// Dashboard identity & lifecycle transitions (transactional)
+// ======================================================================
+
+async function switchDashboard(dashboardId) {
+  if (dashboardId === activeDashboardId) return;
+  await transitionToDashboard(dashboardId, 'switchDashboard');
 }
 
 async function createAndSwitchDashboard({ id, name }) {
@@ -129,33 +198,26 @@ async function createAndSwitchDashboard({ id, name }) {
     name: template.name
   });
 
-  // Persist default layout immediately
+  await DashboardService.save(template);
+
+  // Hydrate local state
   dashboardState = template;
-  await DashboardService.save(dashboardState);
+  pageCategories = template.categories;
 
-  addAvailableDashboard(
-    { id, name },
-    'createAndSwitchDashboard'
-  );
+  // Metadata only
+  addAvailableDashboard({ id, name }, 'createAndSwitchDashboard');
 
-  setActiveDashboardId(id, 'createAndSwitchDashboard');
+  // ✅ Identity transaction
+  await commitPrehydratedDashboard(id, 'createAndSwitchDashboard');
 
-  const newDashboardState = await DashboardService.load();
-  dashboardState = newDashboardState;
-  pageCategories = dashboardState.categories;
-
+  // UI bookkeeping (not identity)
   syncLayoutDashboardSelector();
-  renderCategories(pageCategories);
-  renderLayoutEditor(pageCategories);
   syncDefaultDashboardSelector();
   renderDashboardList();
   renderDashboardManagementPanel();
-  await finalizeActiveDashboardChange();
-  assertDashboardInvariants('after createAndSwitchDashboard');
 }
 
 async function deleteDashboard(dashboardId, autoSwitch = true) {
-  // Must always have at least one dashboard
   if (availableDashboards.length <= 1) {
     setDashboardValidationError('You must have at least one dashboard.');
     return;
@@ -171,7 +233,15 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
     return;
   }
 
-  // Perform backend delete
+  if (dashboardId === activeDashboardId) {
+    const nextActiveId =
+      defaultDashboardId !== dashboardId
+        ? defaultDashboardId
+        : remainingDashboards[0].id;
+
+    await transitionToDashboard(nextActiveId, 'deleteDashboard');
+  }
+
   const res = await fetch(`/api/dashboards/${dashboardId}`, {
     method: 'DELETE'
   });
@@ -181,41 +251,24 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
     return;
   }
 
-  // Update local dashboard metadata
+  // Ensure defaultDashboardId is valid BEFORE structural mutation
+  if (dashboardId === defaultDashboardId) {
+    // At this point, a new default MUST exist
+    // Prefer the first remaining dashboard
+    defaultDashboardId = remainingDashboards[0].id;
+  }
+
   replaceAvailableDashboards(
     remainingDashboards,
     'deleteDashboard'
   );
 
-  // If default was deleted and one dashboard remains
-  if (isDefault && remainingDashboards.length === 1) {
-    setDefaultDashboardId(
-      remainingDashboards[0].id,
-      'deleteDashboard (fallback default)'
-    );
-    await DashboardService.setDefaultDashboardId(defaultDashboardId);
-  }
-
-  // If active dashboard was deleted then fallback to default
-  if (dashboardId === activeDashboardId) {
-    activeDashboardId = defaultDashboardId;
-    await DashboardService.setActiveDashboardId(activeDashboardId);
-
-    const newDashboardState = await DashboardService.load();
-    dashboardState = newDashboardState;
-    pageCategories = dashboardState.categories;
-
-    renderCategories(pageCategories);
-    renderLayoutEditor(pageCategories);
-    await finalizeActiveDashboardChange();
-    assertDashboardInvariants('after deleteDashboard fallback');
-  }
-
   syncDefaultDashboardSelector();
   syncLayoutDashboardSelector();
   renderDashboardManagementPanel();
   renderDashboardList();
-  
+
+  assertSystemInvariants('after deleteDashboard');
 }
 
 async function renameDashboardDisplayName(dashboardId, newName) {
@@ -660,11 +713,20 @@ deleteDefaultConfirm.addEventListener('click', async () => {
   const newDefaultId = deleteDefaultSelect.value;
   if (!newDefaultId || !pendingDefaultDeletionId) return;
 
-  // Assign new default first
-  setDefaultDashboardId(newDefaultId, 'syncDefaultDashboardSelector');
+  // 1. Commit new default locally FIRST
+  setDefaultDashboardId(
+    newDefaultId,
+    'deleteDefaultDashboard (reassign default)'
+  );
+
+  // 2. Persist default change to backend
   await DashboardService.setDefaultDashboardId(newDefaultId);
 
-  // Now delete the old default
+  // At this point:
+  // defaultDashboardId exists in availableDashboards
+  // invariants hold
+
+  // 3. Now it is SAFE to delete the old default dashboard
   await deleteDashboard(pendingDefaultDeletionId, false);
 
   closeDeleteDefaultDashboardModal();

@@ -206,7 +206,9 @@ function setActiveDashboardId(nextId, context = '') {
     }
   }
 
+  
   activeDashboardId = nextId;
+  assertSystemInvariants(`setActiveDashboardId${context ? `: ${context}` : ''}`);
 }
 
 
@@ -228,7 +230,9 @@ function setDefaultDashboardId(nextId, context = '') {
     }
   }
 
+  
   defaultDashboardId = nextId;
+  assertSystemInvariants(`setDefaultDashboardId${context ? `: ${context}` : ''}`);
 }
 
 
@@ -269,6 +273,7 @@ function replaceAvailableDashboards(nextDashboards, context = '') {
   }
 
   availableDashboards = nextDashboards;
+  assertSystemInvariants(`replaceAvailableDashboards${context ? `: ${context}` : ''}`);
 }
 
 
@@ -283,4 +288,76 @@ function assertLifecyclePhase(requiredPhase, context = '') {
       `[Lifecycle Error] Expected phase "${requiredPhase}", but current phase is "${lifecyclePhase}" (${context})`
     );
   }
+}
+
+// =====================================================
+// Dev-only invariant enforcement
+// =====================================================
+function assertInvariant(condition, message) {
+  if (!__DEV__) return;
+  if (!condition) {
+    throw new Error(`[Invariant Violation] ${message}`);
+  }
+}
+
+/**
+ * Asserts all critical WebDash system invariants.
+ * Must be called ONLY at safe synchronization points.
+ */
+function assertSystemInvariants(context = '') {
+  if (!__DEV__) return;
+
+  const ctx = context ? ` (${context})` : '';
+
+  // --------------------------------------------------
+  // Dashboard identity invariants
+  // --------------------------------------------------
+  assertInvariant(
+    activeDashboardId !== null,
+    `activeDashboardId is null${ctx}`
+  );
+
+  assertInvariant(
+    defaultDashboardId !== null,
+    `defaultDashboardId is null${ctx}`
+  );
+
+  assertInvariant(
+    availableDashboards.some(d => d.id === activeDashboardId),
+    `activeDashboardId "${activeDashboardId}" does not exist in availableDashboards${ctx}`
+  );
+
+  assertInvariant(
+    availableDashboards.some(d => d.id === defaultDashboardId),
+    `defaultDashboardId "${defaultDashboardId}" does not exist in availableDashboards${ctx}`
+  );
+
+  // --------------------------------------------------
+  // Ready-phase invariants
+  // --------------------------------------------------
+  if (appReady) {
+    assertInvariant(
+      dashboardState !== null,
+      `dashboardState is null after appReady === true${ctx}`
+    );
+
+    assertInvariant(
+      dashboardState.id === activeDashboardId,
+      `dashboardState.id ("${dashboardState.id}") does not match activeDashboardId ("${activeDashboardId}")${ctx}`
+    );
+
+    // pageCategories MUST reference dashboardState.categories
+    assertInvariant(
+      pageCategories === dashboardState.categories,
+      `pageCategories is not the same reference as dashboardState.categories${ctx}`
+    );
+  }
+
+  // --------------------------------------------------
+  // Lifecycle sanity
+  // --------------------------------------------------
+  assertInvariant(
+    lifecyclePhase !== null,
+    `lifecyclePhase is null${ctx}`
+  );
 }

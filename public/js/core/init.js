@@ -211,6 +211,7 @@ async function initApp() {
   // ----------------------------------
   // Render
   // ----------------------------------
+  assertSystemInvariants('before appReady');
   appReady = true;
 
   lifecyclePhase = LifecyclePhase.READY;

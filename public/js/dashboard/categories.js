@@ -15,27 +15,24 @@ function createEmptyCategory(categories) {
 // Add category
 // =====================================
 
-function addCategory() {
+async function addCategory() {
   const newCategory = createEmptyCategory(pageCategories);
   pageCategories.push(newCategory);
 
-  DashboardService.save(dashboardState);
-
-  renderCategories(pageCategories);
-  renderLayoutEditor(pageCategories);
+  await commitDashboardChange('addCategory');
 }
 
 // =====================================
 // Delete category
 // =====================================
-function deleteCategory(categoryId) {
+async function deleteCategory(categoryId) {
   const category = pageCategories.find(c => c.id === categoryId);
   if (!category) return;
 
   openConfirm({
     title: 'Delete category',
     message: `Delete category "${category.title}"?\nThis will remove the category and all its buttons.`,
-    onConfirm: () => {
+    onConfirm: async () => {
       const index = pageCategories.findIndex(c => c.id === categoryId);
       if (index === -1) return;
 
@@ -43,9 +40,7 @@ function deleteCategory(categoryId) {
       pageCategories.forEach((c, i) => {
         c.order = i;
       });
-      DashboardService.save(dashboardState);
-      renderCategories(pageCategories);
-      renderLayoutEditor(pageCategories);
+      await commitDashboardChange('deleteCategory');
     }
   });
 }
@@ -54,7 +49,7 @@ function deleteCategory(categoryId) {
 // Rename category
 // =====================================
 
-function renameCategory(categoryId, newTitle) {
+async function renameCategory(categoryId, newTitle) {
   const category = pageCategories.find(c => c.id === categoryId);
   if (!category) return;
 
@@ -62,29 +57,25 @@ function renameCategory(categoryId, newTitle) {
   if (!trimmed) return;
 
   category.title = trimmed;
-  DashboardService.save(dashboardState);
-  renderCategories(pageCategories);
-  renderLayoutEditor(pageCategories);
+  await commitDashboardChange('renameCategory');
 }
 
 // =====================================
 // Toggle category visibility
 // =====================================
 
-function toggleCategoryVisibility(categoryId) {
+async function toggleCategoryVisibility(categoryId) {
   const category = pageCategories.find(c => c.id === categoryId);
   if (!category) return;
 
   category.visible = category.visible === false ? true : false;
-  DashboardService.save(dashboardState);
-  renderCategories(pageCategories);
-  renderLayoutEditor(pageCategories);
+  await commitDashboardChange('toggleCategoryVisibility');
 }
 
 // =====================================
 // Reorder categories
 // =====================================
-function reorderCategories(sourceId, targetId) {
+async function reorderCategories(sourceId, targetId) {
   const sourceIndex = pageCategories.findIndex(c => c.id === sourceId);
   const targetIndex = pageCategories.findIndex(c => c.id === targetId);
 
@@ -95,9 +86,7 @@ function reorderCategories(sourceId, targetId) {
   pageCategories.forEach((c, i) => {
     c.order = i;
   });
-  DashboardService.save(dashboardState);
-  renderCategories(pageCategories);
-  renderLayoutEditor(pageCategories);
+  await commitDashboardChange('reorderCategories');
 }
 
 // Quick filter / search
