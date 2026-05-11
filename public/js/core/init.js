@@ -172,6 +172,7 @@ async function initApp() {
   availableDashboards = await DashboardService.listDashboards();
   activeDashboardId = await DashboardService.getActiveDashboardId();
   defaultDashboardId = await DashboardService.getDefaultDashboardId();
+  lifecyclePhase = LifecyclePhase.DASHBOARDS_LOADED;
 
   // ----------------------------------
   // Preferences
@@ -181,6 +182,8 @@ async function initApp() {
     userPreferences = createDefaultPreferences();
     await PreferencesService.save(userPreferences);
   }
+
+  lifecyclePhase = LifecyclePhase.PREFERENCES_LOADED;
 
   initSyncAppearanceBehavior();
   ensureIdentityDefaults();
@@ -209,6 +212,8 @@ async function initApp() {
   // Render
   // ----------------------------------
   appReady = true;
+
+  lifecyclePhase = LifecyclePhase.READY;
 
   document.body.classList.add('categories-initialized');
 

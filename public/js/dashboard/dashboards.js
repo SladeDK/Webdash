@@ -7,8 +7,6 @@
 //  * and persistence services. Structural layout is intentional
 //  * and should be considered stable.
 
-const __DEV__ = true;
-
 // ======================================================================
 // Dashboard lifecycle / core actions
 // ======================================================================
@@ -17,10 +15,10 @@ const __DEV__ = true;
 function assertDashboardInvariants(context = '') {
   // Active dashboard must exist
   if (!activeDashboardId) {
-    console.error(
-      '[Invariant] activeDashboardId is null or undefined',
-      context
-    );
+    console.groupCollapsed('[Invariant] Dashboard identity');
+    console.error('activeDashboardId is null or undefined');
+    console.log({ context });
+    console.groupEnd();
   }
 
   // Active dashboard must be in availableDashboards
@@ -28,10 +26,10 @@ function assertDashboardInvariants(context = '') {
     activeDashboardId &&
     !availableDashboards.some(d => d.id === activeDashboardId)
   ) {
-    console.error(
-      '[Invariant] activeDashboardId not present in availableDashboards',
-      { activeDashboardId, availableDashboards, context }
-    );
+    console.groupCollapsed('[Invariant] Dashboard identity');
+    console.error('activeDashboardId not present in availableDashboards');
+    console.log({ activeDashboardId, availableDashboards, context });
+    console.groupEnd();
   }
 
   // dashboardState must match activeDashboardId once loaded
@@ -40,14 +38,14 @@ function assertDashboardInvariants(context = '') {
     dashboardState &&
     dashboardState.id !== activeDashboardId
   ) {
-    console.error(
-      '[Invariant] dashboardState.id does not match activeDashboardId',
-      {
-        dashboardStateId: dashboardState.id,
-        activeDashboardId,
-        context
-      }
-    );
+    console.groupCollapsed('[Invariant] Dashboard state mismatch');
+    console.error('dashboardState.id does not match activeDashboardId');
+    console.log({
+      dashboardStateId: dashboardState.id,
+      activeDashboardId,
+      context
+    });
+    console.groupEnd();
   }
 
   // pageCategories must reference dashboardState.categories
@@ -55,10 +53,10 @@ function assertDashboardInvariants(context = '') {
     dashboardState &&
     pageCategories !== dashboardState.categories
   ) {
-    console.error(
-      '[Invariant] pageCategories desynced from dashboardState.categories',
-      context
-    );
+    console.groupCollapsed('[Invariant] Dashboard structure');
+    console.error('pageCategories desynced from dashboardState.categories');
+    console.log({ context });
+    console.groupEnd();
   }
 }
 
@@ -94,7 +92,7 @@ async function switchDashboard(dashboardId) {
 
   await DashboardService.setActiveDashboardId(dashboardId);
 
-  activeDashboardId = dashboardId;
+  setActiveDashboardId(dashboardId, 'switchDashboard');
 
   const newDashboardState = await DashboardService.load();
   if (!newDashboardState) {
@@ -135,9 +133,12 @@ async function createAndSwitchDashboard({ id, name }) {
   dashboardState = template;
   await DashboardService.save(dashboardState);
 
-  availableDashboards.push({ id, name });
+  addAvailableDashboard(
+    { id, name },
+    'createAndSwitchDashboard'
+  );
 
-  activeDashboardId = id;
+  setActiveDashboardId(id, 'createAndSwitchDashboard');
 
   const newDashboardState = await DashboardService.load();
   dashboardState = newDashboardState;
@@ -181,11 +182,17 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
   }
 
   // Update local dashboard metadata
-  availableDashboards = remainingDashboards;
+  replaceAvailableDashboards(
+    remainingDashboards,
+    'deleteDashboard'
+  );
 
   // If default was deleted and one dashboard remains
   if (isDefault && remainingDashboards.length === 1) {
-    defaultDashboardId = remainingDashboards[0].id;
+    setDefaultDashboardId(
+      remainingDashboards[0].id,
+      'deleteDashboard (fallback default)'
+    );
     await DashboardService.setDefaultDashboardId(defaultDashboardId);
   }
 
@@ -250,17 +257,6 @@ async function renameDashboardDisplayName(dashboardId, newName) {
     dashboardState.name = trimmed;
   }
 
-  // Sync identity name if enabled AND this is the active dashboard
-  // if (
-  //   dashboardState &&
-  //   dashboardState.id === dashboardId &&
-  //   userPreferences.appearance.identity.syncWithDashboard
-  // ) {
-  //   userPreferences.appearance.identity.name = trimmed;
-  //   await PreferencesService.save(userPreferences);
-  //   applyIdentityToUI();
-  // }
-
   renamingDashboardId = null;
 
   syncDefaultDashboardSelector();
@@ -274,6 +270,12 @@ async function renameDashboardDisplayName(dashboardId, newName) {
 // ======================================================================
 
 function renderDashboardList() {
+
+  assertLifecyclePhase(
+    LifecyclePhase.READY,
+    'renderDashboardList'
+  );
+
   if (!appReady) return;
   const container = document.getElementById('dashboard-list');
   if (!container) return;
@@ -659,7 +661,7 @@ deleteDefaultConfirm.addEventListener('click', async () => {
   if (!newDefaultId || !pendingDefaultDeletionId) return;
 
   // Assign new default first
-  defaultDashboardId = newDefaultId;
+  setDefaultDashboardId(newDefaultId, 'syncDefaultDashboardSelector');
   await DashboardService.setDefaultDashboardId(newDefaultId);
 
   // Now delete the old default
