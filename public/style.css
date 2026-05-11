@@ -1,4 +1,36 @@
 
+/* ===================================================== */
+/* 1. CSS Variables / Design Tokens */
+/* ===================================================== */
+
+/* ===================================================== */
+/* 2. Base / Reset / Global Defaults */
+/* ===================================================== */
+
+/* ===================================================== */
+/* 3. Layout & Page Structure */
+/* ===================================================== */
+
+/* ===================================================== */
+/* 4. Typography */
+/* ===================================================== */
+
+/* ===================================================== */
+/* 5. Core UI Components */
+/* ===================================================== */
+
+/* ===================================================== */
+/* 6. Editor & Dashboard Components */
+/* ===================================================== */
+
+/* ===================================================== */
+/* 7. Component States & Modifiers */
+/* ===================================================== */
+
+/* ===================================================== */
+/* 8. Utilities */
+/* ===================================================== */
+
 html {
   min-height: 100%;
   background-color: var(--bg-main);
@@ -239,7 +271,7 @@ html.theme-glass {
   --dropdown-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
 }
 
-Background contrast around glass panels 
+/*Background contrast around glass panels */
 .theme-glass .container {
   background:
     radial-gradient(
@@ -342,6 +374,18 @@ h1, h2 {
   border-bottom-left-radius: var(--radius-md);
   border-bottom-right-radius: var(--radius-md);
   flex-wrap: nowrap;
+}
+
+/* Ensure header dropdowns render above content */
+.header {
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure categories stay below header overlays */
+.category {
+  position: relative;
+  z-index: 1;
 }
 
 .header-center {
