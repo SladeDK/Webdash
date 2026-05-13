@@ -6,6 +6,30 @@
     <title>WebDash</title>
 
     <link rel="icon" href="assets/webdash-logo.png" />
+    
+    <script>
+      (function () {
+        try {
+          const stored = localStorage.getItem('webdash-ui-cache');
+          if (!stored) return;
+
+          const data = JSON.parse(stored);
+
+          const root = document.documentElement;
+
+          if (data.theme) {
+            root.classList.add(data.theme);
+          }
+
+          if (data.background) {
+            root.classList.add(data.background);
+          }
+        } catch (e) {
+          console.warn('[WebDash] Early UI load failed:', e);
+        }
+      })();
+    </script>
+
     <link rel="stylesheet" href="style.css" />
 
     <script src="https://kit.fontawesome.com/782d4dd7ab.js" crossorigin="anonymous"></script>

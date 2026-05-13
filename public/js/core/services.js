@@ -77,6 +77,14 @@ const PreferencesService = {
   },
 
   async save(prefs) {
+    localStorage.setItem(
+      'webdash-ui-cache',
+      JSON.stringify({
+        theme: prefs.appearance.theme,
+        background: prefs.appearance.background
+      })
+    );
+
     await fetch('/api/preferences', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

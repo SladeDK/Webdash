@@ -148,9 +148,19 @@ async function initApp() {
   // ----------------------------------
   // Initial dashboard metadata
   // ----------------------------------
-  availableDashboards = await DashboardService.listDashboards();
-  activeDashboardId = await DashboardService.getActiveDashboardId();
-  defaultDashboardId = await DashboardService.getDefaultDashboardId();
+  const [
+    dashboardsList,
+    activeId,
+    defaultId
+  ] = await Promise.all([
+    DashboardService.listDashboards(),
+    DashboardService.getActiveDashboardId(),
+    DashboardService.getDefaultDashboardId()
+  ]);
+
+  availableDashboards = dashboardsList;
+  activeDashboardId = activeId;
+  defaultDashboardId = defaultId;
 
   // Ensure default dashboard is valid
   if (
@@ -177,22 +187,27 @@ async function initApp() {
   // ----------------------------------
   // Ensure dashboard DATA exists
   // ----------------------------------
-  await initializeDashboardState();
+  await Promise.all([
+    initializeDashboardState(),
+    (async () => {
+      userPreferences = await PreferencesService.load();
+    })()
+  ]);
+
   pageCategories = dashboardState.categories;
 
   // Re-fetch metadata AFTER initialization,
   // because initializeDashboardState() can mutate backend state
-  availableDashboards = await DashboardService.listDashboards();
-  activeDashboardId = await DashboardService.getActiveDashboardId();
-  defaultDashboardId = await DashboardService.getDefaultDashboardId();
+  refreshDashboardMetadata();
   lifecyclePhase = LifecyclePhase.DASHBOARDS_LOADED;
 
   // ----------------------------------
   // Preferences
   // ----------------------------------
-  userPreferences = await PreferencesService.load();
   if (!userPreferences) {
     userPreferences = createDefaultPreferences();
+
+    // Only save if backend returned nothing
     await PreferencesService.save(userPreferences);
   }
 
@@ -200,9 +215,21 @@ async function initApp() {
   // Cleanup legacy global identity data
   // ----------------------------------
   if (userPreferences.appearance?.identity) {
-    delete userPreferences.appearance.identity.name;
-    delete userPreferences.appearance.identity.icon;
-    await PreferencesService.save(userPreferences);
+    let changed = false;
+
+    if ('name' in userPreferences.appearance.identity) {
+      delete userPreferences.appearance.identity.name;
+      changed = true;
+    }
+
+    if ('icon' in userPreferences.appearance.identity) {
+      delete userPreferences.appearance.identity.icon;
+      changed = true;
+    }
+
+    if (changed) {
+      await PreferencesService.save(userPreferences);
+    }
   }
 
   lifecyclePhase = LifecyclePhase.PREFERENCES_LOADED;
@@ -215,10 +242,7 @@ async function initApp() {
   document.documentElement.classList.add('identity-ready');
 
   // Apply visual preferences immediately
-  setActiveTheme(userPreferences.appearance.theme);
-  setActiveBackground(userPreferences.appearance.background);
-
-  applyDashboardAppearance(); // ensures correct startup state
+  applyDashboardAppearance();
 
   if (openLinksCheckbox) {
     openLinksCheckbox.checked =
