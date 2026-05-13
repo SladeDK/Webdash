@@ -89,17 +89,25 @@ const INITIAL_IDENTITY = (() => {
 
 async function resetIdentity() {
   try {
+    if (!dashboardState || !dashboardState.identity) return;
+
     const defaults = getDefaultIdentity();
 
-    userPreferences.appearance.identity = {
-      name: defaults.name,
-      icon: defaults.icon
-    };
+    const syncEnabled =
+      userPreferences.appearance.identity.syncWithDashboard !== false;
 
-    await PreferencesService.save(userPreferences);
+    // Name depends on sync mode
+    dashboardState.identity.name = syncEnabled
+      ? dashboardState.name
+      : defaults.name;
+
+    // Icon always resets
+    dashboardState.identity.icon = defaults.icon;
+
+    await DashboardService.save(dashboardState);
+
     applyIdentityToUI();
 
-    // SUCCESS TOAST
     showToast({
       title: 'Identity reset',
       lines: [
@@ -108,11 +116,9 @@ async function resetIdentity() {
       type: 'success',
       duration: 5000
     });
-
   } catch (err) {
     console.error('[WebDash] Failed to reset identity:', err);
 
-    // ERROR TOAST
     showToast({
       title: 'Identity reset failed',
       lines: [
@@ -137,7 +143,11 @@ function applyIdentityToUI() {
   // Header icon
   const headerIcon = document.querySelector('.header-center img');
   if (headerIcon && icon) {
-    headerIcon.src = icon;
+    if (icon.startsWith('data:')) {
+      headerIcon.src = icon;
+    } else {
+      headerIcon.src = icon + '?t=' + Date.now();
+    }
   }
 
   // Identity preview name
@@ -147,7 +157,11 @@ function applyIdentityToUI() {
   // Identity preview icon
   const previewIcon = document.querySelector('.identity-icon-preview');
   if (previewIcon && icon) {
-    previewIcon.src = icon;
+    if (icon.startsWith('data:')) {
+      previewIcon.src = icon;
+    } else {
+      previewIcon.src = icon + '?t=' + Date.now();
+    }
   }
 
   // Input value

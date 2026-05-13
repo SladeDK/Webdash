@@ -253,30 +253,71 @@ if (identityIconWrapper && identityIconInput) {
     identityIconInput.click();
   });
 
-  identityIconInput.addEventListener('change', () => {
+  identityIconInput.addEventListener('change', async () => {
     const file = identityIconInput.files[0];
     if (!file) return;
 
-    // Basic validation (keep it simple for now)
-    if (!file.type.startsWith('image/')) {
+    const MAX_UPLOAD_SIZE = 1 * 1024 * 1024; // 1 MB
+
+    if (file.size > MAX_UPLOAD_SIZE) {
       showToast({
-        title: 'Invalid file',
-        lines: ['Please select a valid image file (PNG, JPG, etc.).'],
-        type: 'error'
+        title: 'File too large',
+        lines: [
+          'Please select an image smaller than 1 MB.'
+        ],
+        type: 'error',
+        duration: 5000,
       });
+
       identityIconInput.value = '';
       return;
     }
 
-    const reader = new FileReader();
+    if (!file.type.startsWith('image/')) {
+      showToast({
+        title: 'Invalid file',
+        lines: [
+          'Please select a valid image file (PNG, JPG, etc.).'
+        ],
+        type: 'error',
+        duration: 5000,
+      });
 
-    reader.onload = () => {
-      userPreferences.appearance.identity.icon = reader.result;
-      PreferencesService.save(userPreferences);
+      identityIconInput.value = '';
+      return;
+    }
+
+    try {
+      const compressed = await compressImage(file, 256, 0.8);
+
+      if (dashboardState && dashboardState.identity) {
+        dashboardState.identity.icon = compressed;
+        await DashboardService.save(dashboardState);
+      }
       applyIdentityToUI();
-    };
+      
+      showToast({
+        title: 'Icon updated',
+        lines: [
+          'Your identity icon has been updated successfully.'
+        ],
+        type: 'success',
+        duration: 5000,
+      });
+    } catch (err) {
+      console.error('[WebDash] Image compression failed:', err);
 
-    reader.readAsDataURL(file);
+      showToast({
+        title: 'Image processing failed',
+        lines: [
+          'Could not process the selected image. Please try another file.'
+        ],
+        type: 'error',
+        duration: 5000,
+      });
+    }
+
+    identityIconInput.value = '';
   });
 }
 
@@ -355,6 +396,48 @@ function cleanupIdentityRename() {
 
   if (actions) actions.remove();
   identityNameInput.blur();
+}
+
+// Image compression helper (identity icon)
+function compressImage(file, maxSize = 256, quality = 0.8) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      img.src = e.target.result;
+    };
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxSize) {
+          height *= maxSize / width;
+          width = maxSize;
+        }
+      } else {
+        if (height > maxSize) {
+          width *= maxSize / height;
+          height = maxSize;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const compressed = canvas.toDataURL('image/jpeg', quality);
+      resolve(compressed);
+    };
+
+    reader.readAsDataURL(file);
+  });
 }
 
 // ======================================================================
