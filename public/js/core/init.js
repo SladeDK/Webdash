@@ -262,11 +262,13 @@ async function initApp() {
 
   lifecyclePhase = LifecyclePhase.READY;
 
+  document.body.classList.remove('app-loading');
+  document.body.classList.add('app-ready');
+
   document.body.classList.add('categories-initialized');
 
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
-  renderDashboardList();
 
   // Final stabilisation pass
   queueMicrotask(() => {

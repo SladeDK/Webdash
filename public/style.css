@@ -3098,3 +3098,14 @@ html:not(.identity-ready) .header-center {
 .icon-button.cancel {
   color: var(--action-red, #f87171);
 }
+
+body.app-loading {
+  opacity: 0;
+  filter: blur(6px);
+}
+
+body.app-ready {
+  opacity: 1;
+  filter: blur(0);
+  transition: opacity 120ms ease, filter 180ms ease;
+}
