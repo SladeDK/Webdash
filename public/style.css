@@ -122,6 +122,14 @@ html.theme-dark {
   --dropdown-text: var(--text-main);
   --dropdown-border: var(--border-color);
   --dropdown-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  
+  --toast-bg: var(--bg-card);
+  --toast-text: var(--text-main);
+  --toast-muted: var(--text-muted);
+  --toast-progress: var(--text-main);
+  --toast-success: #22c55e;
+  --toast-error: #ef4444;
+  --toast-shadow: 0 8px 24px rgba(0,0,0,0.35);
 }
 
 /* Alternative theme: Midnight */
@@ -146,6 +154,14 @@ html.theme-midnight {
   --dropdown-text: var(--text-main);
   --dropdown-border: var(--border-color);
   --dropdown-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+  
+  --toast-bg: var(--bg-card);
+  --toast-text: var(--text-main);
+  --toast-muted: var(--text-muted);
+  --toast-progress: var(--accent);
+  --toast-success: #34d399;
+  --toast-error: #f87171;
+  --toast-shadow: 0 10px 28px rgba(0,0,0,0.55);
 }
 
 html.theme-slate {
@@ -169,6 +185,14 @@ html.theme-slate {
   --dropdown-text: var(--text-main);
   --dropdown-border: var(--border-color);
   --dropdown-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
+  
+  --toast-bg: var(--bg-card);
+  --toast-text: var(--text-main);
+  --toast-muted: var(--text-muted);
+  --toast-progress: var(--accent);
+  --toast-success: #4ade80;
+  --toast-error: #f87171;
+  --toast-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 
 html.theme-nord {
@@ -192,6 +216,14 @@ html.theme-nord {
   --dropdown-text: var(--text-main);
   --dropdown-border: var(--border-color);
   --dropdown-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+  
+  --toast-bg: var(--bg-card);
+  --toast-text: var(--text-main);
+  --toast-muted: var(--text-muted);
+  --toast-progress: var(--accent);
+  --toast-success: #a3be8c;
+  --toast-error: #bf616a;
+  --toast-shadow: 0 8px 18px rgba(0,0,0,0.45);
 }
 
 
@@ -216,6 +248,14 @@ html.theme-carbon {
   --dropdown-text: var(--text-main);
   --dropdown-border: var(--border-color);
   --dropdown-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
+  
+  --toast-bg: var(--bg-card);
+  --toast-text: var(--text-main);
+  --toast-muted: var(--text-muted);
+  --toast-progress: var(--accent);
+  --toast-success: #4ade80;
+  --toast-error: #f87171;
+  --toast-shadow: 0 10px 24px rgba(0,0,0,0.5);
 }
 
 html.theme-light {
@@ -240,6 +280,14 @@ html.theme-light {
   --dropdown-text: var(--text-main);
   --dropdown-border: rgba(0, 0, 0, 0.18);
   --dropdown-shadow: 0 10px 22px rgba(0, 0, 0, 0.15);
+  
+  --toast-bg: var(--bg-card);
+  --toast-text: var(--text-main);
+  --toast-muted: var(--text-muted);
+  --toast-progress: var(--accent);
+  --toast-success: #16a34a;
+  --toast-error: #dc2626;
+  --toast-shadow: 0 10px 22px rgba(0,0,0,0.15);
 }
 
 /* Glass theme */
@@ -269,6 +317,14 @@ html.theme-glass {
   --dropdown-text: var(--text-main);
   --dropdown-border: var(--border-color);
   --dropdown-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+  
+  --toast-bg: rgba(30, 38, 52, 0.65);
+  --toast-text: var(--text-main);
+  --toast-muted: var(--text-muted);
+  --toast-progress: var(--accent);
+    --toast-success: #4ade80;
+  --toast-error: #f87171;
+  --toast-shadow: 0 12px 30px rgba(0,0,0,0.6);
 }
 
 /*Background contrast around glass panels */
@@ -349,8 +405,6 @@ body {
     background-color 180ms ease,
     color 180ms ease;
 }
-
-
 
 :focus-visible {
   outline: 2px solid var(--accent);
@@ -985,6 +1039,30 @@ html.theme-glass .modal {
   outline: none;
   border-color: var(--accent);
   background: var(--bg-control-hover);
+}
+
+.identity-input-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 240px; /* matches your current input width */
+}
+
+.identity-name-input {
+    width: 100%;
+    padding-right: 60px; /* space for buttons */
+}
+
+.identity-rename-actions {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 6px;
+}
+
+.identity-rename-actions button {
+    flex-shrink: 0;
 }
 
 .identity-actions {
@@ -2748,11 +2826,16 @@ html:not(.identity-ready) .header-center {
    Toast notification system
    ============================ */
 
+
+.dropdown-menu {
+  z-index: 1800;
+}
+
 #toast-container {
   position: fixed;
   top: calc(var(--header-height) + 8px);
   right: 12px;
-  z-index: 2000;
+  z-index: 1700;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -2760,36 +2843,73 @@ html:not(.identity-ready) .header-center {
 }
 
 .toast {
-  min-width: 280px;
-  max-width: 360px;
-  background: var(--panel-bg, #1f1f1f);
-  color: var(--text-primary, #fff);
+  min-width: 330px;
+  max-width: 330px;
+  background: var(--toast-bg);
+  color: var(--toast-text);
   border-radius: 8px;
   padding: 0.75rem 0.9rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--toast-shadow);
   display: flex;
   gap: 0.75rem;
 
   animation: toast-slide-in 200ms ease-out;
   pointer-events: auto;
+  position: relative;
 }
 
+.toast-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--toast-progress-default, var(--toast-progress));
+  transform-origin: left;
+  transform: scaleX(1);
+}
+
+.toast.success .toast-progress {
+  background: var(--toast-success);
+}
+
+.toast.error .toast-progress {
+  background: var(--toast-error);
+}
+
+.toast-progress.is-running {
+  animation: toast-progress linear forwards;
+}
+
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
 
 .toast.success {
-  border-left: 4px solid var(--action-green);
+  border-left: 4px solid var(--toast-success);
 }
 
 .toast.error {
-  border-left: 4px solid var(--action-red);
+  border-left: 4px solid var(--toast-error);
 }
 
-/* Optional: slightly adjust text tone for errors */
+/* Error tone derived from theme error color */
 .toast.error .toast-header {
-  color: #fecaca; /* red-200 */
+  color: color-mix(in srgb, var(--toast-error), var(--toast-text) 55%);
 }
 
 .toast.error .toast-body {
-  color: #fee2e2; /* red-100 */
+  color: color-mix(in srgb, var(--toast-text), var(--toast-error) 20%);
+}
+
+/* Success tone derived from theme success color */
+.toast.success .toast-header {
+  color: color-mix(in srgb, var(--toast-success), var(--toast-text) 55%);
+}
+
+.toast.success .toast-body {
+  color: color-mix(in srgb, var(--toast-text), var(--toast-success) 20%);
 }
 
 .toast-header {

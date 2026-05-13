@@ -3,7 +3,7 @@
 // =====================================
 function createEmptyButton() {
   return {
-    id: `item-${Date.now()}`,
+    id: generateId('item'),
     label: 'New button',
     url: ''
   };
@@ -230,7 +230,7 @@ buttonEditorForm?.addEventListener('submit', async e => {
     if (!category) return;
 
     category.items.push({
-      id: `item-${Date.now()}`,
+      id: generateId('item'),
       label,
       url: normalizedUrl
     });

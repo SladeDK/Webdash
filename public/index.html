@@ -10,12 +10,16 @@
 
     <script src="https://kit.fontawesome.com/782d4dd7ab.js" crossorigin="anonymous"></script>
     <script src="js/core/state.js" defer></script>
+    <script src="js/core/ids.js" defer></script>
     <script src="js/core/services.js" defer></script>
     <script src="js/core/init.js" defer></script>
 
     <script src="js/ui/modals.js" defer></script>
     <script src="js/interactions/keyboard.js" defer></script>
-    <script src="js/ui/preferences.js" defer></script>
+    <script src="js/preferences/preferences.state.js" defer></script>
+    <script src="js/preferences/preferences.import.js" defer></script>
+    <script src="js/preferences/preferences.ui.js" defer></script>
+    <script src="js/preferences/preferences.lifecycle.js" defer></script>
     <script src="js/ui/dropdowns.js" defer></script>
     <script src="js/ui/toasts.js" defer></script>
 
@@ -229,15 +233,18 @@
 
                     <!-- Name input -->
                     <label class="identity-row">
-                      <span>Dashboard name:</span>
-                      <input
-                        type="text"
-                        class="identity-name-input"
-                        value="SladeDK"
-                        placeholder="Dashboard"
-                      >
-                    </label>
+                        <span>Dashboard name:</span>
 
+                        <div class="identity-input-wrapper">
+                            <input
+                                type="text"
+                                class="identity-name-input"
+                                value="SladeDK"
+                                placeholder="Dashboard"
+                            >
+                            <!-- JS will insert buttons here -->
+                        </div>
+                    </label>
                   </div>
                 </fieldset>
                 <fieldset class="setting-group">

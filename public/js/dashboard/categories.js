@@ -4,7 +4,7 @@
 
 function createEmptyCategory(categories) {
   return {
-    id: `category-${Date.now()}`,
+    id: generateId('category'),
     title: 'New Category',
     order: categories.length,
     items: []

@@ -213,6 +213,11 @@ function buildLayoutEditorDOM(container, categories) {
           }
         });
 
+        // Cancel when clicking outside (blur)
+        input.addEventListener('blur', () => {
+          cancel();
+        });
+
         const saveBtn = document.createElement('button');
         saveBtn.className = 'icon-button confirm';
         saveBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
@@ -222,6 +227,11 @@ function buildLayoutEditorDOM(container, categories) {
         cancelBtn.className = 'icon-button cancel';
         cancelBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
         cancelBtn.onclick = cancel;
+
+        // Prevent blur firing before button clicks
+        wrapper.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+        });
 
         wrapper.append(input, saveBtn, cancelBtn);
         titleSlot.appendChild(wrapper);

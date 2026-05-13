@@ -29,6 +29,8 @@ const SystemTransitionType = Object.freeze({
   RESET_SYSTEM: 'RESET_SYSTEM'
 });
 
+let importWarnings = [];
+
 // Enumerations / static lists
 const BACKGROUNDS = [
   'bg-plain',
@@ -51,6 +53,10 @@ const BACKGROUNDS = [
 const DEFAULT_DASHBOARD_STATE = {
   id: null,
   name: "WebDash",
+  identity: {
+    name: "WebDash",
+    icon: null,
+  },
   categories: [
     {
       id: "cat-getting-started",
@@ -79,10 +85,17 @@ const DEFAULT_DASHBOARD_STATE = {
 
 function getDefaultDashboardTemplate(overrides = {}) {
   const base = structuredClone(DEFAULT_DASHBOARD_STATE);
+
+  const dashboardName = overrides.name ?? base.name;
+
   return {
     ...base,
-    id: overrides.id ?? "default",
-    name: overrides.name ?? "WebDash"
+    id: overrides.id ?? base.id ?? 'default',
+    name: dashboardName,
+    identity: {
+      name: dashboardName,
+      icon: '/assets/webdash-logo.png'
+    }
   };
 }
 
@@ -183,6 +196,15 @@ async function initApp() {
     await PreferencesService.save(userPreferences);
   }
 
+  // ----------------------------------
+  // Cleanup legacy global identity data
+  // ----------------------------------
+  if (userPreferences.appearance?.identity) {
+    delete userPreferences.appearance.identity.name;
+    delete userPreferences.appearance.identity.icon;
+    await PreferencesService.save(userPreferences);
+  }
+
   lifecyclePhase = LifecyclePhase.PREFERENCES_LOADED;
 
   initSyncAppearanceBehavior();
@@ -226,6 +248,8 @@ async function initApp() {
   queueMicrotask(() => {
     renderDashboardList();
   });
+
+  initializeDropdowns();
 }
 
 // =====================================================
@@ -318,7 +342,16 @@ async function applySystemState({
   if (preferences) {
     userPreferences.appearance = structuredClone(preferences.appearance);
     userPreferences.behavior = structuredClone(preferences.behavior);
+
+    // ✅ EXACT PLACE: normalize and capture warnings
+    const result = normalizeImportedPreferences(userPreferences);
+    userPreferences = result.prefs;
+    importWarnings = result.warnings;
+
     await PreferencesService.save(userPreferences);
+  } else {
+    // Clear warnings if no preferences were imported
+    importWarnings = [];
   }
 
   // ---------------------------
@@ -384,59 +417,116 @@ async function syncAppearanceToAllDashboards() {
 async function resetDashboard(dashboardId = activeDashboardId) {
   if (!dashboardId) return;
 
-  const template = getDefaultDashboardTemplate({
-    id: dashboardId,
-    name: dashboardState?.name ?? 'Dashboard'
-  });
+  // Capture display name BEFORE mutation
+  const dashboardName =
+    dashboardState?.name ??
+    availableDashboards.find(d => d.id === dashboardId)?.name ??
+    'Dashboard';
 
-  dashboardState = template;
-  pageCategories = dashboardState.categories;
+  try {
+    const template = getDefaultDashboardTemplate({
+      id: dashboardId,
+      name: dashboardName
+    });
 
-  await DashboardService.save(dashboardState);
+    dashboardState = template;
+    pageCategories = dashboardState.categories;
 
-  renderCategories(pageCategories);
-  renderLayoutEditor(pageCategories);
+    await DashboardService.save(dashboardState);
+
+    renderCategories(pageCategories);
+    renderLayoutEditor(pageCategories);
+
+    // SUCCESS TOAST
+    showToast({
+      title: 'Dashboard reset',
+      lines: [
+        `The dashboard "${dashboardName}" was reset successfully.`
+      ],
+      type: 'success',
+      duration: 5000
+    });
+
+  } catch (err) {
+    console.error('[WebDash] Failed to reset dashboard', err);
+
+    // ERROR TOAST
+    showToast({
+      title: 'Dashboard Reset failed',
+      lines: [
+        `The dashboard "${dashboardName}" could not be reset.`,
+        'Please try again.'
+      ],
+      type: 'error',
+      duration: 5000
+    });
+  }
 }
 
 async function resetSystem() {
-  // Clear user preferences storage
-  localStorage.removeItem(USER_PREFS_KEY);
+try {
+    localStorage.removeItem(USER_PREFS_KEY);
 
-  // Clear all dashboards on backend
-  for (const { id } of availableDashboards) {
-    await fetch(`/api/dashboards/${id}`, { method: 'DELETE' });
-  }
+    // Clear all dashboards on backend
+    for (const { id } of availableDashboards) {
+      await fetch(`/api/dashboards/${id}`, { method: 'DELETE' });
+    }
 
-  // Reset in-memory dashboard metadata
-  availableDashboards = [];
+    // Reset in-memory dashboard metadata
+    availableDashboards = [];
 
-  // Create one fresh default dashboard
-  const id = `dashboard-${Date.now()}`;
-  const template = getDefaultDashboardTemplate({ id });
+    // Create one fresh default dashboard
+    const id = `dashboard-${Date.now()}`;
+    const template = getDefaultDashboardTemplate({ id });
 
-  await DashboardService.createDashboard({
-    id: template.id,
-    name: template.name
-  });
-
-  await DashboardService.save(template);
-
-  // System state description
-  const dashboards = [
-    {
+    await DashboardService.createDashboard({
       id: template.id,
       name: template.name
-    }
-  ];
+    });
 
-  // Apply system transition
-  await applySystemState({
-    type: SystemTransitionType.RESET_SYSTEM,
-    dashboards,
-    activeDashboardId: template.id,
-    defaultDashboardId: template.id,
-    preferences: createDefaultPreferences()
-  });
+    await DashboardService.save(template);
+
+    // System state description
+    const dashboards = [
+      {
+        id: template.id,
+        name: template.name
+      }
+    ];
+
+    // Apply system transition
+    await applySystemState({
+      type: SystemTransitionType.RESET_SYSTEM,
+      dashboards,
+      activeDashboardId: template.id,
+      defaultDashboardId: template.id,
+      preferences: createDefaultPreferences()
+    });
+
+    // SUCCESS TOAST (system-level)
+    showToast({
+      title: 'System reset',
+      lines: [
+        'The system was reset successfully.'
+      ],
+      type: 'success',
+      duration: 5000
+    });
+
+  } catch (err) {
+    console.error('[WebDash] System reset failed:', err);
+
+    // ERROR TOAST
+    showToast({
+      title: 'System reset failed',
+      lines: [
+        'The system could not be fully reset.',
+        'Please try again.'
+      ],
+      type: 'error',
+      duration: 5000
+    });
+  }
 }
 
 // =====================================================

@@ -10,8 +10,6 @@ function ensureToastContainer() {
     container.id = 'toast-container';
     container.setAttribute('aria-live', 'polite');
     container.setAttribute('aria-atomic', 'true');
-
-    // Appends to <body>, making it global and lifecycle-safe
     document.body.appendChild(container);
   }
 
@@ -30,6 +28,9 @@ function showToast({
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.setAttribute('role', 'status');
+
+  const progress = document.createElement('div');
+  progress.className = 'toast-progress';
 
   const content = document.createElement('div');
   content.style.flex = '1';
@@ -52,22 +53,66 @@ function showToast({
   closeBtn.className = 'toast-close';
   closeBtn.type = 'button';
   closeBtn.setAttribute('aria-label', 'Dismiss notification');
-  closeBtn.innerHTML = '&times;';
+  closeBtn.innerHTML = '×';
+
+  let dismissTimeout = null;
+  let isDismissed = false;
+
+  function clearTimer() {
+    if (dismissTimeout !== null) {
+      clearTimeout(dismissTimeout);
+      dismissTimeout = null;
+    }
+  }
+
+  function startTimer() {
+    if (duration <= 0 || isDismissed) return;
+    clearTimer();
+    dismissTimeout = setTimeout(dismissToast, duration);
+  }
+
   function dismissToast() {
-  toast.classList.add('is-leaving');
-  toast.addEventListener(
-    'transitionend',
-    () => toast.remove(),
-    { once: true }
-  );
-}
+    if (isDismissed) return;
+    isDismissed = true;
 
-closeBtn.onclick = dismissToast;
+    clearTimer();
+    toast.classList.add('is-leaving');
+    toast.addEventListener(
+      'transitionend',
+      () => toast.remove(),
+      { once: true }
+    );
+  }
 
-  toast.append(content, closeBtn);
+  closeBtn.addEventListener('click', dismissToast);
+
+  // Hover: pause & reset visually
+  toast.addEventListener('mouseenter', () => {
+    clearTimer();
+
+    // Stop animation and reset to full width
+    progress.classList.remove('is-running');
+    progress.style.transform = 'scaleX(1)';
+  });
+
+  // Leave: restart animation & timer
+  toast.addEventListener('mouseleave', () => {
+    // Force a restart of the animation
+    progress.classList.remove('is-running');
+    progress.offsetHeight; // force reflow
+    progress.classList.add('is-running');
+
+    startTimer();
+  });
+
+  toast.append(content, closeBtn, progress);
   container.appendChild(toast);
 
   if (duration > 0) {
-    setTimeout(dismissToast, duration);
+    progress.style.animationDuration = `${duration}ms`;
   }
+  
+  // Start animation + timer
+  progress.classList.add('is-running');
+  startTimer();
 }

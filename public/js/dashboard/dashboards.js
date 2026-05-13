@@ -133,11 +133,22 @@ async function transitionToDashboard(dashboardId, context = '') {
   await DashboardService.setActiveDashboardId(dashboardId);
 
   // 2. Load authoritative dashboard state
-  const newDashboardState = await DashboardService.load();
+  let newDashboardState = await DashboardService.load();
+
   if (!newDashboardState) {
-    throw new Error(
-      `[WebDash] Failed to load dashboard "${dashboardId}" (${context})`
+    console.warn(
+      `[WebDash] Dashboard "${dashboardId}" had no state. Recreating default dashboard state.`
     );
+
+    const meta = availableDashboards.find(d => d.id === dashboardId);
+    const name = meta?.name ?? 'Dashboard';
+
+    newDashboardState = getDefaultDashboardTemplate({
+      id: dashboardId,
+      name
+    });
+
+    await DashboardService.save(newDashboardState);
   }
 
   // 3. Hydrate frontend state FIRST
@@ -218,6 +229,8 @@ async function createAndSwitchDashboard({ id, name }) {
 }
 
 async function deleteDashboard(dashboardId, autoSwitch = true) {
+  const dashboard = availableDashboards.find(d => d.id === dashboardId);
+  const dashboardName = dashboard?.name ?? 'Dashboard';
   if (availableDashboards.length <= 1) {
     setDashboardValidationError('You must have at least one dashboard.');
     return;
@@ -248,6 +261,17 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
 
   if (!res.ok) {
     console.error('[WebDash] Failed to delete dashboard', dashboardId);
+
+    showToast({
+      title: 'Dashboard deletion failed',
+      lines: [
+        `The dashboard "${dashboardName}" could not be deleted.`,
+        'Please try again.'
+      ],
+      type: 'error',
+      duration: 5000
+    });
+
     return;
   }
 
@@ -269,6 +293,14 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
   renderDashboardList();
 
   assertSystemInvariants('after deleteDashboard');
+  showToast({
+    title: 'Dashboard deleted',
+    lines: [
+      `The dashboard "${dashboardName}" was deleted successfully.`
+    ],
+    type: 'success',
+    duration: 5000
+  });
 }
 
 async function renameDashboardDisplayName(dashboardId, newName) {
@@ -348,7 +380,7 @@ function renderDashboardList() {
     btn.addEventListener('click', async () => {
       await switchDashboard(id);
       renderDashboardList();
-      closeAll();
+      closeAllDropdowns();
     });
 
     container.appendChild(btn);
@@ -422,6 +454,11 @@ function renderDashboardManagementPanel() {
         }
       });
 
+      // Cancel on blur (click outside)
+      input.addEventListener('blur', () => {
+        cancel();
+      });
+
       const saveBtn = document.createElement('button');
       saveBtn.type = 'button';
       saveBtn.className = 'icon-button confirm';
@@ -435,6 +472,11 @@ function renderDashboardManagementPanel() {
       cancelBtn.title = 'Cancel';
       cancelBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
       cancelBtn.onclick = cancel;
+
+      // Prevent blur firing before button clicks
+      wrapper.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+      });
 
       wrapper.append(input, saveBtn, cancelBtn);
       title = wrapper;
@@ -509,7 +551,7 @@ function renderDashboardManagementPanel() {
       clearDashboardValidationError();
       isCreatingDashboard = false;
 
-      const id = `dashboard-${Date.now()}`;
+      const id = generateId('dashboard');
       await createAndSwitchDashboard({ id, name: displayName });
     };
 
@@ -683,11 +725,18 @@ function getDashboardDisplayName(dashboardId) {
 }
 
 async function finalizeActiveDashboardChange() {
-  if (!userPreferences.appearance.identity.syncWithDashboard) return;
-  if (!dashboardState) return;
+  // Always update UI when dashboard changes
+  if (!dashboardState || !dashboardState.identity) {
+    applyIdentityToUI();
+    return;
+  }
 
-  userPreferences.appearance.identity.name = dashboardState.name;
-  await PreferencesService.save(userPreferences);
+  // Apply sync logic ONLY when enabled
+  if (userPreferences.appearance.identity.syncWithDashboard) {
+    dashboardState.identity.name = dashboardState.name;
+    await DashboardService.save(dashboardState);
+  }
+
   applyIdentityToUI();
 }
 
