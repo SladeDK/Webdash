@@ -122,16 +122,88 @@ function createDefaultPreferences() {
 // Initialization helpers
 // =====================================================
 
-async function initializeDashboardState() {
-  const saved = await DashboardService.load();
+function setLifecyclePhase(phase) {
+  lifecyclePhase = phase;
 
-  if (saved) {
-    dashboardState = saved;
+  console.debug('[WebDash] Lifecycle ->', {
+    phase,
+    timestamp: Date.now()
+  });
+}
+
+async function initializeDashboardState() {
+  let cached = null;
+
+  try {
+    const cachedRaw = localStorage.getItem('webdash-dashboard-cache-v1');
+
+    if (cachedRaw) {
+      const parsed = JSON.parse(cachedRaw);
+
+      if (parsed?.data) {
+        cached = parsed.data;
+      }
+    }
+  } catch (e) {
+    console.warn('[WebDash] Failed to read dashboard cache:', e);
+  }
+
+  let saved = null;
+
+  // Try API first (source of truth)
+  try {
+    saved = await DashboardService.load();
+  } catch (e) {
+    console.warn('[WebDash] Failed to load dashboard from API:', e);
+  }
+
+  // Prefer API, fallback to cache
+  const finalState = saved || cached;
+
+  if (finalState) {
+
+    
+    // ADD THIS BLOCK (logging)
+    if (saved) {
+      console.info('[WebDash] Dashboard loaded from API');
+    } else if (cached) {
+      console.info('[WebDash] Dashboard loaded from cache');
+    }
+
+    dashboardState = finalState;
+
+    // Always update cache with freshest data (if API returned)
+    try {
+      localStorage.setItem(
+        'webdash-dashboard-cache-v1',
+        JSON.stringify({
+          timestamp: Date.now(),
+          data: finalState
+        })
+      );
+    } catch (e) {
+      console.warn('[WebDash] Failed to write dashboard cache:', e);
+    }
+
     return;
   }
 
+  // Final fallback: use default state
   dashboardState = structuredClone(DEFAULT_DASHBOARD_STATE);
-  await DashboardService.save(dashboardState);
+  console.info('[WebDash] Using default dashboard state');  
+
+  // Cache default state as well
+  try {
+    localStorage.setItem(
+      'webdash-dashboard-cache-v1',
+      JSON.stringify({
+        timestamp: Date.now(),
+        data: dashboardState
+      })
+    );
+  } catch (e) {
+    console.warn('[WebDash] Failed to write dashboard cache:', e);
+  }
 }
 
 async function refreshDashboardMetadata() {
@@ -194,13 +266,18 @@ async function initApp() {
     })()
   ]);
 
-  pageCategories = dashboardState.categories;
+  if (dashboardState && Array.isArray(dashboardState.categories)) {
+    pageCategories = dashboardState.categories;
+  } else {
+    console.warn('[WebDash] Invalid dashboardState.categories');
+    pageCategories = [];
+  }
 
   // Re-fetch metadata AFTER initialization,
   // because initializeDashboardState() can mutate backend state
-  refreshDashboardMetadata();
-  lifecyclePhase = LifecyclePhase.DASHBOARDS_LOADED;
-
+  await refreshDashboardMetadata();
+  setLifecyclePhase(LifecyclePhase.DASHBOARDS_LOADED);
+  
   // ----------------------------------
   // Preferences
   // ----------------------------------
@@ -232,7 +309,7 @@ async function initApp() {
     }
   }
 
-  lifecyclePhase = LifecyclePhase.PREFERENCES_LOADED;
+  setLifecyclePhase(LifecyclePhase.PREFERENCES_LOADED);
 
   initSyncAppearanceBehavior();
   ensureIdentityDefaults();
@@ -260,7 +337,7 @@ async function initApp() {
   assertSystemInvariants('before appReady');
   appReady = true;
 
-  lifecyclePhase = LifecyclePhase.READY;
+  setLifecyclePhase(LifecyclePhase.READY);
 
   document.body.classList.remove('app-loading');
   document.body.classList.add('app-ready');
@@ -269,11 +346,7 @@ async function initApp() {
 
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
-
-  // Final stabilisation pass
-  queueMicrotask(() => {
-    renderDashboardList();
-  });
+  renderDashboardList();
 
   initializeDropdowns();
 }
