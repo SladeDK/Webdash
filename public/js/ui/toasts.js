@@ -26,6 +26,10 @@ function showToast({
   if (!container) return;
 
   const toast = document.createElement('div');
+  // Prevent ANY click inside toast from bubbling to document
+  toast.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
   toast.className = `toast ${type}`;
   toast.setAttribute('role', 'status');
 
@@ -84,7 +88,12 @@ function showToast({
     );
   }
 
-  closeBtn.addEventListener('click', dismissToast);
+  closeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();   // prevent click from reaching menu logic
+    e.preventDefault();    // safety (optional but good)
+
+    dismissToast();
+  });
 
   // Hover: pause & reset visually
   toast.addEventListener('mouseenter', () => {

@@ -90,13 +90,17 @@ document.addEventListener('mousedown', (e) => {
   const { overlay, onClose } = top;
   const modal = overlay.querySelector('.modal-container');
 
-  // Only close if clicking outside the modal container
-  if (modal && !modal.contains(e.target)) {
+  const isInsideModal = modal && modal.contains(e.target);
+  const isInsideToast = e.target.closest('#toast-container');
+
+  // ✅ Only close if truly outside interactive UI
+  if (!isInsideModal && !isInsideToast) {
     e.preventDefault();
     e.stopPropagation();
     onClose();
   }
 });
+
 
 // =====================================================
 // Confirmation modal helper function
