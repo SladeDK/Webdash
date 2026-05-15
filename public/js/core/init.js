@@ -148,31 +148,37 @@ async function initializeDashboardState() {
     console.warn('[WebDash] Failed to read dashboard cache:', e);
   }
 
+  // Start API request BUT DO NOT block immediately
+  let savedPromise = null;
+
+  try {
+    savedPromise = DashboardService.load();
+  } catch (e) {
+    console.warn('[WebDash] Failed to start dashboard API request:', e);
+  }
+
   let saved = null;
 
-  // Try API first (source of truth)
   try {
-    saved = await DashboardService.load();
+    // Await API (but cache already loaded in parallel)
+    saved = await savedPromise;
   } catch (e) {
     console.warn('[WebDash] Failed to load dashboard from API:', e);
   }
 
-  // Prefer API, fallback to cache
+  // Decide final state
   const finalState = saved || cached;
 
   if (finalState) {
-
-    
-    // ADD THIS BLOCK (logging)
     if (saved) {
       console.info('[WebDash] Dashboard loaded from API');
-    } else if (cached) {
-      console.info('[WebDash] Dashboard loaded from cache');
+    } else {
+      console.info('[WebDash] Dashboard loaded from cache (SWR fallback)');
     }
 
     dashboardState = finalState;
 
-    // Always update cache with freshest data (if API returned)
+    // Update cache with latest data
     try {
       localStorage.setItem(
         'webdash-dashboard-cache-v1',
@@ -188,11 +194,11 @@ async function initializeDashboardState() {
     return;
   }
 
-  // Final fallback: use default state
-  dashboardState = structuredClone(DEFAULT_DASHBOARD_STATE);
-  console.info('[WebDash] Using default dashboard state');  
+  // Fallback
+  console.info('[WebDash] Using default dashboard state');
 
-  // Cache default state as well
+  dashboardState = structuredClone(DEFAULT_DASHBOARD_STATE);
+
   try {
     localStorage.setItem(
       'webdash-dashboard-cache-v1',
@@ -217,6 +223,22 @@ async function refreshDashboardMetadata() {
 // =====================================================
 
 async function initApp() {
+  // Early cache read (for instant data availability — NO rendering here)
+  try {
+    const cachedRaw = localStorage.getItem('webdash-dashboard-cache-v1');
+
+    if (cachedRaw) {
+      const parsed = JSON.parse(cachedRaw);
+
+      if (parsed?.data?.categories) {
+        console.debug('[WebDash] Preloading categories from cache');
+
+        pageCategories = parsed.data.categories;
+      }
+    }
+  } catch (e) {
+    console.warn('[WebDash] Failed to preload cache:', e);
+  }
   // ----------------------------------
   // Initial dashboard metadata
   // ----------------------------------
@@ -259,8 +281,10 @@ async function initApp() {
   // ----------------------------------
   // Ensure dashboard DATA exists
   // ----------------------------------
+  const dashboardPromise = initializeDashboardState();
+  
   await Promise.all([
-    initializeDashboardState(),
+    dashboardPromise,
     (async () => {
       userPreferences = await PreferencesService.load();
     })()
