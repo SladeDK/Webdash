@@ -7,6 +7,16 @@
 //  * and persistence services. Structural layout is intentional
 //  * and should be considered stable.
 
+// =====================================================
+// Dashboard state & constants
+// =====================================================
+
+let draggedDashboardId = null;
+let lastDashboardDragDirection = null;
+let lastDashboardDragTarget = null;
+let isReorderingDashboards = false;
+let pendingDashboardReorder = null;
+
 // ======================================================================
 // Dashboard invariants (authoritative rules)
 // ======================================================================
@@ -195,6 +205,96 @@ async function commitPrehydratedDashboard(dashboardId, context = '') {
 // ======================================================================
 // Dashboard identity & lifecycle transitions (transactional)
 // ======================================================================
+
+async function processDashboardReorderQueue() {
+  if (isReorderingDashboards) return;
+  if (!pendingDashboardReorder) return;
+
+  isReorderingDashboards = true;
+
+  const payload = pendingDashboardReorder;
+  pendingDashboardReorder = null;
+
+  try {
+    await fetch('/api/dashboards/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {
+    console.error('[Dashboard Reorder] Failed to persist order', err);
+  } finally {
+    isReorderingDashboards = false;
+
+    // If user dragged again while saving → process next
+    if (pendingDashboardReorder) {
+      processDashboardReorderQueue();
+    }
+  }
+}
+
+function queueDashboardReorderSave() {
+  // Always capture the latest state
+  pendingDashboardReorder = availableDashboards.map(d => ({
+    id: d.id,
+    order: d.order
+  }));
+
+  processDashboardReorderQueue();
+}
+
+async function reorderDashboardsAdvanced(sourceId, targetId, insertBefore) {
+  const sourceIndex = availableDashboards.findIndex(d => d.id === sourceId);
+  const targetIndex = availableDashboards.findIndex(d => d.id === targetId);
+
+  if (sourceIndex === -1 || targetIndex === -1) return;
+
+  const [moved] = availableDashboards.splice(sourceIndex, 1);
+
+  let newIndex = insertBefore ? targetIndex : targetIndex + 1;
+
+  if (sourceIndex < targetIndex && !insertBefore) {
+    newIndex--;
+  }
+
+  availableDashboards.splice(newIndex, 0, moved);
+
+  // update order immediately (UI stays responsive)
+  availableDashboards.forEach((d, i) => {
+    d.order = i;
+  });
+
+  // Move DOM row immediately (critical for UX)
+  const container = document.getElementById('dashboard-management-list');
+
+  if (container) {
+    const rows = Array.from(container.children);
+
+    const sourceRow = rows.find(
+      el => el.dataset.dashboardId === sourceId
+    );
+
+    const targetRow = rows.find(
+      el => el.dataset.dashboardId === targetId
+    );
+
+    if (sourceRow && targetRow) {
+      if (insertBefore) {
+        container.insertBefore(sourceRow, targetRow);
+      } else {
+        container.insertBefore(sourceRow, targetRow.nextSibling);
+      }
+    }
+  }
+
+  // Update other UI (safe)
+  renderDashboardList();
+  syncDefaultDashboardSelector();
+  syncLayoutDashboardSelector();
+
+  // queue backend save
+  queueDashboardReorderSave();
+}
 
 async function switchDashboard(dashboardId) {
   if (dashboardId === activeDashboardId) return;
@@ -422,6 +522,128 @@ function renderDashboardList() {
   });
 }
 
+function setupDashboardDragAndDrop(container) {
+
+  // DRAG START / END
+  container.querySelectorAll('.layout-dashboard .drag-handle').forEach(handle => {
+    const row = handle.closest('.layout-dashboard');
+    const id = row?.dataset.dashboardId;
+    if (!id) return;
+
+    handle.draggable = true;
+
+    handle.addEventListener('dragstart', e => {
+      e.stopPropagation();
+
+      draggedDashboardId = id;
+      row.classList.add('is-dragging');
+
+      document.body.classList.add('drag-active');
+
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', id);
+    });
+
+    handle.addEventListener('dragend', () => {
+      draggedDashboardId = null;
+      lastDashboardDragDirection = null;
+      lastDashboardDragTarget = null;
+
+      row.classList.remove('is-dragging');
+      document.body.classList.remove('drag-active');
+
+      container.querySelectorAll(
+        '.layout-dashboard.drag-over, .layout-dashboard.drag-over-top, .layout-dashboard.drag-over-bottom'
+      ).forEach(el => {
+        el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+      });
+    });
+  });
+
+  // DRAG OVER
+  container.addEventListener('dragover', e => {
+    if (!draggedDashboardId) return;
+    e.preventDefault();
+
+    const target = e.target.closest('.layout-dashboard');
+    if (!target || target.dataset.dashboardId === draggedDashboardId) return;
+
+    const rect = target.getBoundingClientRect();
+    const threshold = rect.height * 0.35;
+
+    const upperZone = rect.top + threshold;
+    const lowerZone = rect.bottom - threshold;
+
+    let direction;
+
+    if (e.clientY < upperZone) {
+      direction = 'top';
+    } else if (e.clientY > lowerZone) {
+      direction = 'bottom';
+    } else {
+      direction = lastDashboardDragDirection || 'bottom';
+    }
+
+    // ONLY update if something actually changed
+    if (
+      target === lastDashboardDragTarget &&
+      direction === lastDashboardDragDirection
+    ) {
+      return;
+    }
+
+    // Clear only the previous target (NOT everything)
+    if (lastDashboardDragTarget) {
+      lastDashboardDragTarget.classList.remove(
+        'drag-over',
+        'drag-over-top',
+        'drag-over-bottom'
+      );
+    }
+
+    lastDashboardDragTarget = target;
+    lastDashboardDragDirection = direction;
+
+    target.classList.add('drag-over');
+
+    if (direction === 'top') {
+      target.classList.add('drag-over-top');
+    } else {
+      target.classList.add('drag-over-bottom');
+    }
+  });
+
+  // DROP
+  container.addEventListener('drop', e => {
+    if (!draggedDashboardId) return;
+
+    e.preventDefault();
+
+    const target = e.target.closest('.layout-dashboard');
+    if (!target) return;
+
+    const targetId = target.dataset.dashboardId;
+    if (!targetId || targetId === draggedDashboardId) return;
+
+    const insertBefore = target.classList.contains('drag-over-top');
+
+    container.querySelectorAll(
+      '.layout-dashboard.drag-over, .layout-dashboard.drag-over-top, .layout-dashboard.drag-over-bottom'
+    ).forEach(el => {
+      el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+    });
+
+    lastDashboardDragTarget = null;
+    lastDashboardDragDirection = null;
+
+    reorderDashboardsAdvanced(
+      draggedDashboardId,
+      targetId,
+      insertBefore
+    );
+  });
+}
+
 // ======================================================================
 // Dashboard Management UI (rename / delete / create)
 // ======================================================================
@@ -448,6 +670,11 @@ function renderDashboardManagementPanel() {
 
     const header = document.createElement('div');
     header.className = 'layout-category-header';
+    const dragHandle = document.createElement('span');
+    dragHandle.className = 'drag-handle';
+    dragHandle.textContent = '☰';
+
+    header.appendChild(dragHandle);
 
     let title;
 
@@ -517,12 +744,17 @@ function renderDashboardManagementPanel() {
       wrapper.append(input, saveBtn, cancelBtn);
       title = wrapper;
     } else {
+      const titleSlot = document.createElement('div');
+      titleSlot.className = 'category-title-slot';
+
       const span = document.createElement('span');
       span.className = 'category-title';
       span.textContent = name;
 
+      titleSlot.appendChild(span);
+
       // click-to-edit
-      span.addEventListener('click', (e) => {
+      titleSlot.addEventListener('click', (e) => {
         // Prevent conflicts with future drag handle
         if (e.target.closest('.drag-handle')) return;
 
@@ -530,7 +762,7 @@ function renderDashboardManagementPanel() {
         renderDashboardManagementPanel();
       });
 
-      title = span;
+      title = titleSlot;
     }
 
     const actions = document.createElement('div');
@@ -639,6 +871,7 @@ function renderDashboardManagementPanel() {
     row.appendChild(header);
     container.appendChild(row);
   }
+  setupDashboardDragAndDrop(container);
 }
 
 // ======================================================================

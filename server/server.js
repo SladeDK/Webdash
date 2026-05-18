@@ -112,9 +112,12 @@ app.get('/api/dashboards', (req, res) => {
   const dashboards = Object.entries(data.dashboards || {}).map(
     ([id, dashboard]) => ({
       id,
-      name: dashboard?.name || "WebDash"
+      name: dashboard?.name || "WebDash",
+      order: dashboard?.order ?? 0
     })
   );
+
+  dashboards.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   res.json(dashboards);
 });
@@ -214,6 +217,20 @@ app.post('/api/dashboards/:id/rename', (req, res) => {
   dashboard.name = name.trim();
   writeStorage(data);
 
+  res.sendStatus(204);
+});
+
+app.post('/api/dashboards/reorder', (req, res) => {
+  const updates = req.body; // [{ id, order }]
+  const data = readStorage();
+
+  updates.forEach(({ id, order }) => {
+    if (data.dashboards[id]) {
+      data.dashboards[id].order = order;
+    }
+  });
+
+  writeStorage(data);
   res.sendStatus(204);
 });
 

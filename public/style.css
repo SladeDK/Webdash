@@ -2511,23 +2511,46 @@ html.bg-switching::after {
 }
 
 .category-title-slot,
-.item-label,
-.layout-dashboard .category-title {
+.item-label {
   cursor: pointer;
   transition: color 120ms ease, text-decoration 120ms ease;
 }
 
-.category-title-slot:hover,
-.item-label:hover,
+/* .layout-dashboard .category-title {
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    text-decoration 120ms ease,
+    transform 120ms ease;
+}
+
 .layout-dashboard .category-title:hover {
   text-decoration: underline;
   color: color-mix(in srgb, var(--accent) 80%, white 20%);
   transform: translateY(-1px);
 }
 
-.category-title-slot:active,
-.item-label:active,
 .layout-dashboard .category-title:active {
+  transform: scale(0.98);
+} */
+
+.layout-dashboard {
+  transition: background 120ms ease;
+}
+
+.layout-dashboard:hover {
+  background: var(--bg-control-hover);
+}
+
+.category-title-slot:hover,
+.item-label:hover {
+  text-decoration: underline;
+  color: color-mix(in srgb, var(--accent) 80%, white 20%);
+  transform: translateY(-1px);
+}
+
+.category-title-slot:active,
+.item-label:active  {
   transform: scale(0.98);
 }
 
@@ -2744,6 +2767,11 @@ html.bg-switching::after {
   right: 0;
   height: 2px;
   background: var(--accent);
+}
+
+.layout-category.drag-over-top::before,
+.layout-category.drag-over-bottom::after {
+  transition: opacity 80ms ease;
 }
 
 /* Subtle section dividers */

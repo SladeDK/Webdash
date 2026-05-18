@@ -213,7 +213,11 @@ async function initializeDashboardState() {
 }
 
 async function refreshDashboardMetadata() {
-  availableDashboards = await DashboardService.listDashboards();
+  const dashboards = await DashboardService.listDashboards();
+
+  availableDashboards = dashboards.sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0)
+  );
   activeDashboardId = await DashboardService.getActiveDashboardId();
   defaultDashboardId = await DashboardService.getDefaultDashboardId();
 }
@@ -252,7 +256,9 @@ async function initApp() {
     DashboardService.getDefaultDashboardId()
   ]);
 
-  availableDashboards = dashboardsList;
+  availableDashboards = dashboardsList.sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0)
+  );
   activeDashboardId = activeId;
   defaultDashboardId = defaultId;
 
