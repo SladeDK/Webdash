@@ -133,8 +133,18 @@ function openConfirm({ title, message, confirmLabel = 'Delete', onConfirm }) {
   // Store callback
   confirmCallback = onConfirm;
 
+  // ✅ OPEN with animation support
   overlay.hidden = false;
   overlay.setAttribute('aria-hidden', 'false');
+
+  // ✅ Force animation trigger (same as preferences)
+  overlay.classList.add('pre-open');
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      overlay.classList.remove('pre-open');
+    });
+  });
 
   pushModal(overlay, closeConfirm);
 
@@ -147,11 +157,21 @@ function closeConfirm() {
   const overlay = document.getElementById('confirm-overlay');
   if (!overlay) return;
 
-  overlay.hidden = true;
+  // ✅ Start closing animation
+  overlay.classList.add('is-closing');
   overlay.setAttribute('aria-hidden', 'true');
-  confirmCallback = null;
 
-  popModal(overlay);
+  // ✅ Delay actual removal
+  setTimeout(() => {
+    overlay.hidden = true;
+
+    // cleanup
+    overlay.classList.remove('is-closing');
+
+    confirmCallback = null;
+
+    popModal(overlay);
+  }, 160);
 }
 
 // =====================================================

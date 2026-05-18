@@ -91,19 +91,29 @@ registerImportUI({
 // ======================================================================
 
 function openPreferences() {
-  preferencesOverlay.hidden = false;
-  preferencesOverlay.setAttribute('aria-hidden', 'false');
+  const overlay = preferencesOverlay;
+  if (!overlay) return;
 
-  pushModal(preferencesOverlay, closePreferences);
+  // ✅ Make visible, but KEEP initial animation state
+  overlay.hidden = false;
+  overlay.setAttribute('aria-hidden', 'false');
 
-  
+  // ✅ Force browser to render initial state
+  overlay.classList.add('pre-open');
+
   requestAnimationFrame(() => {
-    focusFirstFocusableElement(preferencesOverlay);
+    requestAnimationFrame(() => {
+      // ✅ Remove blocker class -> triggers animation
+      overlay.classList.remove('pre-open');
+    });
   });
 
-  // --------------------------------------------------
-  // Wire "Reset system" button (Preferences lifecycle)
-  // --------------------------------------------------
+  pushModal(overlay, closePreferences);
+
+  requestAnimationFrame(() => {
+    focusFirstFocusableElement(overlay);
+  });
+
   const resetSystemBtn = document.getElementById('reset-system-btn');
 
   if (resetSystemBtn && !resetSystemBtn._wired) {
@@ -122,7 +132,6 @@ function openPreferences() {
       });
     });
 
-    // Prevent duplicate listeners if Preferences is opened again
     resetSystemBtn._wired = true;
   }
 
@@ -133,9 +142,22 @@ function openPreferences() {
 
 // ---------- Close modal ----------
 function closePreferences() {
-  preferencesOverlay.hidden = true;
-  preferencesOverlay.setAttribute('aria-hidden', 'true');
-  popModal(preferencesOverlay);
+  const overlay = preferencesOverlay;
+  if (!overlay) return;
+
+  // ✅ Start closing animation
+  overlay.classList.add('is-closing');
+  overlay.setAttribute('aria-hidden', 'true');
+
+  // ✅ Delay removal so animation can play
+  setTimeout(() => {
+    overlay.hidden = true;
+
+    // cleanup
+    overlay.classList.remove('is-closing');
+
+    popModal(overlay);
+  }, 160);
 }
 
 function isPreferencesOpen() {

@@ -494,11 +494,21 @@ function openImportSystemModal(payload) {
 }
 
 function closeImportSystemModal() {
-  if (!importUI?.systemOverlay) return;
+  const overlay = importUI?.systemOverlay;
+  if (!overlay) return;
 
-  importUI.systemOverlay.hidden = true;
-  importUI.systemOverlay.setAttribute('aria-hidden', 'true');
-  popModal(importUI.systemOverlay);
+  // ✅ Start closing animation
+  overlay.classList.add('is-closing');
+  overlay.setAttribute('aria-hidden', 'true');
+
+  setTimeout(() => {
+    overlay.hidden = true;
+
+    // cleanup
+    overlay.classList.remove('is-closing');
+
+    popModal(overlay);
+  }, 160);
 }
 
 function openImportPreviewModal(changePlan, onConfirm) {
@@ -524,11 +534,22 @@ function openImportPreviewModal(changePlan, onConfirm) {
 }
 
 function closeImportPreviewModal() {
-  if (!importUI?.previewOverlay) return;
+  const overlay = importUI?.previewOverlay;
+  if (!overlay) return;
 
-  importUI.previewOverlay.hidden = true;
-  importUI.previewOverlay.setAttribute('aria-hidden', 'true');
-  popModal(importUI.previewOverlay);
+  // ✅ Start closing animation
+  overlay.classList.add('is-closing');
+  overlay.setAttribute('aria-hidden', 'true');
+
+  // ✅ Delay removal so animation can play
+  setTimeout(() => {
+    overlay.hidden = true;
+
+    // cleanup
+    overlay.classList.remove('is-closing');
+
+    popModal(overlay);
+  }, 160);
 }
 
 function syncImportPreferenceState(overlay) {

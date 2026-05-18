@@ -86,8 +86,18 @@ function openButtonEditor(context) {
     urlInput.value = '';
   }
 
+  // ✅ OPEN with animation support
   overlay.hidden = false;
   overlay.setAttribute('aria-hidden', 'false');
+
+  // ✅ Trigger animation (same pattern as before)
+  overlay.classList.add('pre-open');
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      overlay.classList.remove('pre-open');
+    });
+  });
 
   pushModal(overlay, closeButtonEditor);
 
@@ -100,11 +110,19 @@ function closeButtonEditor() {
   const overlay = document.getElementById('button-editor-overlay');
   if (!overlay) return;
 
-  overlay.hidden = true;
+  // ✅ Start closing animation
+  overlay.classList.add('is-closing');
   overlay.setAttribute('aria-hidden', 'true');
-  editingButtonContext = null;
 
-  popModal(overlay);
+  setTimeout(() => {
+    overlay.hidden = true;
+
+    // cleanup
+    overlay.classList.remove('is-closing');
+    editingButtonContext = null;
+
+    popModal(overlay);
+  }, 160);
 }
 
 // =====================================

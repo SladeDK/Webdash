@@ -3178,3 +3178,55 @@ button,
 .dashboard-item:active, .dashboard-item.active-dashboard:active {
   transform: scale(0.96);
 }
+
+/* ===================================================== */
+/* Modal overlay animation */
+/* ===================================================== */
+
+.modal-overlay {
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+/* When visible */
+.modal-overlay:not([hidden]) {
+  opacity: 1;
+}
+
+/* ===================================================== */
+/* Modal container animation */
+/* ===================================================== */
+
+.modal-container {
+  transform: scale(0.97) translateY(6px);
+  opacity: 0;
+
+  transition:
+    transform 160ms ease,
+    opacity 160ms ease;
+}
+
+/* When visible */
+.modal-overlay:not([hidden]) .modal-container {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* ===================================================== */
+/* Modal closing animation */
+/* ===================================================== */
+
+.modal-overlay.is-closing {
+  opacity: 0;
+}
+
+.modal-overlay.is-closing .modal-container {
+  opacity: 0;
+  transform: scale(0.97) translateY(6px);
+}
+
+/* Block animation until ready */
+.modal-overlay.pre-open .modal-container {
+  transform: scale(0.97) translateY(6px);
+  opacity: 0;
+}

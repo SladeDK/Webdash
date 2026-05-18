@@ -242,7 +242,15 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
 
   if (isDefault && remainingDashboards.length > 1) {
     pendingDefaultDeletionId = dashboardId;
-    openDeleteDefaultDashboardModal(dashboardId);
+
+    // ✅ First close confirm modal properly
+    closeConfirm();
+
+    // ✅ Then open next modal AFTER animation finishes
+    setTimeout(() => {
+      openDeleteDefaultDashboardModal(dashboardId);
+    }, 160);
+
     return;
   }
 
@@ -638,8 +646,6 @@ function openDeleteDefaultDashboardModal(dashboardId) {
   placeholder.textContent = 'Select dashboard…';
   placeholder.disabled = true;
   placeholder.selected = true;
-
-  // Hides it from the opened dropdown list
   placeholder.hidden = true;
 
   deleteDefaultSelect.appendChild(placeholder);
@@ -651,22 +657,48 @@ function openDeleteDefaultDashboardModal(dashboardId) {
     deleteDefaultSelect.appendChild(option);
   });
 
-  deleteDefaultOverlay.hidden = false;
-  deleteDefaultOverlay.setAttribute('aria-hidden', 'false');
+  const overlay = deleteDefaultOverlay;
+  if (!overlay) return;
 
-  pushModal(deleteDefaultOverlay, closeDeleteDefaultDashboardModal);
+  // ✅ OPEN with animation support
+  overlay.hidden = false;
+  overlay.setAttribute('aria-hidden', 'false');
+
+  // ✅ Trigger animation (same pattern as others)
+  overlay.classList.add('pre-open');
 
   requestAnimationFrame(() => {
-    focusFirstFocusableElement(deleteDefaultOverlay);
+    requestAnimationFrame(() => {
+      overlay.classList.remove('pre-open');
+    });
+  });
+
+  pushModal(overlay, closeDeleteDefaultDashboardModal);
+
+  requestAnimationFrame(() => {
+    focusFirstFocusableElement(overlay);
   });
 }
 
 function closeDeleteDefaultDashboardModal() {
-  pendingDefaultDeletionId = null;
-  deleteDefaultOverlay.hidden = true;
-  deleteDefaultOverlay.setAttribute('aria-hidden', 'true');
+  const overlay = deleteDefaultOverlay;
+  if (!overlay) return;
 
-  popModal(deleteDefaultOverlay);
+  pendingDefaultDeletionId = null;
+
+  // ✅ Start closing animation
+  overlay.classList.add('is-closing');
+  overlay.setAttribute('aria-hidden', 'true');
+
+  // ✅ Delay removal
+  setTimeout(() => {
+    overlay.hidden = true;
+
+    // cleanup
+    overlay.classList.remove('is-closing');
+
+    popModal(overlay);
+  }, 160);
 }
 
 // ======================================================================
