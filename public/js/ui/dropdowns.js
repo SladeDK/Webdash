@@ -93,37 +93,11 @@ document.querySelectorAll('.theme-item').forEach(item => {
 
     const theme = item.dataset.theme;
 
-    // Apply theme
     changeTheme(theme);
 
-    // Update active state
-    document.querySelectorAll('.theme-item').forEach(btn => {
-      btn.classList.remove('is-active');
-    });
-
-    item.classList.add('is-active');
-
-    // Close dropdown
     closeAllDropdowns();
   });
 });
-
-// Sync active theme on load
-function syncThemeDropdown() {
-  const currentTheme = getCurrentTheme(); // ✅ safer source
-
-  document.querySelectorAll('.theme-item').forEach(btn => {
-    if (btn.dataset.theme === currentTheme) {
-      btn.classList.add('is-active');
-    } else {
-      btn.classList.remove('is-active');
-    }
-  });
-}
-
-// Run once after dropdowns initialize
-syncThemeDropdown();
-
 
 // ============================
 // Theme dropdown item handling

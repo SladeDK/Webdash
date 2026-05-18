@@ -272,6 +272,15 @@ function changeTheme(theme) {
   syncThemeCards();
   syncBackgroundCards();
   syncThemeRadios();
+
+  // Sync dropdown active state
+  document.querySelectorAll('.theme-item').forEach(btn => {
+    if (btn.dataset.theme === theme) {
+      btn.classList.add('is-active');
+    } else {
+      btn.classList.remove('is-active');
+    }
+  });
 }
 
 function setActiveBackground(bg) {

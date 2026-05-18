@@ -345,6 +345,12 @@ async function initApp() {
   // Apply visual preferences immediately
   applyDashboardAppearance();
 
+  // Ensure theme + UI state are synced
+  const initialTheme =
+    userPreferences?.appearance?.theme ?? 'system';
+
+  changeTheme(initialTheme);
+
   if (openLinksCheckbox) {
     openLinksCheckbox.checked =
       userPreferences.behavior.openLinksInNewTab !== false;
