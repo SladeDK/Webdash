@@ -733,6 +733,9 @@ function syncLayoutDashboardSelector() {
 
     await switchDashboard(selectedId);
 
+    // ✅ Re-render dashboard list to update highlighting
+    renderDashboardList();
+
     if (isPreferencesOpen()) {
       syncLayoutDashboardSelector();
     }
