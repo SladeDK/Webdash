@@ -31,6 +31,67 @@ async function reorderItems(categoryId, sourceItemId, targetItemId) {
   await commitDashboardChange('reorderItems');
 }
 
+async function reorderItemsAdvanced(categoryId, sourceItemId, targetItemId, insertBefore) {
+  const category = pageCategories.find(c => c.id === categoryId);
+  if (!category) return;
+
+  const sourceIndex = category.items.findIndex(i => i.id === sourceItemId);
+  const targetIndex = category.items.findIndex(i => i.id === targetItemId);
+
+  if (sourceIndex === -1 || targetIndex === -1) return;
+
+  const [moved] = category.items.splice(sourceIndex, 1);
+
+  let newIndex = targetIndex;
+
+  if (!insertBefore) {
+    newIndex = targetIndex + 1;
+  }
+
+  // Adjust if moving downward
+  if (sourceIndex < newIndex) {
+    newIndex--;
+  }
+
+  category.items.splice(newIndex, 0, moved);
+
+  category.items.forEach((item, index) => {
+    item.order = index;
+  });
+
+  await commitDashboardChange('reorderItems');
+}
+
+async function reorderCategoriesAdvanced(sourceId, targetId, insertBefore) {
+  const sourceIndex = pageCategories.findIndex(c => c.id === sourceId);
+  const targetIndex = pageCategories.findIndex(c => c.id === targetId);
+
+  if (sourceIndex === -1 || targetIndex === -1) return;
+
+  const [moved] = pageCategories.splice(sourceIndex, 1);
+
+  let newIndex;
+
+  if (insertBefore) {
+    newIndex = targetIndex;
+  } else {
+    newIndex = targetIndex + 1;
+  }
+
+  if (sourceIndex < targetIndex && !insertBefore) {
+    newIndex--;
+  }
+
+  pageCategories.splice(newIndex, 0, moved);
+
+  // Update order values
+  pageCategories.forEach((category, index) => {
+    category.order = index;
+  });
+
+  await commitDashboardChange('reorderCategories');
+}
+
 // =====================================================
 // Dashboard rendering (non-editor view)
 // =====================================================
@@ -239,6 +300,16 @@ function buildLayoutEditorDOM(container, categories) {
         const span = document.createElement('span');
         span.className = 'category-title';
         span.textContent = category.title;
+
+        // Safe click-to-edit (no drag interference)
+        span.addEventListener('click', (e) => {
+          // Prevent accidental trigger from drag interactions
+          if (e.target.closest('.drag-handle')) return;
+
+          renamingCategoryId = category.id;
+          renderLayoutEditor(pageCategories);
+        });
+
         titleSlot.appendChild(span);
       }
 
@@ -302,6 +373,28 @@ function wireLayoutEditorActions(container) {
     };
   });
 
+  // Click-to-edit on item label
+  container.querySelectorAll('.item-label').forEach(label => {
+    label.onclick = (e) => {
+      // Prevent triggering from drag handle area
+      if (e.target.closest('.drag-handle')) return;
+
+      const itemEl = label.closest('.layout-item');
+      const categoryEl = label.closest('.layout-category');
+
+      if (!itemEl || !categoryEl) return;
+
+      const itemId = itemEl.dataset.itemId;
+      const categoryId = categoryEl.dataset.categoryId;
+
+      openButtonEditor({
+        mode: 'edit',
+        categoryId,
+        itemId
+      });
+    };
+  });
+
   // Wire edit button to open button editor modal
   container.querySelectorAll('.add-item-btn').forEach(button => {
     button.onclick = () => {
@@ -351,8 +444,10 @@ function setupCategoryDragAndDrop(container) {
       categoryEl.classList.remove('is-dragging');
 
       // Clear all drop-target highlights
-      container.querySelectorAll('.layout-category.drag-over').forEach(el => {
-        el.classList.remove('drag-over');
+      container.querySelectorAll(
+        '.layout-category.drag-over, .layout-category.drag-over-top, .layout-category.drag-over-bottom'
+      ).forEach(el => {
+        el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
       });
     });
   });
@@ -408,13 +503,27 @@ function setupCategoryDragAndDrop(container) {
 
     const targetCategory = e.target.closest('.layout-category');
 
-    // Update drag-over highlight
-    container.querySelectorAll('.layout-category.drag-over').forEach(el => {
-      el.classList.remove('drag-over');
+    // Clear old styles
+    container.querySelectorAll(
+      '.layout-category.drag-over, .layout-category.drag-over-top, .layout-category.drag-over-bottom'
+    ).forEach(el => {
+      el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
     });
 
-    if (targetCategory && targetCategory.dataset.categoryId !== draggedCategoryId) {
-      targetCategory.classList.add('drag-over');
+    if (
+      targetCategory &&
+      targetCategory.dataset.categoryId !== draggedCategoryId
+    ) {
+      const rect = targetCategory.getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+
+      if (e.clientY < midpoint) {
+        targetCategory.classList.add('drag-over-top');
+      } else {
+        targetCategory.classList.add('drag-over-bottom');
+      }
+
+      targetCategory.classList.add('drag-over'); // for subtle background
     }
 
     // Auto-scroll: measure pointer position relative to the scroll container
@@ -440,12 +549,8 @@ function setupCategoryDragAndDrop(container) {
   container._dropHandler = e => {
     e.preventDefault();
     stopScrollLoop();
-    if (!draggedCategoryId) return;
 
-    // Clear highlights
-    container.querySelectorAll('.layout-category.drag-over').forEach(el => {
-      el.classList.remove('drag-over');
-    });
+    if (!draggedCategoryId) return;
 
     const targetCategory = e.target.closest('.layout-category');
     if (!targetCategory) return;
@@ -453,14 +558,30 @@ function setupCategoryDragAndDrop(container) {
     const targetId = targetCategory.dataset.categoryId;
     if (!targetId || targetId === draggedCategoryId) return;
 
-    reorderCategories(draggedCategoryId, targetId);
+    // Read before clearing classes
+    const insertBefore = targetCategory.classList.contains('drag-over-top');
+
+    // Clear highlights
+    container.querySelectorAll(
+      '.layout-category.drag-over, .layout-category.drag-over-top, .layout-category.drag-over-bottom'
+    ).forEach(el => {
+      el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+    });
+
+    reorderCategoriesAdvanced(
+      draggedCategoryId,
+      targetId,
+      insertBefore
+    );
   };
 
   container._dragleaveHandler = e => {
     // Only clear highlight when leaving the container entirely
     if (!container.contains(e.relatedTarget)) {
-      container.querySelectorAll('.layout-category.drag-over').forEach(el => {
-        el.classList.remove('drag-over');
+      container.querySelectorAll(
+        '.layout-category.drag-over, .layout-category.drag-over-top, .layout-category.drag-over-bottom'
+      ).forEach(el => {
+        el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
       });
       stopScrollLoop();
     }
@@ -518,13 +639,22 @@ function setupItemDragAndDrop(container) {
       const targetItem = e.target.closest('.layout-item');
 
       itemsContainer
-        .querySelectorAll('.layout-item.drag-over')
-        .forEach(el => el.classList.remove('drag-over'));
+        .querySelectorAll('.layout-item.drag-over, .layout-item.drag-over-top, .layout-item.drag-over-bottom')
+        .forEach(el => el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom'));
 
       if (
         targetItem &&
         targetItem.dataset.itemId !== draggedItemContext.itemId
       ) {
+        const rect = targetItem.getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
+
+        if (e.clientY < midpoint) {
+          targetItem.classList.add('drag-over-top');
+        } else {
+          targetItem.classList.add('drag-over-bottom');
+        }
+
         targetItem.classList.add('drag-over');
       }
     });
@@ -545,7 +675,14 @@ function setupItemDragAndDrop(container) {
         .querySelectorAll('.layout-item.drag-over')
         .forEach(el => el.classList.remove('drag-over'));
 
-      reorderItems(categoryId, draggedItemContext.itemId, targetItemId);
+      const insertBefore = targetItem.classList.contains('drag-over-top');
+
+      reorderItemsAdvanced(
+        categoryId,
+        draggedItemContext.itemId,
+        targetItemId,
+        insertBefore
+      );
     });
   });
 }
