@@ -2596,6 +2596,11 @@ html.bg-switching::after {
   margin-bottom: 1rem;
 }
 
+.layout-category,
+.layout-item {
+  transition: transform 160ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
 /* Layout editor top action button */
 .layout-action-btn {
   display: inline-flex;
@@ -2664,10 +2669,6 @@ html.bg-switching::after {
   color: var(--danger, #d33);
 }
 
-.layout-category.is-dragging {
-  opacity: 0.4;
-}
-
 .layout-category.drag-over {
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-control));
 }
@@ -2697,6 +2698,7 @@ html.bg-switching::after {
   background: var(--accent);
 }
 
+.layout-category.is-dragging,
 .layout-item.is-dragging {
   opacity: 0.5;
 }

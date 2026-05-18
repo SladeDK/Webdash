@@ -434,16 +434,38 @@ function setupCategoryDragAndDrop(container) {
       draggedCategoryId = categoryEl.dataset.categoryId;
       categoryEl.classList.add('is-dragging');
 
+      // Add drag state
+      document.body.classList.add('drag-active');
+
       e.dataTransfer.effectAllowed = 'move';
-      // Required for Firefox
       e.dataTransfer.setData('text/plain', draggedCategoryId);
+
+      // Ghost preview
+      const clone = categoryEl.cloneNode(true);
+      clone.style.position = 'absolute';
+      clone.style.top = '-9999px';
+      clone.style.left = '-9999px';
+      clone.style.width = `${categoryEl.offsetWidth}px`;
+      clone.style.opacity = '0.6';
+      clone.style.pointerEvents = 'none';
+      clone.style.filter = 'blur(1px)';
+      clone.style.pointerEvents = 'none';
+
+      document.body.appendChild(clone);
+      e.dataTransfer.setDragImage(clone, 20, 20);
+
+      setTimeout(() => {
+        document.body.removeChild(clone);
+      }, 0);
     });
 
     handle.addEventListener('dragend', () => {
       draggedCategoryId = null;
       categoryEl.classList.remove('is-dragging');
 
-      // Clear all drop-target highlights
+      // Remove drag state
+      document.body.classList.remove('drag-active');
+
       container.querySelectorAll(
         '.layout-category.drag-over, .layout-category.drag-over-top, .layout-category.drag-over-bottom'
       ).forEach(el => {
@@ -573,6 +595,13 @@ function setupCategoryDragAndDrop(container) {
       targetId,
       insertBefore
     );
+    // Drop "snap" feedback
+    const el = container.querySelector(`[data-category-id="${targetId}"]`);
+    if (el) {
+      setTimeout(() => {
+        el.style.transform = '';
+      }, 120);
+    }
   };
 
   container._dragleaveHandler = e => {
@@ -617,15 +646,41 @@ function setupItemDragAndDrop(container) {
 
       handle.addEventListener('dragstart', e => {
         e.stopPropagation();
+
         draggedItemContext = { categoryId, itemId };
         itemEl.classList.add('is-dragging');
+
+        // Add drag state
+        document.body.classList.add('drag-active');
+
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', itemId);
+
+        // Ghost preview
+        const clone = itemEl.cloneNode(true);
+        clone.style.position = 'absolute';
+        clone.style.top = '-9999px';
+        clone.style.left = '-9999px';
+        clone.style.width = `${itemEl.offsetWidth}px`;
+        clone.style.opacity = '0.6';
+        clone.style.pointerEvents = 'none';
+        clone.style.filter = 'blur(1px)';
+        clone.style.pointerEvents = 'none';
+
+        document.body.appendChild(clone);
+        e.dataTransfer.setDragImage(clone, 20, 20);
+
+        setTimeout(() => {
+          document.body.removeChild(clone);
+        }, 0);
       });
 
       handle.addEventListener('dragend', () => {
         draggedItemContext = null;
         itemEl.classList.remove('is-dragging');
+
+        // Remove drag state
+        document.body.classList.remove('drag-active');
       });
     });
 
@@ -683,6 +738,12 @@ function setupItemDragAndDrop(container) {
         targetItemId,
         insertBefore
       );
+      const el = itemsContainer.querySelector(`[data-item-id="${targetItemId}"]`);
+      if (el) {
+        setTimeout(() => {
+          el.style.transform = '';
+        }, 120);
+      }
     });
   });
 }
