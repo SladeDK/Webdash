@@ -354,6 +354,18 @@ async function renameDashboardDisplayName(dashboardId, newName) {
 // Dashboard Rendering
 // ======================================================================
 
+function updateActiveDashboardUI(dashboardId) {
+  const buttons = document.querySelectorAll('.dashboard-item');
+
+  buttons.forEach(btn => {
+    if (btn.textContent === getDashboardDisplayName(dashboardId)) {
+      btn.classList.add('active-dashboard');
+    } else {
+      btn.classList.remove('active-dashboard');
+    }
+  });
+}
+
 function renderDashboardList() {
 
   assertLifecyclePhase(
@@ -378,8 +390,23 @@ function renderDashboardList() {
     }
 
     btn.addEventListener('click', async () => {
+      // ✅ Immediate feedback
+      updateActiveDashboardUI(id);
+
+      // ✅ Show loading state
+      document.body.classList.add('dashboard-loading');
+
+      // ✅ Perform switch
       await switchDashboard(id);
+
+      // ✅ Allow DOM to update before removing loading state
+      requestAnimationFrame(() => {
+        document.body.classList.remove('dashboard-loading');
+      });
+
+      // ✅ Final UI sync
       renderDashboardList();
+
       closeAllDropdowns();
     });
 
