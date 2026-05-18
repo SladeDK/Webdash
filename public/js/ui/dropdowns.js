@@ -86,17 +86,43 @@ document.addEventListener('click', (e) => {
 // ============================
 // Theme dropdown item handling
 // ============================
-document.querySelectorAll('.dropdown [data-theme]').forEach(item => {
+document.querySelectorAll('.theme-item').forEach(item => {
   item.addEventListener('click', e => {
     e.preventDefault();
     e.stopPropagation();
 
     const theme = item.dataset.theme;
 
-    changeTheme(theme); // user-initiated action
-    closeAllDropdowns();// close dropdown after selection
+    // Apply theme
+    changeTheme(theme);
+
+    // Update active state
+    document.querySelectorAll('.theme-item').forEach(btn => {
+      btn.classList.remove('is-active');
+    });
+
+    item.classList.add('is-active');
+
+    // Close dropdown
+    closeAllDropdowns();
   });
 });
+
+// Sync active theme on load
+function syncThemeDropdown() {
+  const currentTheme = getCurrentTheme(); // ✅ safer source
+
+  document.querySelectorAll('.theme-item').forEach(btn => {
+    if (btn.dataset.theme === currentTheme) {
+      btn.classList.add('is-active');
+    } else {
+      btn.classList.remove('is-active');
+    }
+  });
+}
+
+// Run once after dropdowns initialize
+syncThemeDropdown();
 
 
 // ============================

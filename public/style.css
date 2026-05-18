@@ -3180,6 +3180,39 @@ button,
 }
 
 /* ===================================================== */
+/* Shared dropdown item styles */
+/* ===================================================== */
+
+.theme-item,
+.dashboard-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  width: 100%;
+  padding: 6px 10px;
+
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+
+  transition: background 120ms ease;
+}
+
+/* Hover */
+.theme-item:hover,
+.dashboard-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Active */
+.theme-item.is-active,
+.dashboard-item.is-active {
+  font-weight: 800;
+}
+
+/* ===================================================== */
 /* Modal overlay animation */
 /* ===================================================== */
 
