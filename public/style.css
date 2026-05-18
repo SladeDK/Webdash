@@ -2804,7 +2804,7 @@ html:not(.identity-ready) .header-center {
 }
 
 .dashboard-item.active-dashboard {
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .setting-row select {
@@ -3118,4 +3118,55 @@ body.app-ready {
   opacity: 0.4;
   filter: blur(0.5px);
   transform: scale(0.995);
+}
+
+/* ===================================================== */
+/* Interaction polish (global micro-interactions) */
+/* ===================================================== */
+
+/* Base interaction smoothing */
+button,
+a {
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease,
+    opacity 80ms ease;
+}
+
+/* Hover feedback */
+button:hover,
+a:hover {
+  transform: translateY(-1px);
+}
+
+/* Active (press feedback) */
+button:active,
+a:active {
+  transform: scale(0.98);
+}
+
+/* Prevent ugly jitter on rapid clicks */
+button,
+.dashboard-item {
+  will-change: transform;
+}
+
+/* ===================================================== */
+/* Dashboard item interaction polish */
+/* ===================================================== */
+
+.dashboard-item, .dashboard-item.active-dashboard{
+  transition: 
+    transform 120ms cubic-bezier(.2, .8, .2, 1),
+    box-shadow 120ms ease;
+}
+
+/* Hover */
+.dashboard-item:hover, .dashboard-item.active-dashboard:hover {
+  transform: translateY(-1px);
+}
+
+/* Active press */
+.dashboard-item:active, .dashboard-item.active-dashboard:active {
+  transform: scale(0.96);
 }
