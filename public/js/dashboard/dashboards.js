@@ -443,7 +443,8 @@ function renderDashboardManagementPanel() {
 
   availableDashboards.forEach(({ id, name }) =>{
     const row = document.createElement('div');
-    row.className = 'layout-category';
+    row.className = 'layout-category layout-dashboard';
+    row.dataset.dashboardId = id;
 
     const header = document.createElement('div');
     header.className = 'layout-category-header';
@@ -516,11 +517,21 @@ function renderDashboardManagementPanel() {
       wrapper.append(input, saveBtn, cancelBtn);
       title = wrapper;
     } else {
-        const span = document.createElement('span');
-        span.className = 'category-title';
-        span.textContent = name;
-        title = span;
-      }
+      const span = document.createElement('span');
+      span.className = 'category-title';
+      span.textContent = name;
+
+      // click-to-edit
+      span.addEventListener('click', (e) => {
+        // Prevent conflicts with future drag handle
+        if (e.target.closest('.drag-handle')) return;
+
+        renamingDashboardId = id;
+        renderDashboardManagementPanel();
+      });
+
+      title = span;
+    }
 
     const actions = document.createElement('div');
     actions.className = 'category-actions';
