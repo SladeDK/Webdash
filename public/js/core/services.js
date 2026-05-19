@@ -12,6 +12,13 @@ const DashboardService = {
   },
 
   async save(dashboardState) {
+    // Ensure order is always preserved before saving
+    const meta = availableDashboards.find(d => d.id === dashboardState.id);
+
+    if (meta && typeof meta.order === 'number') {
+      dashboardState.order = meta.order;
+    }
+
     await fetch('/api/dashboard', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

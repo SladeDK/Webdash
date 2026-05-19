@@ -114,13 +114,6 @@ function enforceDashboardInvariants(context = '') {
 //  * - This is a COMMIT, not a mutation or transition.
 
 async function commitDashboardChange(context = '') {
-  
-  // Inject correct order from metadata before saving
-  const meta = availableDashboards.find(d => d.id === dashboardState.id);
-  if (meta) {
-    dashboardState.order = meta.order;
-  }
-
   await DashboardService.save(dashboardState);
 
   // Re-render dashboard UI
@@ -307,7 +300,6 @@ async function reorderDashboardsAdvanced(sourceId, targetId, insertBefore) {
   }
 
   // Update other UI (safe)
-  renderDashboardList();
   syncDefaultDashboardSelector();
   syncLayoutDashboardSelector();
 

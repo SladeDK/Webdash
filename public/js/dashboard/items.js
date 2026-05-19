@@ -252,13 +252,6 @@ buttonEditorForm?.addEventListener('submit', async e => {
       label,
       url: normalizedUrl
     });
-  
-  // Ensure order is preserved during save
-  const meta = availableDashboards.find(d => d.id === dashboardState.id);
-
-  if (meta) {
-    dashboardState.order = meta.order;
-  }
 
   DashboardService.save(dashboardState); 
   renderCategories(pageCategories);
