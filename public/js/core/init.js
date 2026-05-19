@@ -542,12 +542,18 @@ function ensureIdentityDefaults() {
 }
 
 function applyDocumentTitle() {
-  const rawName = userPreferences.appearance.identity.name || 'Dashboard';
-  const name = rawName && rawName.trim() ? rawName.trim() : 'Dashboard';
+  const rawName =
+    dashboardState?.identity?.name ||
+    userPreferences?.appearance?.identity?.name ||
+    'Dashboard';
+
+  const name = rawName && rawName.trim()
+    ? rawName.trim()
+    : 'Dashboard';
+
   if (name.toLowerCase() === 'webdash') {
-      document.title = 'WebDash';
-    }
-  else {
+    document.title = 'WebDash';
+  } else {
     document.title = `${name} – WebDash`;
   }
 }
