@@ -114,7 +114,13 @@ function enforceDashboardInvariants(context = '') {
 //  * - This is a COMMIT, not a mutation or transition.
 
 async function commitDashboardChange(context = '') {
-  // Persist dashboard state
+  
+  // Inject correct order from metadata before saving
+  const meta = availableDashboards.find(d => d.id === dashboardState.id);
+  if (meta) {
+    dashboardState.order = meta.order;
+  }
+
   await DashboardService.save(dashboardState);
 
   // Re-render dashboard UI
@@ -253,10 +259,23 @@ async function reorderDashboardsAdvanced(sourceId, targetId, insertBefore) {
 
   let newIndex = insertBefore ? targetIndex : targetIndex + 1;
 
-  if (sourceIndex < targetIndex && !insertBefore) {
+  // Adjust properly depending on direction AND intent
+  if (sourceIndex < targetIndex) {
     newIndex--;
   }
 
+  // CRITICAL FIX: ensure "insertBefore" behaves correctly after shift
+  if (insertBefore && sourceIndex > targetIndex) {
+    newIndex = targetIndex;
+  }
+
+  if (newIndex === sourceIndex) {
+    // Put item back in original spot to avoid losing it
+    availableDashboards.splice(sourceIndex, 0, moved);
+    return;
+  }
+
+  // Now perform the actual move
   availableDashboards.splice(newIndex, 0, moved);
 
   // update order immediately (UI stays responsive)
@@ -303,6 +322,7 @@ async function switchDashboard(dashboardId) {
 
 async function createAndSwitchDashboard({ id, name }) {
   const template = getDefaultDashboardTemplate({ id, name });
+  template.order = availableDashboards.length;
 
   await DashboardService.createDashboard({
     id: template.id,
@@ -316,9 +336,26 @@ async function createAndSwitchDashboard({ id, name }) {
   pageCategories = template.categories;
 
   // Metadata only
-  addAvailableDashboard({ id, name }, 'createAndSwitchDashboard');
+  addAvailableDashboard({
+    id,
+    name,
+    order: availableDashboards.length
+  }, 'createAndSwitchDashboard');
 
-  // ✅ Identity transaction
+  availableDashboards = normalizeDashboardOrder(availableDashboards);
+
+  await fetch('/api/dashboards/reorder', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(
+      availableDashboards.map(d => ({
+        id: d.id,
+        order: d.order
+      }))
+    )
+  });
+
+  // Identity transaction
   await commitPrehydratedDashboard(id, 'createAndSwitchDashboard');
 
   // UI bookkeeping (not identity)
@@ -394,6 +431,14 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
     remainingDashboards,
     'deleteDashboard'
   );
+
+  // Re-normalize order after deletion
+  availableDashboards.forEach((d, i) => {
+    d.order = i;
+  });
+
+  // Ensure backend is updated with new order
+  queueDashboardReorderSave();
 
   syncDefaultDashboardSelector();
   syncLayoutDashboardSelector();
@@ -569,20 +614,9 @@ function setupDashboardDragAndDrop(container) {
     if (!target || target.dataset.dashboardId === draggedDashboardId) return;
 
     const rect = target.getBoundingClientRect();
-    const threshold = rect.height * 0.35;
+    const midpoint = rect.top + rect.height / 2;
 
-    const upperZone = rect.top + threshold;
-    const lowerZone = rect.bottom - threshold;
-
-    let direction;
-
-    if (e.clientY < upperZone) {
-      direction = 'top';
-    } else if (e.clientY > lowerZone) {
-      direction = 'bottom';
-    } else {
-      direction = lastDashboardDragDirection || 'bottom';
-    }
+    let direction = e.clientY < midpoint ? 'top' : 'bottom';
 
     // ONLY update if something actually changed
     if (

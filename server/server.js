@@ -161,6 +161,7 @@ app.post('/api/dashboards/default', (req, res) => {
 
 app.post('/api/dashboards', (req, res) => {
   const { dashboardId, dashboardData } = req.body;
+
   const data = readStorage();
 
   if (!dashboardId) {
@@ -171,11 +172,23 @@ app.post('/api/dashboards', (req, res) => {
     return res.status(409).json({ error: 'Dashboard already exists' });
   }
 
-  data.dashboards[dashboardId] = dashboardData ?? {
-    categories: []
+  // Get all existing dashboards
+  const existingDashboards = Object.values(data.dashboards);
+
+  // Compute next order safely
+  const nextOrder = existingDashboards.length > 0
+    ? Math.max(...existingDashboards.map(d => d?.order ?? -1)) + 1
+    : 0;
+
+  // Create dashboard WITH order
+  data.dashboards[dashboardId] = {
+    ...(dashboardData ?? { categories: [] }),
+    order: nextOrder
   };
 
+  // Set as active
   data.activeDashboardId = dashboardId;
+
   writeStorage(data);
 
   res.sendStatus(201);

@@ -65,9 +65,16 @@ async function exportSystem() {
       await DashboardService.setActiveDashboardId(id);
       const state = await DashboardService.load();
       if (!state) continue;
+      
+      const dashboardMeta = availableDashboards.find(d => d.id === state.id);
+
+      if (!dashboardMeta) {
+        console.warn('[Export] Missing metadata for dashboard:', state.id);
+      }
 
       dashboards.push({
         id: state.id,
+        order: dashboardMeta?.order ?? 0,
         identity: {
           name: state.name,
           icon: userPreferences?.appearance?.identity?.icon ?? null

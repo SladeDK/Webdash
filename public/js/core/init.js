@@ -213,13 +213,70 @@ async function initializeDashboardState() {
 }
 
 async function refreshDashboardMetadata() {
-  const dashboards = await DashboardService.listDashboards();
+  const dashboardsData = await DashboardService.listDashboards();
 
-  availableDashboards = dashboards.sort(
-    (a, b) => (a.order ?? 0) - (b.order ?? 0)
+  availableDashboards = normalizeDashboardOrder(
+    dashboardsData.map(d => ({
+      id: d.id,
+      name: d.name,
+      order: d.order ?? 0
+    })),
+    availableDashboards
   );
+
   activeDashboardId = await DashboardService.getActiveDashboardId();
   defaultDashboardId = await DashboardService.getDefaultDashboardId();
+}
+
+function normalizeDashboardOrder(dashboards, originalLocal = []) {
+  const localMap = new Map(originalLocal.map(d => [d.id, d]));
+
+  const result = [];
+  const usedOrders = new Set();
+
+  // STEP 1 — Resolve SAME-ID overrides first
+  dashboards.forEach(d => {
+    const local = localMap.get(d.id);
+
+    if (local) {
+      // Same dashboard → import wins
+      result.push({
+        ...d,
+        order: (typeof d.order === 'number') ? d.order : local.order
+      });
+    } else {
+      result.push(d);
+    }
+  });
+
+  // STEP 2 — Split into valid + invalid
+  const valid = [];
+  const invalid = [];
+
+  result.forEach(d => {
+    if (
+      typeof d.order === 'number' &&
+      !usedOrders.has(d.order)
+    ) {
+      valid.push(d);
+      usedOrders.add(d.order);
+    } else {
+      invalid.push(d); // duplicates or missing
+    }
+  });
+
+  // STEP 3 — Sort valid
+  valid.sort((a, b) => a.order - b.order);
+
+  // STEP 4 — Merge (valid first, invalid last)
+  const merged = [...valid, ...invalid];
+
+  // STEP 5 — Reassign clean order
+  merged.forEach((d, i) => {
+    d.order = i;
+  });
+
+  return merged;
 }
 
 // =====================================================
@@ -256,8 +313,12 @@ async function initApp() {
     DashboardService.getDefaultDashboardId()
   ]);
 
-  availableDashboards = dashboardsList.sort(
-    (a, b) => (a.order ?? 0) - (b.order ?? 0)
+  availableDashboards = normalizeDashboardOrder(
+    dashboardsList.map(d => ({
+      id: d.id,
+      name: d.name,
+      order: d.order ?? 0
+    }))
   );
   activeDashboardId = activeId;
   defaultDashboardId = defaultId;
@@ -466,10 +527,28 @@ async function applySystemState({
   // ---------------------------
   // Apply dashboards
   // ---------------------------
-  availableDashboards = dashboards.map(d => ({
-    id: d.id,
-    name: d.name
-  }));
+  const localBefore = availableDashboards;
+
+  availableDashboards = normalizeDashboardOrder(
+    dashboards.map(d => ({
+      id: d.id,
+      name: d.name,
+      order: d.order ?? 0
+    })),
+    localBefore
+  );
+
+  // Persist normalized order to backend
+  await fetch('/api/dashboards/reorder', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(
+      availableDashboards.map(d => ({
+        id: d.id,
+        order: d.order
+      }))
+    )
+  });
 
   // ---------------------------
   // Apply preferences (if provided)
@@ -1054,10 +1133,11 @@ async function mergeSystemImport(payload, replacePreferences) {
     }
   }
     
-  // Build system intent
-  const dashboards = availableDashboards.map(d => ({
+  // Build system intent from IMPORTED data (NOT local)
+  const dashboards = payload.dashboards.map(d => ({
     id: d.id,
-    name: d.name
+    name: d.identity.name,
+    order: d.order ?? 0
   }));
 
   // Apply unified system transition
