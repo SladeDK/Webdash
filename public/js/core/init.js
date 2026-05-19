@@ -178,13 +178,22 @@ async function initializeDashboardState() {
 
     dashboardState = finalState;
 
+    // ensure dashboardState matches active dashboard
+    if (activeDashboardId && dashboardState?.id !== activeDashboardId) {
+      console.warn('[Init Fix] Syncing dashboardState.id with activeDashboardId');
+
+      // Reload correct state
+      await DashboardService.setActiveDashboardId(activeDashboardId);
+      dashboardState = await DashboardService.load();
+    }
+
     // Update cache with latest data
     try {
       localStorage.setItem(
         'webdash-dashboard-cache-v1',
         JSON.stringify({
           timestamp: Date.now(),
-          data: finalState
+          data: dashboardState
         })
       );
     } catch (e) {
@@ -224,8 +233,30 @@ async function refreshDashboardMetadata() {
     availableDashboards
   );
 
-  activeDashboardId = await DashboardService.getActiveDashboardId();
-  defaultDashboardId = await DashboardService.getDefaultDashboardId();
+  const refreshedActiveId = await DashboardService.getActiveDashboardId();
+  const refreshedDefaultId = await DashboardService.getDefaultDashboardId();
+
+  // Validate default first
+  const nextDefaultId =
+    refreshedDefaultId &&
+    availableDashboards.some(d => d.id === refreshedDefaultId)
+      ? refreshedDefaultId
+      : availableDashboards[0]?.id;
+
+  if (nextDefaultId) {
+    setDefaultDashboardId(nextDefaultId, 'refreshDashboardMetadata');
+  }
+
+  // Validate active AFTER default
+  const nextActiveId =
+    refreshedActiveId &&
+    availableDashboards.some(d => d.id === refreshedActiveId)
+      ? refreshedActiveId
+      : nextDefaultId;
+
+  if (nextActiveId) {
+    setActiveDashboardId(nextActiveId, 'refreshDashboardMetadata');
+  }
 }
 
 function normalizeDashboardOrder(dashboards, originalLocal = []) {
@@ -320,30 +351,65 @@ async function initApp() {
       order: d.order ?? 0
     }))
   );
-  activeDashboardId = activeId;
-  defaultDashboardId = defaultId;
 
-  // Ensure default dashboard is valid
-  if (
-    !defaultDashboardId ||
-    !availableDashboards.some(d => d.id === defaultDashboardId)
-  ) {
-    defaultDashboardId = availableDashboards[0]?.id ?? null;
-    if (defaultDashboardId) {
-      await DashboardService.setDefaultDashboardId(defaultDashboardId);
-    }
+  // ✅ Ensure system always has a valid default + active dashboard
+  let nextDefaultDashboardId = defaultId;
+  let nextActiveDashboardId = activeId;
+
+  // ✅ If no dashboards exist → create one (absolute base invariant)
+  if (!availableDashboards.length) {
+    console.warn('[Init Fix] No dashboards exist — creating default');
+
+    const id = `dashboard-${Date.now()}`;
+    const template = getDefaultDashboardTemplate({ id });
+
+    await DashboardService.createDashboard({
+      id: template.id,
+      name: template.name
+    });
+
+    await DashboardService.save(template);
+
+    availableDashboards = [{
+      id: template.id,
+      name: template.name,
+      order: 0
+    }];
+
+    nextDefaultDashboardId = id;
+    nextActiveDashboardId = id;
   }
 
-  // Ensure active dashboard always resolves
+  // ✅ Fix default if missing/invalid
   if (
-    !activeDashboardId ||
-    !availableDashboards.some(d => d.id === activeDashboardId)
+    !nextDefaultDashboardId ||
+    !availableDashboards.some(d => d.id === nextDefaultDashboardId)
   ) {
-    activeDashboardId = defaultDashboardId;
-    if (activeDashboardId) {
-      await DashboardService.setActiveDashboardId(activeDashboardId);
-    }
+    nextDefaultDashboardId = availableDashboards[0].id;
+
+    await DashboardService.setDefaultDashboardId(nextDefaultDashboardId);
   }
+
+  // ✅ Fix active if missing/invalid
+  if (
+    !nextActiveDashboardId ||
+    !availableDashboards.some(d => d.id === nextActiveDashboardId)
+  ) {
+    nextActiveDashboardId = nextDefaultDashboardId;
+
+    await DashboardService.setActiveDashboardId(nextActiveDashboardId);
+  }
+
+  // ✅ Temporarily disable invariant enforcement during bootstrap
+  const prevAppReady = appReady;
+  appReady = false;
+
+  // ✅ Apply BOTH before invariants are enforced
+  activeDashboardId = nextActiveDashboardId;
+  defaultDashboardId = nextDefaultDashboardId;
+
+  // ✅ Now restore lifecycle
+  appReady = prevAppReady;
 
   // ----------------------------------
   // Ensure dashboard DATA exists

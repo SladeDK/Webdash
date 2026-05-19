@@ -419,6 +419,7 @@ function wireLayoutEditorActions(container) {
 // =====================================================
 
 function setupCategoryDragAndDrop(container) {
+  let lastCategoryDragTarget = null;
   // Wire drag handles
   // Scope to category-level handles only (first .drag-handle child of .layout-category-header)
   // to avoid item-level handles incorrectly setting draggedCategoryId.
@@ -523,29 +524,40 @@ function setupCategoryDragAndDrop(container) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
 
-    const targetCategory = e.target.closest('.layout-category');
-
-    // Clear old styles
-    container.querySelectorAll(
-      '.layout-category.drag-over, .layout-category.drag-over-top, .layout-category.drag-over-bottom'
-    ).forEach(el => {
-      el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
-    });
+    const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+    const targetCategory = elementUnderCursor?.closest('.layout-category');
 
     if (
       targetCategory &&
       targetCategory.dataset.categoryId !== draggedCategoryId
     ) {
+      // Only clear PREVIOUS target
+      if (lastCategoryDragTarget && lastCategoryDragTarget !== targetCategory) {
+        lastCategoryDragTarget.classList.remove(
+          'drag-over',
+          'drag-over-top',
+          'drag-over-bottom'
+        );
+      }
+
       const rect = targetCategory.getBoundingClientRect();
       const midpoint = rect.top + rect.height / 2;
 
-      if (e.clientY < midpoint) {
+      const insertBefore = e.clientY < midpoint;
+
+      // clear only this element before reapplying
+      targetCategory.classList.remove('drag-over-top', 'drag-over-bottom');
+
+      targetCategory.classList.add('drag-over');
+
+      if (insertBefore) {
         targetCategory.classList.add('drag-over-top');
       } else {
         targetCategory.classList.add('drag-over-bottom');
       }
 
-      targetCategory.classList.add('drag-over'); // for subtle background
+      // Track current
+      lastCategoryDragTarget = targetCategory;
     }
 
     // Auto-scroll: measure pointer position relative to the scroll container
@@ -574,14 +586,36 @@ function setupCategoryDragAndDrop(container) {
 
     if (!draggedCategoryId) return;
 
-    const targetCategory = e.target.closest('.layout-category');
+    const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+    const targetCategory = elementUnderCursor?.closest('.layout-category');
     if (!targetCategory) return;
 
     const targetId = targetCategory.dataset.categoryId;
     if (!targetId || targetId === draggedCategoryId) return;
 
     // Read before clearing classes
-    const insertBefore = targetCategory.classList.contains('drag-over-top');
+    const rect = targetCategory.getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
+
+    const insertBefore = e.clientY < midpoint;
+    
+    let finalTargetId = targetId;
+      let finalInsertBefore = insertBefore;
+
+      if (insertBefore) {
+        const allCategories = Array.from(container.querySelectorAll('.layout-category'));
+
+        const targetIndex = allCategories.findIndex(
+          el => el.dataset.categoryId === targetId
+        );
+
+        if (targetIndex > 0) {
+          const previous = allCategories[targetIndex - 1];
+
+          finalTargetId = previous.dataset.categoryId;
+          finalInsertBefore = false;
+        }
+      }
 
     // Clear highlights
     container.querySelectorAll(
@@ -592,8 +626,8 @@ function setupCategoryDragAndDrop(container) {
 
     reorderCategoriesAdvanced(
       draggedCategoryId,
-      targetId,
-      insertBefore
+      finalTargetId,
+      finalInsertBefore
     );
     // Drop "snap" feedback
     const el = container.querySelector(`[data-category-id="${targetId}"]`);

@@ -361,7 +361,15 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
   const dashboard = availableDashboards.find(d => d.id === dashboardId);
   const dashboardName = dashboard?.name ?? 'Dashboard';
   if (availableDashboards.length <= 1) {
-    setDashboardValidationError('You must have at least one dashboard.');
+    showToast({
+      title: 'Dashboard deletion failed',
+      lines: [
+        `The dashboard "${dashboardName}" could not be deleted.`,
+        'You must have at least one dashboard.'
+      ],
+      type: 'error',
+      duration: 5000
+    });
     return;
   }
 
