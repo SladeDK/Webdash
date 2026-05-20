@@ -1,11 +1,12 @@
 // =====================================
 // Create empty button
 // =====================================
-function createEmptyButton() {
+function createEmptyButton(category) {
   return {
     id: generateId('item'),
     label: 'New button',
-    url: ''
+    url: '',
+    order: category.items.length
   };
 }
 
@@ -14,12 +15,13 @@ function createEmptyButton() {
 // =====================================
 
 async function addButtonToCategory(categoryId) {
-  const category = pageCategories.find(c => c.id === categoryId);
-  if (!category) return;
+  const category = pageCategories.find(c => c.id === categoryId); 
+  if (!category) return; 
 
-  const newButton = createEmptyButton();
-  category.items.push(newButton);
-  await commitDashboardChange('addItem');
+  const newButton = createEmptyButton(category); 
+  category.items.push(newButton); 
+
+  await commitDashboardChange('addItem'); 
 }
 
 // =====================================
@@ -42,7 +44,12 @@ async function deleteButton(itemId) {
 
           category.items.splice(latestIndex, 1);
 
-          await commitDashboardChange('deleteItem');
+          // Re-normalize order after deletion
+          category.items.forEach((item, index) => {
+            item.order = index;
+          });
+
+          await commitDashboardChange('deleteItem'); 
         }
       });
 
@@ -86,11 +93,11 @@ function openButtonEditor(context) {
     urlInput.value = '';
   }
 
-  // ✅ OPEN with animation support
+  // OPEN with animation support
   overlay.hidden = false;
   overlay.setAttribute('aria-hidden', 'false');
 
-  // ✅ Trigger animation (same pattern as before)
+  // Trigger animation (same pattern as before)
   overlay.classList.add('pre-open');
 
   requestAnimationFrame(() => {
@@ -110,7 +117,7 @@ function closeButtonEditor() {
   const overlay = document.getElementById('button-editor-overlay');
   if (!overlay) return;
 
-  // ✅ Start closing animation
+  // Start closing animation
   overlay.classList.add('is-closing');
   overlay.setAttribute('aria-hidden', 'true');
 
@@ -242,21 +249,19 @@ buttonEditorForm?.addEventListener('submit', async e => {
   }
 
   if (editingButtonContext.mode === 'create') {
-    const category = pageCategories.find(
-      c => c.id === editingButtonContext.categoryId
-    );
-    if (!category) return;
+    const category = pageCategories.find( 
+      c => c.id === editingButtonContext.categoryId 
+    ); 
+    if (!category) return; 
 
-    category.items.push({
-      id: generateId('item'),
-      label,
-      url: normalizedUrl
-    });
+    category.items.push({ 
+      id: generateId('item'), 
+      label, 
+      url: normalizedUrl,
+      order: category.items.length
+    }); 
 
-  DashboardService.save(dashboardState); 
-  renderCategories(pageCategories);
-  renderLayoutEditor(pageCategories);
-
+    await commitDashboardChange('createItem'); 
   } else {
     const category = pageCategories.find(
       c => c.id === editingButtonContext.categoryId

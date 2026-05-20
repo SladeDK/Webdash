@@ -94,16 +94,16 @@ function openPreferences() {
   const overlay = preferencesOverlay;
   if (!overlay) return;
 
-  // ✅ Make visible, but KEEP initial animation state
+  // Make visible, but KEEP initial animation state
   overlay.hidden = false;
   overlay.setAttribute('aria-hidden', 'false');
 
-  // ✅ Force browser to render initial state
+  // Force browser to render initial state
   overlay.classList.add('pre-open');
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      // ✅ Remove blocker class -> triggers animation
+      // Remove blocker class -> triggers animation
       overlay.classList.remove('pre-open');
     });
   });
@@ -145,11 +145,11 @@ function closePreferences() {
   const overlay = preferencesOverlay;
   if (!overlay) return;
 
-  // ✅ Start closing animation
+  // Start closing animation
   overlay.classList.add('is-closing');
   overlay.setAttribute('aria-hidden', 'true');
 
-  // ✅ Delay removal so animation can play
+  // Delay removal so animation can play
   setTimeout(() => {
     overlay.hidden = true;
 

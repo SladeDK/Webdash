@@ -504,7 +504,7 @@ function closeImportSystemModal() {
   const overlay = importUI?.systemOverlay;
   if (!overlay) return;
 
-  // ✅ Start closing animation
+  // Start closing animation
   overlay.classList.add('is-closing');
   overlay.setAttribute('aria-hidden', 'true');
 
@@ -544,11 +544,11 @@ function closeImportPreviewModal() {
   const overlay = importUI?.previewOverlay;
   if (!overlay) return;
 
-  // ✅ Start closing animation
+  // Start closing animation
   overlay.classList.add('is-closing');
   overlay.setAttribute('aria-hidden', 'true');
 
-  // ✅ Delay removal so animation can play
+  // Delay removal so animation can play
   setTimeout(() => {
     overlay.hidden = true;
 

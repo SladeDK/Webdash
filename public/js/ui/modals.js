@@ -93,7 +93,7 @@ document.addEventListener('mousedown', (e) => {
   const isInsideModal = modal && modal.contains(e.target);
   const isInsideToast = e.target.closest('#toast-container');
 
-  // ✅ Only close if truly outside interactive UI
+  // Only close if truly outside interactive UI
   if (!isInsideModal && !isInsideToast) {
     e.preventDefault();
     e.stopPropagation();
@@ -133,11 +133,11 @@ function openConfirm({ title, message, confirmLabel = 'Delete', onConfirm }) {
   // Store callback
   confirmCallback = onConfirm;
 
-  // ✅ OPEN with animation support
+  // OPEN with animation support
   overlay.hidden = false;
   overlay.setAttribute('aria-hidden', 'false');
 
-  // ✅ Force animation trigger (same as preferences)
+  // Force animation trigger (same as preferences)
   overlay.classList.add('pre-open');
 
   requestAnimationFrame(() => {
@@ -157,11 +157,11 @@ function closeConfirm() {
   const overlay = document.getElementById('confirm-overlay');
   if (!overlay) return;
 
-  // ✅ Start closing animation
+  // Start closing animation
   overlay.classList.add('is-closing');
   overlay.setAttribute('aria-hidden', 'true');
 
-  // ✅ Delay actual removal
+  // Delay actual removal
   setTimeout(() => {
     overlay.hidden = true;
 

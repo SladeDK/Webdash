@@ -71,7 +71,7 @@
 // dashboardState
 // pageCategories
 //
-// ✅ May be mutated ONLY by:
+// May be mutated ONLY by:
 //    - dashboard/dashboards.js
 //
 // -----------------------------------------------------
@@ -84,7 +84,7 @@
 // pendingDefaultDeletionId
 // dashboardValidationError
 //
-// ✅ May be mutated by:
+// May be mutated by:
 //    - dashboard/dashboards.js
 //    - dashboard/categories.js
 //    - dashboard/items.js
@@ -95,7 +95,7 @@
 // draggedCategoryId
 // draggedItemContext
 //
-// ✅ May be mutated ONLY by:
+// May be mutated ONLY by:
 //    - interactions/drag-drop.js
 //
 // -----------------------------------------------------
@@ -103,10 +103,10 @@
 // -----------------------------------------------------
 // (No direct shared state; overlays are stack-managed)
 //
-// ✅ Modal stack is owned by:
+// Modal stack is owned by:
 //    - ui/modals.js
 //
-// ✅ Dropdown visibility is owned by:
+// Dropdown visibility is owned by:
 //    - ui/dropdowns.js
 //
 // -----------------------------------------------------
@@ -115,7 +115,7 @@
 // appReady
 // userPreferences
 //
-// ✅ May be mutated ONLY by:
+// May be mutated ONLY by:
 //    - core/init.js
 //    - ui/preferences.js
 //

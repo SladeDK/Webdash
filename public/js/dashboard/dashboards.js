@@ -380,10 +380,10 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
   if (isDefault && remainingDashboards.length > 1) {
     pendingDefaultDeletionId = dashboardId;
 
-    // ✅ First close confirm modal properly
+    // First close confirm modal properly
     closeConfirm();
 
-    // ✅ Then open next modal AFTER animation finishes
+    // Then open next modal AFTER animation finishes
     setTimeout(() => {
       openDeleteDefaultDashboardModal(dashboardId);
     }, 160);
@@ -543,21 +543,21 @@ function renderDashboardList() {
     }
 
     btn.addEventListener('click', async () => {
-      // ✅ Immediate feedback
+      // Immediate feedback
       updateActiveDashboardUI(id);
 
-      // ✅ Show loading state
+      // Show loading state
       document.body.classList.add('dashboard-loading');
 
-      // ✅ Perform switch
+      // Perform switch
       await switchDashboard(id);
 
-      // ✅ Allow DOM to update before removing loading state
+      // Allow DOM to update before removing loading state
       requestAnimationFrame(() => {
         document.body.classList.remove('dashboard-loading');
       });
 
-      // ✅ Final UI sync
+      // Final UI sync
       renderDashboardList();
 
       closeAllDropdowns();
@@ -938,11 +938,11 @@ function openDeleteDefaultDashboardModal(dashboardId) {
   const overlay = deleteDefaultOverlay;
   if (!overlay) return;
 
-  // ✅ OPEN with animation support
+  // OPEN with animation support
   overlay.hidden = false;
   overlay.setAttribute('aria-hidden', 'false');
 
-  // ✅ Trigger animation (same pattern as others)
+  // Trigger animation (same pattern as others)
   overlay.classList.add('pre-open');
 
   requestAnimationFrame(() => {
@@ -964,11 +964,11 @@ function closeDeleteDefaultDashboardModal() {
 
   pendingDefaultDeletionId = null;
 
-  // ✅ Start closing animation
+  // Start closing animation
   overlay.classList.add('is-closing');
   overlay.setAttribute('aria-hidden', 'true');
 
-  // ✅ Delay removal
+  // Delay removal
   setTimeout(() => {
     overlay.hidden = true;
 
@@ -1043,7 +1043,7 @@ function syncLayoutDashboardSelector() {
 
     await switchDashboard(selectedId);
 
-    // ✅ Re-render dashboard list to update highlighting
+    // Re-render dashboard list to update highlighting
     renderDashboardList();
 
     if (isPreferencesOpen()) {

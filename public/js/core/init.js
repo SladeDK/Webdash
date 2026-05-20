@@ -352,11 +352,11 @@ async function initApp() {
     }))
   );
 
-  // ✅ Ensure system always has a valid default + active dashboard
+  // Ensure system always has a valid default + active dashboard
   let nextDefaultDashboardId = defaultId;
   let nextActiveDashboardId = activeId;
 
-  // ✅ If no dashboards exist → create one (absolute base invariant)
+  // If no dashboards exist → create one (absolute base invariant)
   if (!availableDashboards.length) {
     console.warn('[Init Fix] No dashboards exist — creating default');
 
@@ -380,7 +380,7 @@ async function initApp() {
     nextActiveDashboardId = id;
   }
 
-  // ✅ Fix default if missing/invalid
+  // Fix default if missing/invalid
   if (
     !nextDefaultDashboardId ||
     !availableDashboards.some(d => d.id === nextDefaultDashboardId)
@@ -390,7 +390,7 @@ async function initApp() {
     await DashboardService.setDefaultDashboardId(nextDefaultDashboardId);
   }
 
-  // ✅ Fix active if missing/invalid
+  // Fix active if missing/invalid
   if (
     !nextActiveDashboardId ||
     !availableDashboards.some(d => d.id === nextActiveDashboardId)
@@ -400,15 +400,15 @@ async function initApp() {
     await DashboardService.setActiveDashboardId(nextActiveDashboardId);
   }
 
-  // ✅ Temporarily disable invariant enforcement during bootstrap
+  // Temporarily disable invariant enforcement during bootstrap
   const prevAppReady = appReady;
   appReady = false;
 
-  // ✅ Apply BOTH before invariants are enforced
+  // Apply BOTH before invariants are enforced
   activeDashboardId = nextActiveDashboardId;
   defaultDashboardId = nextDefaultDashboardId;
 
-  // ✅ Now restore lifecycle
+  // Now restore lifecycle
   appReady = prevAppReady;
 
   // ----------------------------------
@@ -629,7 +629,7 @@ async function applySystemState({
     userPreferences.appearance = structuredClone(preferences.appearance);
     userPreferences.behavior = structuredClone(preferences.behavior);
 
-    // ✅ EXACT PLACE: normalize and capture warnings
+    // normalize and capture warnings
     const result = normalizeImportedPreferences(userPreferences);
     userPreferences = result.prefs;
     importWarnings = result.warnings;

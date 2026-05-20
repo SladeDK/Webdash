@@ -116,7 +116,7 @@ html.theme-dark {
 
   --border-color: rgba(255, 255, 255, 0.15);
 
-  /* ✅ Dropdowns */
+  /* Dropdowns */
   --dropdown-bg: var(--bg-card);
   --dropdown-hover: var(--bg-control-hover);
   --dropdown-text: var(--text-main);
@@ -148,7 +148,7 @@ html.theme-midnight {
 
   --border-color: rgba(255, 255, 255, 0.15);
 
-  /* ✅ Dropdowns */
+  /* Dropdowns */
   --dropdown-bg: var(--bg-card);
   --dropdown-hover: var(--bg-control-hover);
   --dropdown-text: var(--text-main);
@@ -179,7 +179,7 @@ html.theme-slate {
 
   --border-color: rgba(255, 255, 255, 0.15);
 
-  /* ✅ Dropdowns */
+  /* Dropdowns */
   --dropdown-bg: var(--bg-card);
   --dropdown-hover: var(--bg-control-hover);
   --dropdown-text: var(--text-main);
@@ -210,7 +210,7 @@ html.theme-nord {
 
   --border-color: rgba(255, 255, 255, 0.15);
 
-  /* ✅ Dropdowns */
+  /* Dropdowns */
   --dropdown-bg: var(--bg-card);
   --dropdown-hover: var(--bg-control-hover);
   --dropdown-text: var(--text-main);
@@ -242,7 +242,7 @@ html.theme-carbon {
 
   --border-color: rgba(255, 255, 255, 0.15);
 
-  /* ✅ Dropdowns */
+  /* Dropdowns */
   --dropdown-bg: var(--bg-card);
   --dropdown-hover: var(--bg-control-hover);
   --dropdown-text: var(--text-main);
@@ -274,7 +274,7 @@ html.theme-light {
 
   --border-color: rgba(0, 0, 0, 0.12);
 
-  /* ✅ Dropdowns (explicit for contrast) */
+  /* Dropdowns (explicit for contrast) */
   --dropdown-bg: #ffffff;
   --dropdown-hover: #f3f6fa;
   --dropdown-text: var(--text-main);
@@ -311,7 +311,7 @@ html.theme-glass {
   --border-color: rgba(255, 255, 255, 0.28);
 
   
-  /* ✅ Dropdowns */
+  /* Dropdowns */
   --dropdown-bg: rgba(32, 40, 56, 0.9);
   --dropdown-hover: rgba(45, 55, 75, 0.95);
   --dropdown-text: var(--text-main);
@@ -801,7 +801,7 @@ body.theme-switching {
 /* Label: normalize text box */
 .dropdown-header .dropdown-label {
   font-size: 0.85rem;
-  line-height: 1;        /* ✅ critical */
+  line-height: 1;        /* critical */
   color: var(--text-muted);
 }
 
@@ -811,9 +811,9 @@ body.theme-switching {
   border: none;
 
   font-size: 1rem;
-  line-height: 1;        /* ✅ critical */
-  height: 1em;           /* ✅ forces same vertical box */
-  width: 1em;            /* ✅ optional, helps centering */
+  line-height: 1;        /* critical */
+  height: 1em;           /* forces same vertical box */
+  width: 1em;            /* optional, helps centering */
 
   display: flex;
   align-items: center;
@@ -1089,7 +1089,7 @@ html.theme-glass .modal {
   height: 40px;
 
   border-radius: 50%;
-  overflow: hidden;          /* ✅ absolutely critical */
+  overflow: hidden;          /* absolutely critical */
 
   flex-shrink: 0;
 }
@@ -1137,7 +1137,7 @@ html.theme-glass .modal {
   color: var(--text-muted);
   cursor: pointer;
 
-  line-height: 1;          /* ✅ prevents vertical drift */
+  line-height: 1;          /* prevents vertical drift */
 }
 
 .identity-reset-btn:hover {
@@ -2393,7 +2393,7 @@ html.bg-triangle-gradient::before {
 }
 
 html.theme-light.bg-triangle-gradient::before {
-  opacity: 0.75; /* ✅ visibility restored */
+  opacity: 0.75; /* visibility restored */
 }
 
 /* Triangle Solid */
