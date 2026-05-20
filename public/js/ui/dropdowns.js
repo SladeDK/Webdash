@@ -56,10 +56,14 @@ function initializeDropdowns() {
 }
 
 // Global click-outside auto-close
-document.addEventListener('click', () => {
-  if (!autoCloseDropdowns) return;
-  closeAllDropdowns();
-});
+if (!document._dropdownClickHandler) {
+  document._dropdownClickHandler = true;
+
+  document.addEventListener('click', () => {
+    if (!autoCloseDropdowns) return;
+    closeAllDropdowns();
+  });
+}
 
 // Close all dropdowns helper
 function closeAllDropdowns() {
@@ -72,16 +76,6 @@ function closeAllDropdowns() {
   });
   assertDropdownInvariant('after closeAllDropdowns');
 }
-
-// Explicit close buttons inside dropdowns
-document.querySelectorAll('.dropdown-close').forEach(btn => {
-  btn.addEventListener('click', closeAllDropdowns);
-});
-
-document.addEventListener('click', (e) => {
-  if (!autoCloseDropdowns) return;
-  closeAllDropdowns();
-});
 
 // ============================
 // Theme dropdown item handling
@@ -98,8 +92,3 @@ document.querySelectorAll('.theme-item').forEach(item => {
     closeAllDropdowns();
   });
 });
-
-// ============================
-// Theme dropdown item handling
-// ============================
-initializeDropdowns();
