@@ -274,8 +274,25 @@ function replaceAvailableDashboards(nextDashboards, context = '') {
     }
   }
 
-  availableDashboards = nextDashboards;
-  assertSystemInvariants(`replaceAvailableDashboards${context ? `: ${context}` : ''}`);
+  const seen = new Set();
+  const deduped = [];
+
+  for (const d of nextDashboards) {
+    if (seen.has(d.id)) {
+      if (__DEV__) {
+        console.warn(
+          `[Invariant Warning] Duplicate dashboard id detected: ${d.id} (${context})`
+        );
+      }
+      continue;
+    }
+
+    seen.add(d.id);
+    deduped.push({
+      id: d.id,
+      name: d.name
+    });
+  }
 }
 
 

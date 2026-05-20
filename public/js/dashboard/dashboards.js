@@ -233,10 +233,16 @@ async function processDashboardReorderQueue() {
 }
 
 function queueDashboardReorderSave() {
+
+  // Ensure no stale order values remain
+  availableDashboards.forEach(d => {
+    if ('order' in d) delete d.order;
+  });
+
   // Always capture the latest state
-  pendingDashboardReorder = availableDashboards.map(d => ({
+  pendingDashboardReorder = availableDashboards.map((d, index) => ({
     id: d.id,
-    order: d.order
+    order: index
   }));
 
   processDashboardReorderQueue();
@@ -248,53 +254,41 @@ async function reorderDashboardsAdvanced(sourceId, targetId, insertBefore) {
 
   if (sourceIndex === -1 || targetIndex === -1) return;
 
-  const [moved] = availableDashboards.splice(sourceIndex, 1);
+  // Clone for safe mutation
+  const next = [...availableDashboards];
+  const [moved] = next.splice(sourceIndex, 1);
 
-  // adjust target index AFTER removal
-  let adjustedTargetIndex = targetIndex;
+  let insertIndex = targetIndex;
 
   if (sourceIndex < targetIndex) {
-    adjustedTargetIndex--;
+    insertIndex--;
   }
 
-  // compute final insertion index
-  let newIndex;
-
-  if (insertBefore) {
-    newIndex = adjustedTargetIndex;
-  } else {
-    newIndex = adjustedTargetIndex + 1;
+  if (!insertBefore) {
+    insertIndex++;
   }
 
-  availableDashboards.splice(newIndex, 0, moved);
+  next.splice(insertIndex, 0, moved);
 
-  if (newIndex === sourceIndex) {
-    // Put item back in original spot to avoid losing it
-    availableDashboards.splice(sourceIndex, 0, moved);
-    return;
+  // Replace state (single source of truth)
+  replaceAvailableDashboards(next, 'reorderDashboardsAdvanced');
+
+  // DEV SAFETY: catch regressions immediately
+  if (__DEV__) {
+    console.assert(
+      new Set(availableDashboards.map(d => d.id)).size === availableDashboards.length,
+      "[Invariant Violation] Duplicate dashboards after reorder"
+    );
   }
 
-  // Now perform the actual move
-  availableDashboards.splice(newIndex, 0, moved);
-
-  // update order immediately (UI stays responsive)
-  availableDashboards.forEach((d, i) => {
-    d.order = i;
-  });
-
-  // Move DOM row immediately (critical for UX)
+  // Update DOM immediately (UI feedback)
   const container = document.getElementById('dashboard-management-list');
 
   if (container) {
     const rows = Array.from(container.children);
 
-    const sourceRow = rows.find(
-      el => el.dataset.dashboardId === sourceId
-    );
-
-    const targetRow = rows.find(
-      el => el.dataset.dashboardId === targetId
-    );
+    const sourceRow = rows.find(el => el.dataset.dashboardId === sourceId);
+    const targetRow = rows.find(el => el.dataset.dashboardId === targetId);
 
     if (sourceRow && targetRow) {
       if (insertBefore) {
@@ -305,11 +299,11 @@ async function reorderDashboardsAdvanced(sourceId, targetId, insertBefore) {
     }
   }
 
-  // Update other UI (safe)
+  // Sync UI controls
   syncDefaultDashboardSelector();
   syncLayoutDashboardSelector();
 
-  // queue backend save
+  // Persist order (derived from index only)
   queueDashboardReorderSave();
 }
 
@@ -320,7 +314,6 @@ async function switchDashboard(dashboardId) {
 
 async function createAndSwitchDashboard({ id, name }) {
   const template = getDefaultDashboardTemplate({ id, name });
-  template.order = availableDashboards.length;
 
   await DashboardService.createDashboard({
     id: template.id,
@@ -336,8 +329,7 @@ async function createAndSwitchDashboard({ id, name }) {
   // add to availableDashboards FIRST
   addAvailableDashboard({
     id,
-    name,
-    order: availableDashboards.length
+    name
   }, 'createAndSwitchDashboard');
 
   // set active dashboard
@@ -349,9 +341,9 @@ async function createAndSwitchDashboard({ id, name }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(
-      availableDashboards.map(d => ({
+      availableDashboards.map((d, index) => ({
         id: d.id,
-        order: d.order
+        order: index
       }))
     )
   });
@@ -440,11 +432,6 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
     remainingDashboards,
     'deleteDashboard'
   );
-
-  // Re-normalize order after deletion
-  availableDashboards.forEach((d, i) => {
-    d.order = i;
-  });
 
   // Ensure backend is updated with new order
   queueDashboardReorderSave();

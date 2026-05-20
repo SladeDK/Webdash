@@ -227,8 +227,7 @@ async function refreshDashboardMetadata() {
   availableDashboards = normalizeDashboardOrder(
     dashboardsData.map(d => ({
       id: d.id,
-      name: d.name,
-      order: d.order ?? 0
+      name: d.name
     })),
     availableDashboards
   );
@@ -302,11 +301,6 @@ function normalizeDashboardOrder(dashboards, originalLocal = []) {
   // STEP 4 — Merge (valid first, invalid last)
   const merged = [...valid, ...invalid];
 
-  // STEP 5 — Reassign clean order
-  merged.forEach((d, i) => {
-    d.order = i;
-  });
-
   return merged;
 }
 
@@ -347,8 +341,7 @@ async function initApp() {
   availableDashboards = normalizeDashboardOrder(
     dashboardsList.map(d => ({
       id: d.id,
-      name: d.name,
-      order: d.order ?? 0
+      name: d.name
     }))
   );
 
