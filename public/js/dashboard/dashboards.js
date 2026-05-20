@@ -432,6 +432,11 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
     remainingDashboards,
     'deleteDashboard'
   );
+  
+  // CRITICAL: normalize structure (like working version)
+  availableDashboards.forEach((d, i) => {
+    d.order = i;
+  });
 
   // Ensure backend is updated with new order
   queueDashboardReorderSave();
@@ -440,6 +445,10 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
   syncLayoutDashboardSelector();
   renderDashboardManagementPanel();
   renderDashboardList();
+
+  // await finalizeActiveDashboardChange();
+
+  // pendingDefaultDeletionId = null;
 
   assertSystemInvariants('after deleteDashboard');
   showToast({
@@ -1102,24 +1111,27 @@ deleteDefaultClose.addEventListener(
 
 deleteDefaultConfirm.addEventListener('click', async () => {
   const newDefaultId = deleteDefaultSelect.value;
+
   if (!newDefaultId || !pendingDefaultDeletionId) return;
 
-  // 1. Commit new default locally FIRST
+  // 1. Update default
   setDefaultDashboardId(
     newDefaultId,
     'deleteDefaultDashboard (reassign default)'
   );
 
-  // 2. Persist default change to backend
   await DashboardService.setDefaultDashboardId(newDefaultId);
 
-  // At this point:
-  // defaultDashboardId exists in availableDashboards
-  // invariants hold
-
-  // 3. Now it is SAFE to delete the old default dashboard
+  // 2. Delete old dashboard
   await deleteDashboard(pendingDefaultDeletionId, false);
 
+  // CRITICAL: Force full UI sync AFTER deletion
+  syncDefaultDashboardSelector();
+  syncLayoutDashboardSelector();
+  renderDashboardList();
+  renderDashboardManagementPanel();
+
+  // 3. Close modal LAST
   closeDeleteDefaultDashboardModal();
 });
 

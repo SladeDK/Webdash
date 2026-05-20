@@ -35,9 +35,3 @@ document.addEventListener('keydown', (e) => {
   e.stopPropagation();
   top.onClose();
 });
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    closeAll();
-  }
-});

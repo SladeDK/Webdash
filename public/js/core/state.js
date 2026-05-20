@@ -288,11 +288,18 @@ function replaceAvailableDashboards(nextDashboards, context = '') {
     }
 
     seen.add(d.id);
-    deduped.push({
-      id: d.id,
-      name: d.name
-    });
+
+    // KEEP ORIGINAL OBJECT REFERENCES
+    deduped.push(d);
   }
+
+  // IMPORTANT: mutate array reference safely
+  availableDashboards.length = 0;
+  availableDashboards.push(...deduped);
+
+  assertSystemInvariants(
+    `replaceAvailableDashboards${context ? `: ${context}` : ''}`
+  );
 }
 
 

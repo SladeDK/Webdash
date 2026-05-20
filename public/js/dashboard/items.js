@@ -19,7 +19,12 @@ async function addButtonToCategory(categoryId) {
   if (!category) return; 
 
   const newButton = createEmptyButton(category); 
-  category.items.push(newButton); 
+  category.items.push(newButton);
+
+  // normalize order
+  category.items.forEach((item, index) => {
+    item.order = index;
+  });
 
   await commitDashboardChange('addItem'); 
 }
@@ -254,12 +259,16 @@ buttonEditorForm?.addEventListener('submit', async e => {
     ); 
     if (!category) return; 
 
-    category.items.push({ 
-      id: generateId('item'), 
-      label, 
-      url: normalizedUrl,
-      order: category.items.length
-    }); 
+    category.items.push({
+      id: generateId('item'),
+      label,
+      url: normalizedUrl
+    });
+
+    // normalize order
+    category.items.forEach((item, index) => {
+      item.order = index;
+    });
 
     await commitDashboardChange('createItem'); 
   } else {
