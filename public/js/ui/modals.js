@@ -83,24 +83,27 @@ function focusFirstFocusableElement(overlay) {
 // =====================================================
 // Global click-outside handler (modal-stack driven)
 // =====================================================
-document.addEventListener('mousedown', (e) => {
-  const top = getTopModal();
-  if (!top) return;
+if (!document._modalOutsideHandler) {
+  document._modalOutsideHandler = true;
 
-  const { overlay, onClose } = top;
-  const modal = overlay.querySelector('.modal-container');
+  document.addEventListener('mousedown', (e) => {
+    const top = getTopModal();
+    if (!top) return;
 
-  const isInsideModal = modal && modal.contains(e.target);
-  const isInsideToast = e.target.closest('#toast-container');
+    const { overlay, onClose } = top;
+    const modal = overlay.querySelector('.modal-container');
 
-  // Only close if truly outside interactive UI
-  if (!isInsideModal && !isInsideToast) {
-    e.preventDefault();
-    e.stopPropagation();
-    onClose();
-  }
-});
+    const isInsideModal = modal && modal.contains(e.target);
+    const isInsideToast = e.target.closest('#toast-container');
 
+    // Only close when clicking truly outside modal UI
+    if (!isInsideModal && !isInsideToast) {
+      e.preventDefault();
+      e.stopPropagation();
+      onClose();
+    }
+  });
+}
 
 // =====================================================
 // Confirmation modal helper function
@@ -181,15 +184,25 @@ const confirmOverlay = document.getElementById('confirm-overlay');
 const confirmCancel = document.getElementById('confirm-cancel');
 const confirmAccept = document.getElementById('confirm-accept');
 
-confirmCancel?.addEventListener('click', closeConfirm);
+if (confirmCancel && !confirmCancel._wired) {
+  confirmCancel._wired = true;
+  confirmCancel.addEventListener('click', closeConfirm);
+}
 
-confirmOverlay
-  ?.querySelector('.modal-close')
-  ?.addEventListener('click', closeConfirm);
+const confirmCloseBtn = confirmOverlay
+  ?.querySelector('.modal-close');
 
-confirmAccept?.addEventListener('click', () => {
-  if (typeof confirmCallback === 'function') {
-    confirmCallback();
-  }
-  closeConfirm();
-});
+if (confirmCloseBtn && !confirmCloseBtn._wired) {
+  confirmCloseBtn._wired = true;
+  confirmCloseBtn.addEventListener('click', closeConfirm);
+}
+
+if (confirmAccept && !confirmAccept._wired) {
+  confirmAccept._wired = true;
+  confirmAccept.addEventListener('click', () => {
+    if (typeof confirmCallback === 'function') {
+      confirmCallback();
+    }
+    closeConfirm();
+  });
+}
