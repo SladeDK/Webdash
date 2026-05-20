@@ -250,17 +250,23 @@ async function reorderDashboardsAdvanced(sourceId, targetId, insertBefore) {
 
   const [moved] = availableDashboards.splice(sourceIndex, 1);
 
-  let newIndex = insertBefore ? targetIndex : targetIndex + 1;
+  // adjust target index AFTER removal
+  let adjustedTargetIndex = targetIndex;
 
-  // Adjust properly depending on direction AND intent
   if (sourceIndex < targetIndex) {
-    newIndex--;
+    adjustedTargetIndex--;
   }
 
-  // CRITICAL FIX: ensure "insertBefore" behaves correctly after shift
-  if (insertBefore && sourceIndex > targetIndex) {
-    newIndex = targetIndex;
+  // compute final insertion index
+  let newIndex;
+
+  if (insertBefore) {
+    newIndex = adjustedTargetIndex;
+  } else {
+    newIndex = adjustedTargetIndex + 1;
   }
+
+  availableDashboards.splice(newIndex, 0, moved);
 
   if (newIndex === sourceIndex) {
     // Put item back in original spot to avoid losing it
@@ -323,16 +329,19 @@ async function createAndSwitchDashboard({ id, name }) {
 
   await DashboardService.save(template);
 
-  // Hydrate local state
+  // Hydrate local state FIRST
   dashboardState = template;
   pageCategories = template.categories;
 
-  // Metadata only
+  // add to availableDashboards FIRST
   addAvailableDashboard({
     id,
     name,
     order: availableDashboards.length
   }, 'createAndSwitchDashboard');
+
+  // set active dashboard
+  setActiveDashboardId(id, 'createAndSwitchDashboard');
 
   availableDashboards = normalizeDashboardOrder(availableDashboards);
 
@@ -659,8 +668,13 @@ function setupDashboardDragAndDrop(container) {
     const targetId = target.dataset.dashboardId;
     if (!targetId || targetId === draggedDashboardId) return;
 
-    const insertBefore = target.classList.contains('drag-over-top');
+    // determine insert position from actual mouse position
+    const rect = target.getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
 
+    const insertBefore = e.clientY < midpoint;
+
+    // Cleanup visuals
     container.querySelectorAll(
       '.layout-dashboard.drag-over, .layout-dashboard.drag-over-top, .layout-dashboard.drag-over-bottom'
     ).forEach(el => {
@@ -670,6 +684,7 @@ function setupDashboardDragAndDrop(container) {
     lastDashboardDragTarget = null;
     lastDashboardDragDirection = null;
 
+    // Call reorder with correct value
     reorderDashboardsAdvanced(
       draggedDashboardId,
       targetId,

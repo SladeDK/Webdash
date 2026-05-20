@@ -129,7 +129,10 @@
 // is forbidden by design.
 // =====================================================
 
-const __DEV__ = true;
+const __DEV__ =
+  typeof window !== 'undefined'
+    ? window.location.hostname === 'localhost'
+    : true;
 
 // ============================
 // Global application state
@@ -252,7 +255,6 @@ function addAvailableDashboard({ id, name }, context = '') {
         `[State Mutation Error] addAvailableDashboard received invalid data (${context})`
       );
     }
-
     if (availableDashboards.some(d => d.id === id)) {
       throw new Error(
         `[State Mutation Error] Duplicate dashboard id "${id}" (${context})`
@@ -312,6 +314,12 @@ function assertSystemInvariants(context = '') {
   // --------------------------------------------------
   // Dashboard identity invariants
   // --------------------------------------------------
+
+  assertInvariant(
+    availableDashboards.length > 0,
+    `No dashboards exist${ctx}`
+  );
+
   assertInvariant(
     activeDashboardId !== null,
     `activeDashboardId is null${ctx}`
