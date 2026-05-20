@@ -28,6 +28,12 @@ async function reorderItems(categoryId, sourceItemId, targetItemId) {
 
   const [moved] = category.items.splice(sourceIndex, 1);
   category.items.splice(targetIndex, 0, moved);
+
+  // normalize order
+  category.items.forEach((item, index) => {
+    item.order = index;
+  });
+
   await commitDashboardChange('reorderItems');
 }
 
