@@ -505,6 +505,9 @@ async function initApp() {
   renderDashboardList();
 
   initializeDropdowns();
+  initializeThemeDropdownItems();
+  initializeDashboardUIBindings();
+  initializeButtonEditorBindings();
 }
 
 // =====================================================

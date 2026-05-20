@@ -163,126 +163,130 @@ const buttonEditorForm = document.getElementById('button-editor-form');
 const buttonEditorCancel = document.getElementById('button-editor-cancel');
 const buttonEditorOverlay = document.getElementById('button-editor-overlay');
 
-buttonEditorCancel?.addEventListener('click', closeButtonEditor);
-buttonEditorOverlay
-  ?.querySelector('.modal-close')
-  ?.addEventListener('click', closeButtonEditor);
-
-buttonEditorForm?.addEventListener('submit', async e => {
-  const nameErrorEl = document.getElementById('button-name-error');
-  const urlErrorEl = document.getElementById('button-editor-error');
-  const label = document.getElementById('button-label-input').value.trim();
-  const url = document.getElementById('button-url-input').value.trim();
-
-  // Reset errors
-  if (nameErrorEl) nameErrorEl.classList.remove('is-visible');
-  if (urlErrorEl) urlErrorEl.classList.remove('is-visible');
-
-  e.preventDefault();
-  if (!editingButtonContext) return;
-
-  let hasErrors = false;
-
-  /* ---- NAME: required ---- */
-  if (!label) {
-    hasErrors = true;
-    if (nameErrorEl) {
-      nameErrorEl.textContent = 'Button name is required.';
-      nameErrorEl.classList.add('is-visible');
-    }
+function initializeButtonEditorBindings() {
+  if (buttonEditorCancel && !buttonEditorCancel._wired) {
+    buttonEditorCancel._wired = true;
+    buttonEditorCancel.addEventListener('click', closeButtonEditor);
   }
 
-  /* ---- NAME: duplicate (only if name exists) ---- */
-  if (label) {
-    const duplicateName = pageCategories.some(category =>
-      category.items.some(item =>
-        item.label.toLowerCase() === label.toLowerCase() &&
-        item.id !== editingButtonContext?.itemId
-      )
-    );
+  const closeBtn = buttonEditorOverlay
+    ?.querySelector('.modal-close');
 
-    if (duplicateName) {
-      hasErrors = true;
-      if (nameErrorEl) {
-        nameErrorEl.textContent = 'A button with this name already exists.';
-        nameErrorEl.classList.add('is-visible');
+  if (closeBtn && !closeBtn._wired) {
+    closeBtn._wired = true;
+    closeBtn.addEventListener('click', closeButtonEditor);
+  }
+
+  if (buttonEditorForm && !buttonEditorForm._wired) {
+    buttonEditorForm._wired = true;
+
+    buttonEditorForm.addEventListener('submit', async e => {
+      const nameErrorEl = document.getElementById('button-name-error');
+      const urlErrorEl = document.getElementById('button-editor-error');
+      const label = document.getElementById('button-label-input').value.trim();
+      const url = document.getElementById('button-url-input').value.trim();
+
+      if (nameErrorEl) nameErrorEl.classList.remove('is-visible');
+      if (urlErrorEl) urlErrorEl.classList.remove('is-visible');
+
+      e.preventDefault();
+      if (!editingButtonContext) return;
+
+      let hasErrors = false;
+
+      if (!label) {
+        hasErrors = true;
+        if (nameErrorEl) {
+          nameErrorEl.textContent = 'Button name is required.';
+          nameErrorEl.classList.add('is-visible');
+        }
       }
-    }
-  }
 
-  /* ---- URL: required ---- */
-  if (!url) {
-    hasErrors = true;
-    if (urlErrorEl) {
-      urlErrorEl.textContent = 'URL is required.';
-      urlErrorEl.classList.add('is-visible');
-    }
-  }
+      if (label) {
+        const duplicateName = pageCategories.some(category =>
+          category.items.some(item =>
+            item.label.toLowerCase() === label.toLowerCase() &&
+            item.id !== editingButtonContext?.itemId
+          )
+        );
 
-  /* ---- Stop if ANY errors were found ---- */
-  if (hasErrors) {
-    return;
-  }
+        if (duplicateName) {
+          hasErrors = true;
+          if (nameErrorEl) {
+            nameErrorEl.textContent = 'A button with this name already exists.';
+            nameErrorEl.classList.add('is-visible');
+          }
+        }
+      }
 
-  let normalizedUrl = url;
+      if (!url) {
+        hasErrors = true;
+        if (urlErrorEl) {
+          urlErrorEl.textContent = 'URL is required.';
+          urlErrorEl.classList.add('is-visible');
+        }
+      }
 
-  // Add https:// if no protocol is present
-  if (!/^https?:\/\//i.test(normalizedUrl)) {
-    normalizedUrl = `https://${normalizedUrl}`;
-  }
-  
-  // Basic URL sanity check: must contain a dot after protocol
-  try {
-    const parsed = new URL(normalizedUrl);
-    const hostname = parsed.hostname;
+      if (hasErrors) return;
 
-    // Require at least one dot and a valid TLD (min 2 chars)
-    const hostnameIsValid =
-      /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i
-        .test(hostname);
+      let normalizedUrl = url;
 
-    if (!hostnameIsValid) {
-      throw new Error('Invalid hostname');
-    }
-  } catch {
-    const errorEl = document.getElementById('button-editor-error');
-    if (errorEl) {
-      errorEl.textContent = 'Please enter a valid URL (e.g. example.com)';
-      errorEl.classList.add('is-visible');
-    }
-    return;
-  }
+      if (!/^https?:\/\//i.test(normalizedUrl)) {
+        normalizedUrl = `https://${normalizedUrl}`;
+      }
 
-  if (editingButtonContext.mode === 'create') {
-    const category = pageCategories.find( 
-      c => c.id === editingButtonContext.categoryId 
-    ); 
-    if (!category) return; 
+      try {
+        const parsed = new URL(normalizedUrl);
+        const hostname = parsed.hostname;
 
-    category.items.push({
-      id: generateId('item'),
-      label,
-      url: normalizedUrl
+        const hostnameIsValid =
+          /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i
+            .test(hostname);
+
+        if (!hostnameIsValid) {
+          throw new Error('Invalid hostname');
+        }
+      } catch {
+        const errorEl = document.getElementById('button-editor-error');
+        if (errorEl) {
+          errorEl.textContent = 'Please enter a valid URL (e.g. example.com)';
+          errorEl.classList.add('is-visible');
+        }
+        return;
+      }
+
+      if (editingButtonContext.mode === 'create') {
+        const category = pageCategories.find(
+          c => c.id === editingButtonContext.categoryId
+        );
+        if (!category) return;
+
+        category.items.push({
+          id: generateId('item'),
+          label,
+          url: normalizedUrl
+        });
+
+        category.items.forEach((item, index) => {
+          item.order = index;
+        });
+
+        await commitDashboardChange('createItem');
+      } else {
+        const category = pageCategories.find(
+          c => c.id === editingButtonContext.categoryId
+        );
+        const item = category?.items.find(
+          i => i.id === editingButtonContext.itemId
+        );
+        if (!item) return;
+
+        item.label = label;
+        item.url = normalizedUrl;
+        await commitDashboardChange('updateItem');
+      }
+
+      closeButtonEditor();
     });
-
-    // normalize order
-    category.items.forEach((item, index) => {
-      item.order = index;
-    });
-
-    await commitDashboardChange('createItem'); 
-  } else {
-    const category = pageCategories.find(
-      c => c.id === editingButtonContext.categoryId
-    );
-    const item = category?.items.find(
-      i => i.id === editingButtonContext.itemId
-    );
-    if (!item) return;
-
-    item.label = label;
-    item.url = normalizedUrl;
-    await commitDashboardChange('updateItem');
   }
-  closeButtonEditor();
-});
+}

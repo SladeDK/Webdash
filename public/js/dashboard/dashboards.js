@@ -1095,49 +1095,65 @@ async function finalizeActiveDashboardChange() {
 // Global Event Wiring (Startup / Static Listeners)
 // ======================================================================
 
-deleteDefaultSelect.addEventListener('change', () => {
-  deleteDefaultConfirm.disabled = !deleteDefaultSelect.value;
-});
+function initializeDashboardUIBindings() {
+  if (deleteDefaultSelect && !deleteDefaultSelect._wired) {
+    deleteDefaultSelect._wired = true;
 
-deleteDefaultCancel.addEventListener(
-  'click',
-  closeDeleteDefaultDashboardModal
-);
+    deleteDefaultSelect.addEventListener('change', () => {
+      deleteDefaultConfirm.disabled = !deleteDefaultSelect.value;
+    });
+  }
 
-deleteDefaultClose.addEventListener(
-  'click',
-  closeDeleteDefaultDashboardModal
-);
+  if (deleteDefaultCancel && !deleteDefaultCancel._wired) {
+    deleteDefaultCancel._wired = true;
+    deleteDefaultCancel.addEventListener(
+      'click',
+      closeDeleteDefaultDashboardModal
+    );
+  }
 
-deleteDefaultConfirm.addEventListener('click', async () => {
-  const newDefaultId = deleteDefaultSelect.value;
+  if (deleteDefaultClose && !deleteDefaultClose._wired) {
+    deleteDefaultClose._wired = true;
+    deleteDefaultClose.addEventListener(
+      'click',
+      closeDeleteDefaultDashboardModal
+    );
+  }
 
-  if (!newDefaultId || !pendingDefaultDeletionId) return;
+  if (deleteDefaultConfirm && !deleteDefaultConfirm._wired) {
+    deleteDefaultConfirm._wired = true;
 
-  // 1. Update default
-  setDefaultDashboardId(
-    newDefaultId,
-    'deleteDefaultDashboard (reassign default)'
-  );
+    deleteDefaultConfirm.addEventListener('click', async () => {
+      const newDefaultId = deleteDefaultSelect.value;
 
-  await DashboardService.setDefaultDashboardId(newDefaultId);
+      if (!newDefaultId || !pendingDefaultDeletionId) return;
 
-  // 2. Delete old dashboard
-  await deleteDashboard(pendingDefaultDeletionId, false);
+      setDefaultDashboardId(
+        newDefaultId,
+        'deleteDefaultDashboard (reassign default)'
+      );
 
-  // CRITICAL: Force full UI sync AFTER deletion
-  syncDefaultDashboardSelector();
-  syncLayoutDashboardSelector();
-  renderDashboardList();
-  renderDashboardManagementPanel();
+      await DashboardService.setDefaultDashboardId(newDefaultId);
 
-  // 3. Close modal LAST
-  closeDeleteDefaultDashboardModal();
-});
+      await deleteDashboard(pendingDefaultDeletionId, false);
 
-document
-  .getElementById('create-dashboard-btn')
-  ?.addEventListener('click', () => {
-    isCreatingDashboard = true;
-    renderDashboardManagementPanel();
-});
+      syncDefaultDashboardSelector();
+      syncLayoutDashboardSelector();
+      renderDashboardList();
+      renderDashboardManagementPanel();
+
+      closeDeleteDefaultDashboardModal();
+    });
+  }
+
+  const createBtn = document.getElementById('create-dashboard-btn');
+
+  if (createBtn && !createBtn._wired) {
+    createBtn._wired = true;
+
+    createBtn.addEventListener('click', () => {
+      isCreatingDashboard = true;
+      renderDashboardManagementPanel();
+    });
+  }
+}

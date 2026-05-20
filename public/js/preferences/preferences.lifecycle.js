@@ -23,15 +23,18 @@
 // APPEARANCE LIFECYCLE
 // ======================================================================
 
-window
-  .matchMedia('(prefers-color-scheme: dark)')
-  .addEventListener('change', () => {
-    const savedTheme = localStorage.getItem(THEME_KEY);
+const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
+if (!mediaQuery._wired) {
+  mediaQuery._wired = true;
+
+  mediaQuery.addEventListener('change', () => {
+    const savedTheme = localStorage.getItem(THEME_KEY);
     if (savedTheme === 'system') {
       setActiveTheme('system');
     }
-});
+  });
+}
 
 // ======================================================================
 // PREFERENCES INITIALIZATION

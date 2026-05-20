@@ -80,15 +80,17 @@ function closeAllDropdowns() {
 // ============================
 // Theme dropdown item handling
 // ============================
-document.querySelectorAll('.theme-item').forEach(item => {
-  item.addEventListener('click', e => {
-    e.preventDefault();
-    e.stopPropagation();
+function initializeThemeDropdownItems() {
+  document.querySelectorAll('.theme-item').forEach(item => {
+    if (item._wired) return;
+    item._wired = true;
 
-    const theme = item.dataset.theme;
-
-    changeTheme(theme);
-
-    closeAllDropdowns();
+    item.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const theme = item.dataset.theme;
+      changeTheme(theme);
+      closeAllDropdowns();
+    });
   });
-});
+}

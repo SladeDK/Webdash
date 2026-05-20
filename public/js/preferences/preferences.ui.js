@@ -249,38 +249,50 @@ if (syncIdentityCheckbox) {
 }
 
 // Enter rename mode on focus
-identityNameInput.addEventListener('focus', () => {
-  if (userPreferences.appearance.identity.syncWithDashboard) return;
-  if (isRenamingIdentity) return;
+if (identityNameInput && !identityNameInput._wiredFocus) {
+  identityNameInput._wiredFocus = true;
 
-  isRenamingIdentity = true;
-  pendingIdentityName = dashboardState?.identity?.name ?? '';
+  identityNameInput.addEventListener('focus', () => {
+    if (userPreferences.appearance.identity.syncWithDashboard) return;
+    if (isRenamingIdentity) return;
 
-  renderIdentityRenameControls();
-  identityNameInput.select();
-});
+    isRenamingIdentity = true;
+    pendingIdentityName = dashboardState?.identity?.name ?? '';
+
+    renderIdentityRenameControls();
+    identityNameInput.select();
+  })
+};
 
 // Keyboard shortcuts
-identityNameInput.addEventListener('keydown', (e) => {
-  if (!isRenamingIdentity) return;
+if (identityNameInput && !identityNameInput._wiredKeydown) {
+  identityNameInput.addEventListener('keydown', (e) => {
+    identityNameInput._wiredKeydown = true;
+    if (!isRenamingIdentity) return;
 
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    confirmIdentityRename();
-  }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      confirmIdentityRename();
+    }
 
-  if (e.key === 'Escape') {
-    e.preventDefault();
-    cancelIdentityRename();
-  }
-});
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      cancelIdentityRename();
+    }
+  });
+};
 
 // Cancel rename when clicking outside (blur)
-identityNameInput.addEventListener('blur', () => {
-  if (!isRenamingIdentity) return;
+if (identityNameInput && !identityNameInput._wiredBlur) {
+  identityNameInput.addEventListener('blur', () => {
+    identityNameInput._wiredBlur = true;
+    if (!isRenamingIdentity) return;
 
-  cancelIdentityRename();
-});
+    cancelIdentityRename();
+  });
+};
 
 if (identityIconWrapper && identityIconInput) {
   identityIconWrapper.addEventListener('click', () => {
@@ -479,6 +491,9 @@ function compressImage(file, maxSize = 256, quality = 0.8) {
 // ======================================================================
 
 backgroundCards.forEach(card => {
+  if (card._wired) return;
+  card._wired = true;
+
   card.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -487,6 +502,9 @@ backgroundCards.forEach(card => {
 });
 
 themeRadios.forEach(radio => {
+  if (radio._wired) return;
+  radio._wired = true;
+
   radio.addEventListener('change', () => {
     setActiveTheme(radio.value); // uses existing logic
     syncThemeRadios();
@@ -494,6 +512,9 @@ themeRadios.forEach(radio => {
 });
 
 themeCards.forEach(card => {
+  if (card._wired) return;
+  card._wired = true;
+
   card.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -606,7 +627,11 @@ document.documentElement.classList.add('bg-visible');
 
 ['button-label-input', 'button-url-input'].forEach(id => {
   const input = document.getElementById(id);
-  input?.addEventListener('input', () => {
+
+  if (!input || input._wired) return;
+  input._wired = true;
+
+  input.addEventListener('input', () => {
     const nameErrorEl = document.getElementById('button-name-error');
     const urlErrorEl = document.getElementById('button-editor-error');
 

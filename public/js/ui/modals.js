@@ -201,7 +201,9 @@ if (confirmAccept && !confirmAccept._wired) {
   confirmAccept._wired = true;
   confirmAccept.addEventListener('click', () => {
     if (typeof confirmCallback === 'function') {
-      confirmCallback();
+      const cb = confirmCallback;
+      confirmCallback = null;
+      cb();
     }
     closeConfirm();
   });

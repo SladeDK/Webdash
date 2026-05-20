@@ -24,7 +24,12 @@ if (!document._keyboardHandler) {
     if (e.key !== 'Escape') return;
 
     // Inline rename always wins
-    if (renamingDashboardId !== null || renamingCategoryId !== null) {
+    const isRenamingIdentitySafe =
+    typeof isRenamingIdentity !== 'undefined' && isRenamingIdentity === true;
+
+    if (renamingDashboardId !== null ||
+        renamingCategoryId !== null ||
+        isRenamingIdentitySafe) {
       e.preventDefault();
       e.stopPropagation();
       return;
