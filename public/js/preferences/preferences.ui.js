@@ -166,13 +166,22 @@ function isPreferencesOpen() {
 }
 
 // Open button
-preferencesButton?.addEventListener('click', openPreferences);
+if (preferencesButton && !preferencesButton._wired) {
+  preferencesButton._wired = true;
+  preferencesButton.addEventListener('click', openPreferences);
+}
 
 // Close via X
-closeButton?.addEventListener('click', closePreferences);
+if (closeButton && !closeButton._wired) {
+  closeButton._wired = true;
+  closeButton.addEventListener('click', closePreferences);
+}
 
 // ---------- Panel switching ----------
 navItems?.forEach(button => {
+  if (button._wired) return;
+  button._wired = true;
+
   button.addEventListener('click', () => {
     const panelName = button.dataset.panel;
 
@@ -194,7 +203,8 @@ navItems?.forEach(button => {
 // BEHAVIOR PREFERENCES UI
 // ======================================================================
 
-if (autoCloseCheckbox) {
+if (autoCloseCheckbox && !autoCloseCheckbox._wired) {
+  autoCloseCheckbox._wired = true;
   autoCloseCheckbox.addEventListener('change', () => {
     autoCloseDropdowns = autoCloseCheckbox.checked;
     userPreferences.behavior.autoCloseDropdowns = autoCloseDropdowns;
@@ -202,17 +212,19 @@ if (autoCloseCheckbox) {
   });
 }
 
-if (openLinksCheckbox) {
-// Persist preference + re-render dashboard on change
-openLinksCheckbox.addEventListener('change', () => {
-  userPreferences.behavior.openLinksInNewTab =
-    openLinksCheckbox.checked;
+if (openLinksCheckbox && !openLinksCheckbox._wired) {
+  openLinksCheckbox._wired = true;
+  
+  // Persist preference + re-render dashboard on change
+  openLinksCheckbox.addEventListener('change', () => {
+    userPreferences.behavior.openLinksInNewTab =
+      openLinksCheckbox.checked;
 
-  PreferencesService.save(userPreferences);
+    PreferencesService.save(userPreferences);
 
-  // Re-render so link targets update immediately
-  renderCategories(pageCategories);
-});
+    // Re-render so link targets update immediately
+    renderCategories(pageCategories);
+  });
 }
 
 // ======================================================================
@@ -546,30 +558,45 @@ if (resetDashboardBtn) {
   });
 }
 
-importSystemOverlay?.addEventListener('mousedown', (e) => {
-  if (e.target !== importSystemOverlay) return;
+if (importSystemOverlay && !importSystemOverlay._wired) {
+  importSystemOverlay._wired = true;
+  importSystemOverlay.addEventListener('mousedown', (e) => {
+    if (e.target !== importSystemOverlay) return;
 
-  // Prevent click from bubbling to Preferences overlay
-  e.preventDefault();
-  e.stopPropagation();
+    // Prevent click from bubbling to Preferences overlay
+    e.preventDefault();
+    e.stopPropagation();
+    closeImportSystem();
+  });
+};
 
-  closeImportSystem();
-});
+if (importSystemClose && !importSystemClose._wired) {
+  importSystemClose._wired = true;
+  importSystemClose.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeImportSystem();
+  });
+};
 
-importSystemClose?.addEventListener('click', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  closeImportSystem();
-});
+if (importSystemCancel && !importSystemCancel._wired) {
+  importSystemCancel._wired = true;
+  importSystemCancel.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeImportSystem();
+  });
+};
 
-importSystemCancel?.addEventListener('click', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  closeImportSystem();
-});
+if (importPreviewClose && !importPreviewClose._wired) {
+  importPreviewClose._wired = true;
+  importPreviewClose.addEventListener('click', closeImportPreview);
+}
 
-importPreviewClose?.addEventListener('click', closeImportPreview);
-importPreviewCancel?.addEventListener('click', closeImportPreview);
+if (importPreviewCancel && !importPreviewCancel._wired) {
+  importPreviewCancel._wired = true;
+  importPreviewCancel.addEventListener('click', closeImportPreview);
+}
 
 // ======================================================================
 // MISC UI HELPERS
@@ -588,12 +615,14 @@ document.documentElement.classList.add('bg-visible');
   });
 });
 
-document.getElementById('settings-button')?.addEventListener('click', syncThemeRadios);
+const settingsBtn = document.getElementById('settings-button');
 
-document
-  .getElementById('settings-button')
-  ?.addEventListener('click', () => {
+if (settingsBtn && !settingsBtn._wiredExtra) {
+  settingsBtn._wiredExtra = true;
+
+  settingsBtn.addEventListener('click', () => {
+    syncThemeRadios();
     syncThemeCards();
     syncBackgroundCards();
-  }
-);
+  });
+}
