@@ -1,4 +1,4 @@
-# WebDash - v0.6.7
+# WebDash - v0.6.8
 A self-hosted, configurable dashboard for organizing services, links, and systems in one place.
 
 WebDash is designed to be easy to deploy, easy to customize, and fully self-hosted. It works well on local machines, home servers, NAS devices, and small VPS setups.
@@ -92,6 +92,29 @@ WebDash does not include authentication by default<br>
 Intended for trusted or private networks<br>
 If exposed publicly, a reverse proxy with authentication is strongly recommended
 
+## Versioning
+
+WebDash follows a semantic versioning–inspired format:
+
+MAJOR.MINOR.PATCH
+
+Example: v0.6.8
+
+### Version Components
+
+- MAJOR  
+  Increased when there are breaking changes or major redesigns that may require manual adjustments or migration.
+
+- MINOR  
+  Increased when new features or significant improvements are added in a backwards-compatible way.
+
+- PATCH  
+  Increased for bug fixes, small improvements, or minor adjustments that do not change functionality.
+
+
+## Project Status
+WebDash is stable and usable, with ongoing improvements planned.
+Bug reports and feature ideas are welcome via GitHub Issues.
 
 ## AI Disclosure
 
@@ -112,6 +135,3 @@ Commercial use is not permitted without explicit permission.
 Contributions are welcome.
 Please keep pull requests focused and avoid introducing heavy dependencies.
 
-## Project Status
-WebDash is stable and usable, with ongoing improvements planned.
-Bug reports and feature ideas are welcome via GitHub Issues.
