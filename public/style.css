@@ -1817,6 +1817,7 @@ li.dashboard-internal {
   background: var(--bg-control-hover);
 }
 
+.theme-preview.theme-system    {background: linear-gradient(90deg, #ffffff 50%, #1a1a1a 50%);}
 .theme-preview.theme-dark      { background: #121212; }
 .theme-preview.theme-light     { background: #ffffff; }
 .theme-preview.theme-midnight  { background: #0e1320; }
@@ -3369,4 +3370,25 @@ button,
 .modal-overlay.pre-open .modal-container {
   transform: scale(0.97) translateY(6px);
   opacity: 0;
+}
+
+body.dashboard-loading {
+  cursor: progress;
+}
+
+body.dashboard-loading .dashboard-item {
+  opacity: 0.6;
+}
+
+.layout-dashboard.is-dragging, .layout-category.is-dragging, .layout-item.is-dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+.layout-dashboard.drag-over-top, .layout-category.drag-over-top, .layout-item.drag-over-top {
+  border-top: 2px solid rgba(255,255,255,0.4);
+}
+
+.layout-dashboard.drag-over-bottom, .layout-category.drag-over-bottom, .layout-item.drag-over-bottom {
+  border-bottom: 2px solid rgba(255,255,255,0.4);
 }

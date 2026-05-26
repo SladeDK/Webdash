@@ -204,6 +204,7 @@ function syncIdentityInputState() {
 
 function getCurrentTheme() {
   const themes = [
+    'system',
     'theme-dark',
     'theme-light',
     'theme-midnight',
@@ -332,13 +333,21 @@ function syncThemeRadios() {
 }
 
 function syncThemeCards() {
+  const savedTheme = userPreferences.appearance.theme;
   const activeTheme = getCurrentTheme();
 
   themeCards.forEach(card => {
-    card.classList.toggle(
-      'active',
-      card.dataset.theme === activeTheme
-    );
+    let isActive = false;
+
+    if (savedTheme === 'system') {
+      // Only system card is active
+      isActive = card.dataset.theme === 'system';
+    } else {
+      // Only direct match
+      isActive = card.dataset.theme === activeTheme;
+    }
+
+    card.classList.toggle('active', isActive);
   });
 }
 

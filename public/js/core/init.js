@@ -461,6 +461,36 @@ async function initApp() {
 
   setLifecyclePhase(LifecyclePhase.PREFERENCES_LOADED);
 
+  // Ensure theme + UI state are synced
+  let theme = userPreferences?.appearance?.theme;
+  let background = userPreferences?.appearance?.background;
+
+  let themeInvalid = false;
+  let backgroundInvalid = false;
+
+  // Validate theme
+  if (!isValidTheme(theme)) {
+    theme = 'system';
+    themeInvalid = true;
+  }
+
+  // Validate background
+  if (!isValidBackground(background)) {
+    background = 'bg-plain';
+    backgroundInvalid = true;
+  }
+
+  // Apply (independent)
+  changeTheme(theme);
+  changeBackground(background);
+
+  // Persist ONLY if something was fixed
+  if (themeInvalid || backgroundInvalid) {
+    userPreferences.appearance.theme = theme;
+    userPreferences.appearance.background = background;
+    await PreferencesService.save(userPreferences);
+  }
+
   initSyncAppearanceBehavior();
   ensureIdentityDefaults();
   applyIdentityToUI();
@@ -471,11 +501,41 @@ async function initApp() {
   // Apply visual preferences immediately
   applyDashboardAppearance();
 
-  // Ensure theme + UI state are synced
-  const initialTheme =
-    userPreferences?.appearance?.theme ?? 'system';
+  // Toasts (independent)
+  if (themeInvalid) {
+    showToast({
+      title: 'Theme reset',
+      lines: [
+        'The existing theme value is invalid',
+        `The theme defaulted to "System"`
+      ],
+      type: 'error',
+      duration: 5000
+    });
+  }
 
-  changeTheme(initialTheme);
+  if (backgroundInvalid) {
+    showToast({
+      title: 'Background reset',
+      lines: [
+        'The existing background value is invalid',
+        `The background defaulted to "Plain"`
+      ],
+      type: 'error',
+      duration: 5000
+    });
+  }
+
+  if (!window._themeMediaListenerAdded) {
+    window._themeMediaListenerAdded = true;
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (userPreferences.appearance.theme === 'system') {
+        changeTheme('system');
+        syncThemeCards();
+      }
+    });
+  }
 
   if (openLinksCheckbox) {
     openLinksCheckbox.checked =

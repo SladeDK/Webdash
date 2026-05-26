@@ -549,6 +549,9 @@ function renderDashboardList() {
     }
 
     btn.addEventListener('click', async () => {
+      // Prevent double click while switching
+      if (document.body.classList.contains('dashboard-loading')) return;
+
       // Immediate feedback
       updateActiveDashboardUI(id);
 
