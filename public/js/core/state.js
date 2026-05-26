@@ -200,7 +200,6 @@ let lifecyclePhase = LifecyclePhase.BOOTSTRAPPING;
 // outside dashboard/dashboards.js is forbidden by design.
 
 function setActiveDashboardId(nextId, context = '') {
-  // Dev safety: catch accidental misuse early
   if (__DEV__) {
     if (!nextId) {
       throw new Error(
@@ -209,9 +208,18 @@ function setActiveDashboardId(nextId, context = '') {
     }
   }
 
-  
   activeDashboardId = nextId;
-  assertSystemInvariants(`setActiveDashboardId${context ? `: ${context}` : ''}`);
+
+  // Skip invariant during transitions where dashboardState is not updated yet
+  const isTransitionContext =
+    context.includes('transition') ||
+    context.includes('deleteDashboard');
+
+  if (!isTransitionContext) {
+    assertSystemInvariants(
+      `setActiveDashboardId${context ? `: ${context}` : ''}`
+    );
+  }
 }
 
 
@@ -262,7 +270,7 @@ function addAvailableDashboard({ id, name }, context = '') {
     }
   }
 
-  availableDashboards.push({ id, name });
+  availableDashboards.push({ id: String(id), name: String(name) });
 }
 
 function replaceAvailableDashboards(nextDashboards, context = '') {

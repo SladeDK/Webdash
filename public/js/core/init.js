@@ -31,21 +31,6 @@ const SystemTransitionType = Object.freeze({
 
 let importWarnings = [];
 
-// Enumerations / static lists
-const BACKGROUNDS = [
-  'bg-plain',
-  'bg-gradient',
-  'bg-focus',
-  'bg-glass',
-  'bg-dotted',
-  'bg-webbed',
-  'bg-triangle-gradient',
-  'bg-triangle-subtle',
-  'bg-hex',
-  'bg-topo',
-  'bg-circuit',
-];
-
 // =====================================================
 // Default state & templates
 // =====================================================
@@ -874,40 +859,6 @@ try {
 // - Import must NOT bypass invariants
 // - initApp() MUST be called after import
 // =====================================================
-
-function validateSystemImport(payload) {
-  if (!payload || typeof payload !== 'object') {
-    throw new Error('Invalid import file');
-  }
-
-  if (payload.schemaVersion !== 2) {
-    throw new Error(
-      `Unsupported import schema version: ${payload.schemaVersion}`
-    );
-  }
-
-  if (payload.type !== 'system') {
-    throw new Error('Import file is not a system backup');
-  }
-
-  if (!Array.isArray(payload.dashboards)) {
-    throw new Error('Invalid dashboards array');
-  }
-
-  if (!payload.meta ||
-      typeof payload.meta.activeDashboardId !== 'string' ||
-      typeof payload.meta.defaultDashboardId !== 'string'
-  ) {
-    throw new Error('Invalid dashboard metadata');
-  }
-
-  if (!payload.preferences ||
-      !payload.preferences.appearance ||
-      !payload.preferences.behavior
-  ) {
-    throw new Error('Invalid preferences section');
-  }
-}
 
 function mergeItems(localItems = [], importedItems = []) {
   const localById = new Map(localItems.map(item => [item.id, item]));

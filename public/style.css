@@ -3372,10 +3372,6 @@ button,
   opacity: 0;
 }
 
-body.dashboard-loading {
-  cursor: progress;
-}
-
 body.dashboard-loading .dashboard-item {
   opacity: 0.6;
 }

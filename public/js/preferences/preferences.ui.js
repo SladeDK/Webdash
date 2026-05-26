@@ -547,7 +547,7 @@ if (importDashboardBtn && importDashboardFile) {
     try {
       const text = await file.text();
       const payload = JSON.parse(text);
-      validateSystemImport(payload);
+      validateSystemImportPayload(payload);
       openImportSystemModal(payload);
     } catch (err) {
       console.error('[WebDash] Import failed:', err);

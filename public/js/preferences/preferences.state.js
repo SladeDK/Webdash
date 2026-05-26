@@ -287,7 +287,7 @@ function changeTheme(theme) {
 function setActiveBackground(bg) {
   const root = document.documentElement;
 
-  const currentBg = BACKGROUNDS.find(b =>
+  const currentBg = VALID_BACKGROUNDS.find(b =>
     root.classList.contains(b)
   );
 
@@ -351,7 +351,7 @@ function syncThemeCards() {
 }
 
 function syncBackgroundCards() {
-  const activeBg = BACKGROUNDS.find(bg =>
+  const activeBg = VALID_BACKGROUNDS.find(bg =>
     document.documentElement.classList.contains(bg)
   );
 

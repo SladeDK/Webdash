@@ -73,7 +73,11 @@ const DashboardService = {
 const PreferencesService = {
   async load() {
     const res = await fetch('/api/preferences');
-    return res.ok ? await res.json() : null;
+
+    if (!res.ok) return null;
+
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
   },
 
   async save(prefs) {
@@ -120,17 +124,23 @@ function deleteCookie(name) {
 const SHARED_PREFS_COOKIE = 'webdash_shared_prefs';
 
 function extractSharedPreferences(prefs) {
+  const appearance = prefs?.appearance || {};
+  const behavior = prefs?.behavior || {};
+
   return {
     appearance: {
-      theme: prefs.appearance.theme,
-      background: prefs.appearance.background
+      theme: appearance.theme,
+      background: appearance.background
     },
-    behavior: { ...prefs.behavior }
+    behavior: { ...behavior }
   };
 }
 
 function applySharedPreferences(targetPrefs, sharedPrefs) {
   if (!sharedPrefs) return;
+
+  if (!targetPrefs.appearance) targetPrefs.appearance = {};
+  if (!targetPrefs.behavior) targetPrefs.behavior = {};
 
   if (sharedPrefs.appearance) {
     targetPrefs.appearance.theme =
@@ -144,6 +154,7 @@ function applySharedPreferences(targetPrefs, sharedPrefs) {
     targetPrefs.behavior = { ...sharedPrefs.behavior };
   }
 }
+
 // =====================================
 // Unified user preferences
 // =====================================

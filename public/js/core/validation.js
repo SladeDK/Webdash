@@ -2,25 +2,37 @@
 // Appearance validators
 // =========================================
 
+const VALID_THEMES = [
+  'system',
+  'theme-dark',
+  'theme-light',
+  'theme-midnight',
+  'theme-slate',
+  'theme-nord',
+  'theme-carbon',
+  'theme-glass'
+];
+
+const VALID_BACKGROUNDS = [
+	'bg-plain',
+	'bg-gradient',
+	'bg-focus',
+	'bg-glass',
+	'bg-dotted',
+	'bg-webbed',
+	'bg-triangle-gradient',
+	'bg-triangle-subtle',
+	'bg-hex',
+	'bg-topo',
+	'bg-circuit'
+];
+
 function isValidTheme(theme) {
-  if (typeof theme !== 'string') return false;
-  return (
-    theme === 'system' ||
-    [
-      'theme-dark',
-      'theme-light',
-      'theme-midnight',
-      'theme-slate',
-      'theme-nord',
-      'theme-carbon',
-      'theme-glass'
-    ].includes(theme)
-  );
+  return typeof theme === 'string' && VALID_THEMES.includes(theme);
 }
 
 function isValidBackground(bg) {
-  if (typeof bg !== 'string') return false;
-  return BACKGROUNDS.includes(bg);
+  return typeof bg === 'string' && VALID_BACKGROUNDS.includes(bg);
 }
 
 function validateAppearance(prefs) {
@@ -58,10 +70,12 @@ function validateButtonInput({ label, url, existingItems, currentItemId }) {
   if (!label) {
     errors.label = 'Button name is required.';
   } else {
-    const duplicateName = existingItems.some(item =>
-      item.label.toLowerCase() === label.toLowerCase() &&
-      item.id !== currentItemId
-    );
+		const items = Array.isArray(existingItems) ? existingItems : [];
+
+		const duplicateName = items.some(item =>
+			item.label.toLowerCase() === label.toLowerCase() &&
+			item.id !== currentItemId
+		);
 
     if (duplicateName) {
       errors.label = 'A button with this name already exists.';
@@ -103,4 +117,42 @@ function validateButtonInput({ label, url, existingItems, currentItemId }) {
     errors,
     normalizedUrl
   };
+}
+
+// =====================================================
+// Validate system import structure and content
+// =====================================================
+
+function validateSystemImportPayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid import file');
+  }
+
+  if (payload.schemaVersion !== 2) {
+    throw new Error(
+      `Unsupported import schema version: ${payload.schemaVersion}`
+    );
+  }
+
+  if (payload.type !== 'system') {
+    throw new Error('Import file is not a system backup');
+  }
+
+  if (!Array.isArray(payload.dashboards)) {
+    throw new Error('Invalid dashboards array');
+  }
+
+  if (!payload.meta ||
+      typeof payload.meta.activeDashboardId !== 'string' ||
+      typeof payload.meta.defaultDashboardId !== 'string'
+  ) {
+    throw new Error('Invalid dashboard metadata');
+  }
+
+  if (!payload.preferences ||
+      !payload.preferences.appearance ||
+      !payload.preferences.behavior
+  ) {
+    throw new Error('Invalid preferences section');
+  }
 }
