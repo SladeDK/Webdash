@@ -234,12 +234,14 @@ async function processDashboardReorderQueue() {
 
 function queueDashboardReorderSave() {
 
-  // Ensure no stale order values remain
+  // Remove transient order field from runtime state (not part of source of truth)
   availableDashboards.forEach(d => {
-    if ('order' in d) delete d.order;
+    if (typeof d.order !== 'undefined') {
+      delete d.order;
+    }
   });
 
-  // Always capture the latest state
+  // Backend order is always derived from index
   pendingDashboardReorder = availableDashboards.map((d, index) => ({
     id: d.id,
     order: index
@@ -302,6 +304,7 @@ async function reorderDashboardsAdvanced(sourceId, targetId, insertBefore) {
   // Sync UI controls
   syncDefaultDashboardSelector();
   syncLayoutDashboardSelector();
+  renderDashboardList();
 
   // Persist order (derived from index only)
   queueDashboardReorderSave();
@@ -335,18 +338,16 @@ async function createAndSwitchDashboard({ id, name }) {
   // set active dashboard
   setActiveDashboardId(id, 'createAndSwitchDashboard');
 
-  availableDashboards = normalizeDashboardOrder(availableDashboards);
+  // Normalize order immediately after adding
+  const normalized = availableDashboards.map((d, index) => ({
+    ...d,
+    order: index
+  }));
 
-  await fetch('/api/dashboards/reorder', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(
-      availableDashboards.map((d, index) => ({
-        id: d.id,
-        order: index
-      }))
-    )
-  });
+  replaceAvailableDashboards(normalized, 'createAndSwitchDashboard');
+
+  // Sync order to backend (single source of truth)
+  queueDashboardReorderSave();
 
   // Identity transaction
   await commitPrehydratedDashboard(id, 'createAndSwitchDashboard');
@@ -428,15 +429,12 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
     defaultDashboardId = remainingDashboards[0].id;
   }
 
-  replaceAvailableDashboards(
-    remainingDashboards,
-    'deleteDashboard'
-  );
-  
-  // CRITICAL: normalize structure (like working version)
-  availableDashboards.forEach((d, i) => {
-    d.order = i;
-  });
+  const normalized = remainingDashboards.map((d, index) => ({
+    ...d,
+    order: index
+  }));
+
+  replaceAvailableDashboards(normalized, 'deleteDashboard');
 
   // Ensure backend is updated with new order
   queueDashboardReorderSave();
@@ -498,6 +496,10 @@ async function renameDashboardDisplayName(dashboardId, newName) {
   // Keep active dashboard state in sync
   if (dashboardState && dashboardState.id === dashboardId) {
     dashboardState.name = trimmed;
+
+    if (dashboardState.identity) {
+      dashboardState.identity.name = trimmed;
+    }
   }
 
   renamingDashboardId = null;
@@ -506,6 +508,7 @@ async function renameDashboardDisplayName(dashboardId, newName) {
   syncLayoutDashboardSelector();
   renderDashboardManagementPanel();
   renderDashboardList();
+  await finalizeActiveDashboardChange();
 }
 
 // ======================================================================

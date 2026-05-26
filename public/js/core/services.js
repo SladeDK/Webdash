@@ -15,8 +15,11 @@ const DashboardService = {
     // Ensure order is always preserved before saving
     const meta = availableDashboards.find(d => d.id === dashboardState.id);
 
-    if (meta && typeof meta.order === 'number') {
-      dashboardState.order = meta.order;
+    // Preserve existing order if present in backend
+    const existing = availableDashboards.find(d => d.id === dashboardState.id);
+
+    if (existing && typeof existing.order === 'number') {
+      dashboardState.order = existing.order;
     }
 
     await fetch('/api/dashboard', {

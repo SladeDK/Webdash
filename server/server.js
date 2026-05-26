@@ -89,7 +89,13 @@ app.get('/api/dashboard', (req, res) => {
 
 app.post('/api/dashboard', (req, res) => {
   const data = readStorage();
-  data.dashboards[data.activeDashboardId] = req.body;
+  const existing = data.dashboards[data.activeDashboardId] || {};
+
+  data.dashboards[data.activeDashboardId] = {
+    ...req.body,
+    order: existing.order ?? req.body.order ?? 0
+  };
+  
   writeStorage(data);
   res.sendStatus(204);
 });
@@ -234,12 +240,19 @@ app.post('/api/dashboards/:id/rename', (req, res) => {
 });
 
 app.post('/api/dashboards/reorder', (req, res) => {
-  const updates = req.body; // [{ id, order }]
+  const updates = req.body; // [{ id }]
   const data = readStorage();
 
-  updates.forEach(({ id, order }) => {
+  updates.forEach(({ id }, index) => {
     if (data.dashboards[id]) {
-      data.dashboards[id].order = order;
+      data.dashboards[id].order = index;
+    }
+  });
+
+  // Ensure no dashboard is missing order
+  Object.keys(data.dashboards).forEach((id, index) => {
+    if (typeof data.dashboards[id].order !== 'number') {
+      data.dashboards[id].order = index;
     }
   });
 
