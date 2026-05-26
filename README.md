@@ -1,4 +1,4 @@
-# WebDash - v0.6.18
+# WebDash - v0.6.19
 A self-hosted, configurable dashboard for organizing services, links, and systems in one place.
 
 WebDash is designed to be easy to deploy, easy to customize, and fully self-hosted. It works well on local machines, home servers, NAS devices, and small VPS setups.

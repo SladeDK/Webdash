@@ -390,51 +390,6 @@ function renderImportPreview(plan) {
 // IMPORT NORMALIZATION HELPERS (local, runtime-safe)
 // ======================================================================
 
-function isValidTheme(theme) {
-  if (typeof theme !== 'string') return false;
-  return (
-    theme === 'system' ||
-    [
-      'theme-dark',
-      'theme-light',
-      'theme-midnight',
-      'theme-slate',
-      'theme-nord',
-      'theme-carbon',
-      'theme-glass'
-    ].includes(theme)
-  );
-}
-
-function isValidBackground(bg) {
-  if (typeof bg !== 'string') return false;
-  return BACKGROUNDS.includes(bg);
-}
-
-function validateAppearance(prefs) {
-  const defaults = createDefaultPreferences();
-  const warnings = [];
-
-  // Ensure structure exists
-  if (!prefs.appearance) {
-    prefs.appearance = structuredClone(defaults.appearance);
-  }
-
-  // Validate theme
-  if (!isValidTheme(prefs.appearance.theme)) {
-    prefs.appearance.theme = defaults.appearance.theme;
-    warnings.push('theme');
-  }
-
-  // Validate background
-  if (!isValidBackground(prefs.appearance.background)) {
-    prefs.appearance.background = defaults.appearance.background;
-    warnings.push('background');
-  }
-
-  return { prefs, warnings };
-}
-
 // ======================================================================
 // IMPORT NORMALIZATION & COMPATIBILITY
 // ======================================================================
