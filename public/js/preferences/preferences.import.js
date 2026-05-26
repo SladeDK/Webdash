@@ -411,34 +411,45 @@ function isValidBackground(bg) {
   return BACKGROUNDS.includes(bg);
 }
 
+function validateAppearance(prefs) {
+  const defaults = createDefaultPreferences();
+  const warnings = [];
+
+  // Ensure structure exists
+  if (!prefs.appearance) {
+    prefs.appearance = structuredClone(defaults.appearance);
+  }
+
+  // Validate theme
+  if (!isValidTheme(prefs.appearance.theme)) {
+    prefs.appearance.theme = defaults.appearance.theme;
+    warnings.push('theme');
+  }
+
+  // Validate background
+  if (!isValidBackground(prefs.appearance.background)) {
+    prefs.appearance.background = defaults.appearance.background;
+    warnings.push('background');
+  }
+
+  return { prefs, warnings };
+}
+
 // ======================================================================
 // IMPORT NORMALIZATION & COMPATIBILITY
 // ======================================================================
 
 function normalizeImportedPreferences(prefs) {
-  const defaults = createDefaultPreferences();
-  const warnings = [];
+  const result = validateAppearance(prefs);
 
-  if (!prefs.appearance) {
-    prefs.appearance = {};
+  // Ensure behavior still exists
+  if (!result.prefs.behavior) {
+    result.prefs.behavior = structuredClone(createDefaultPreferences().behavior);
   }
 
-  if (!isValidTheme(prefs.appearance.theme)) {
-    warnings.push('theme');
-    prefs.appearance.theme = defaults.appearance.theme;
-  }
-
-  if (!isValidBackground(prefs.appearance.background)) {
-    warnings.push('background');
-    prefs.appearance.background = defaults.appearance.background;
-  }
-
-  if (!prefs.behavior) {
-    prefs.behavior = structuredClone(defaults.behavior);
-  }
-
-  return { prefs, warnings };
+  return result;
 }
+
 
 // ======================================================================
 // IMPORT / PREVIEW MODALS
@@ -614,6 +625,18 @@ function showImportSuccess(summary) {
       lines: [
         'The import file contained an invalid theme.',
         'Theme was reset to the system default.'
+      ],
+      type: 'error',
+      duration: 5000
+    });
+  }
+
+  if (importWarnings?.includes('background')) {
+    showToast({
+      title: 'Import notice',
+      lines: [
+        'The import file contained an invalid background.',
+        'Background was reset to the default.'
       ],
       type: 'error',
       duration: 5000

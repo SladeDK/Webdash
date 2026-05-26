@@ -461,39 +461,22 @@ async function initApp() {
 
   setLifecyclePhase(LifecyclePhase.PREFERENCES_LOADED);
 
-  // Ensure theme + UI state are synced
-  let theme = userPreferences?.appearance?.theme;
-  let background = userPreferences?.appearance?.background;
+  // Validate and fix appearance preferences
+  const result = validateAppearance(userPreferences);
+  userPreferences = result.prefs;
 
-  let themeInvalid = false;
-  let backgroundInvalid = false;
+  // Track warnings for toast logic
+  const themeInvalid = result.warnings.includes('theme');
+  const backgroundInvalid = result.warnings.includes('background');
 
-  // Validate theme
-  if (!isValidTheme(theme)) {
-    theme = 'system';
-    themeInvalid = true;
-  }
-
-  // Validate background
-  if (!isValidBackground(background)) {
-    background = 'bg-plain';
-    backgroundInvalid = true;
+  // Persist ONLY if fixes were applied
+  if (themeInvalid || backgroundInvalid) {
+    await PreferencesService.save(userPreferences);
   }
 
   // Apply (independent)
-  changeTheme(theme);
-  changeBackground(background);
-
-  // Sync UI state 
-  syncThemeCards();
-  syncBackgroundCards();
-
-  // Persist ONLY if something was fixed
-  if (themeInvalid || backgroundInvalid) {
-    userPreferences.appearance.theme = theme;
-    userPreferences.appearance.background = background;
-    await PreferencesService.save(userPreferences);
-  }
+  changeTheme(userPreferences.appearance.theme);
+  changeBackground(userPreferences.appearance.background);
 
   initSyncAppearanceBehavior();
   ensureIdentityDefaults();
