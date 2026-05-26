@@ -302,9 +302,7 @@ async function reorderDashboardsAdvanced(sourceId, targetId, insertBefore) {
   }
 
   // Sync UI controls
-  syncDefaultDashboardSelector();
-  syncLayoutDashboardSelector();
-  renderDashboardList();
+  syncDashboardUI();
 
   // Persist order (derived from index only)
   queueDashboardReorderSave();
@@ -353,9 +351,7 @@ async function createAndSwitchDashboard({ id, name }) {
   await commitPrehydratedDashboard(id, 'createAndSwitchDashboard');
 
   // UI bookkeeping (not identity)
-  syncLayoutDashboardSelector();
-  syncDefaultDashboardSelector();
-  renderDashboardList();
+  syncDashboardUI();
   renderDashboardManagementPanel();
 }
 
@@ -439,10 +435,8 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
   // Ensure backend is updated with new order
   queueDashboardReorderSave();
 
-  syncDefaultDashboardSelector();
-  syncLayoutDashboardSelector();
+  syncDashboardUI();
   renderDashboardManagementPanel();
-  renderDashboardList();
 
   // await finalizeActiveDashboardChange();
 
@@ -504,16 +498,20 @@ async function renameDashboardDisplayName(dashboardId, newName) {
 
   renamingDashboardId = null;
 
-  syncDefaultDashboardSelector();
-  syncLayoutDashboardSelector();
+  syncDashboardUI();
   renderDashboardManagementPanel();
-  renderDashboardList();
   await finalizeActiveDashboardChange();
 }
 
 // ======================================================================
 // Dashboard Rendering
 // ======================================================================
+
+function syncDashboardUI() {
+  syncDefaultDashboardSelector();
+  syncLayoutDashboardSelector();
+  renderDashboardList();
+}
 
 function updateActiveDashboardUI(dashboardId) {
   const buttons = document.querySelectorAll('.dashboard-item');
