@@ -334,7 +334,6 @@ function syncThemeRadios() {
 
 function syncThemeCards() {
   const savedTheme = userPreferences.appearance.theme;
-  const activeTheme = getCurrentTheme();
 
   themeCards.forEach(card => {
     let isActive = false;
@@ -344,7 +343,7 @@ function syncThemeCards() {
       isActive = card.dataset.theme === 'system';
     } else {
       // Only direct match
-      isActive = card.dataset.theme === activeTheme;
+      isActive = card.dataset.theme === savedTheme;
     }
 
     card.classList.toggle('active', isActive);

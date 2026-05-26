@@ -484,6 +484,10 @@ async function initApp() {
   changeTheme(theme);
   changeBackground(background);
 
+  // Sync UI state 
+  syncThemeCards();
+  syncBackgroundCards();
+
   // Persist ONLY if something was fixed
   if (themeInvalid || backgroundInvalid) {
     userPreferences.appearance.theme = theme;
@@ -620,8 +624,12 @@ function applyDashboardAppearance() {
 
   if (syncOn) {
     // Global appearance
-    setActiveTheme(userPreferences.appearance.theme);
-    setActiveBackground(userPreferences.appearance.background);
+    if (isValidTheme(userPreferences.appearance.theme)) {
+      setActiveTheme(userPreferences.appearance.theme);
+    }
+    if (isValidBackground(userPreferences.appearance.background)) {
+      setActiveBackground(userPreferences.appearance.background);
+    }
     return;
   }
 
