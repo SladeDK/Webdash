@@ -203,18 +203,7 @@ function syncIdentityInputState() {
 // ======================================================================
 
 function getCurrentTheme() {
-  const themes = [
-    'system',
-    'theme-dark',
-    'theme-light',
-    'theme-midnight',
-    'theme-slate',
-    'theme-nord',
-    'theme-carbon',
-    'theme-glass'
-  ];
-
-  return themes.find(t =>
+  return VALID_THEMES.find(t =>
     document.documentElement.classList.contains(t)
   );
 }
@@ -327,6 +316,8 @@ function changeBackground(bg) {
 
 function syncThemeRadios() {
   const activeTheme = getCurrentTheme();
+  if (!themeRadios) return;
+
   themeRadios.forEach(radio => {
     radio.checked = radio.value === activeTheme;
   });
@@ -335,6 +326,8 @@ function syncThemeRadios() {
 function syncThemeCards() {
   const savedTheme = userPreferences.appearance.theme;
 
+  
+  if (!themeCards) return;
   themeCards.forEach(card => {
     let isActive = false;
 
@@ -355,6 +348,8 @@ function syncBackgroundCards() {
     document.documentElement.classList.contains(bg)
   );
 
+  
+  if (!backgroundCards) return;
   backgroundCards.forEach(card => {
     card.classList.toggle(
       'active',

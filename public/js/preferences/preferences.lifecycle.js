@@ -29,7 +29,7 @@ if (!mediaQuery._wired) {
   mediaQuery._wired = true;
 
   mediaQuery.addEventListener('change', () => {
-    const savedTheme = localStorage.getItem(THEME_KEY);
+    const savedTheme = userPreferences?.appearance?.theme;
     if (savedTheme === 'system') {
       setActiveTheme('system');
     }

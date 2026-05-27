@@ -422,7 +422,10 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
   if (dashboardId === defaultDashboardId) {
     // At this point, a new default MUST exist
     // Prefer the first remaining dashboard
-    defaultDashboardId = remainingDashboards[0].id;
+    setDefaultDashboardId(
+      remainingDashboards[0].id,
+      'deleteDashboard (fallback default)'
+    );
   }
 
   const normalized = remainingDashboards.map((d, index) => ({
@@ -437,10 +440,6 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
 
   syncDashboardUI();
   renderDashboardManagementPanel();
-
-  // await finalizeActiveDashboardChange();
-
-  // pendingDefaultDeletionId = null;
 
   assertSystemInvariants('after deleteDashboard');
   showToast({

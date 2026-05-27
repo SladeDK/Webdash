@@ -266,8 +266,9 @@ if (identityNameInput && !identityNameInput._wiredFocus) {
 
 // Keyboard shortcuts
 if (identityNameInput && !identityNameInput._wiredKeydown) {
+  identityNameInput._wiredKeydown = true;
+
   identityNameInput.addEventListener('keydown', (e) => {
-    identityNameInput._wiredKeydown = true;
     if (!isRenamingIdentity) return;
 
     if (e.key === 'Enter') {
@@ -282,17 +283,18 @@ if (identityNameInput && !identityNameInput._wiredKeydown) {
       cancelIdentityRename();
     }
   });
-};
+}
+
 
 // Cancel rename when clicking outside (blur)
 if (identityNameInput && !identityNameInput._wiredBlur) {
-  identityNameInput.addEventListener('blur', () => {
-    identityNameInput._wiredBlur = true;
-    if (!isRenamingIdentity) return;
+  identityNameInput._wiredBlur = true;
 
+  identityNameInput.addEventListener('blur', () => {
+    if (!isRenamingIdentity) return;
     cancelIdentityRename();
   });
-};
+}
 
 if (identityIconWrapper && identityIconInput) {
   identityIconWrapper.addEventListener('click', () => {
