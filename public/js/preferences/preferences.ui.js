@@ -75,6 +75,26 @@ let isRenamingIdentity = false;
 let pendingIdentityName = '';
 
 // ======================================================================
+// UI Utilities
+// ======================================================================
+
+// Prevents double-clicking async actions (e.g. buttons)
+function guardAsync(fn) {
+  let running = false;
+
+  return async (...args) => {
+    if (running) return;
+    running = true;
+
+    try {
+      await fn(...args);
+    } finally {
+      running = false;
+    }
+  };
+}
+
+// ======================================================================
 // Register Import UI Context (Dependency Injection)
 // ======================================================================
 
@@ -528,11 +548,10 @@ themeCards.forEach(card => {
 // IMPORT / PREVIEW UI WIRING
 // ======================================================================
 
+const safeExportSystem = guardAsync(exportSystem);
 
 if (exportDashboardBtn) {
-  exportDashboardBtn.addEventListener('click', () => {
-    exportSystem();
-  });
+  exportDashboardBtn.addEventListener('click', safeExportSystem);
 }
 
 
@@ -566,6 +585,11 @@ if (importDashboardBtn && importDashboardFile) {
   });
 }
 
+const safeResetDashboard = guardAsync(async () => {
+  await resetDashboard();
+  closePreferences();
+});
+
 if (resetDashboardBtn) {
   resetDashboardBtn.addEventListener('click', () => {
     openConfirm({
@@ -573,10 +597,7 @@ if (resetDashboardBtn) {
       message:
         `This will reset the dashboard "${dashboardState?.name ?? 'Dashboard'}" back to the default dashboard layout.\n\nAll categories, buttons, and the dashboard identity will be restored to their original defaults.\n\nThis action cannot be undone.`,
       confirmLabel: 'Reset',
-      onConfirm: () => {
-        resetDashboard();
-        closePreferences();
-      }
+      onConfirm: safeResetDashboard
     });
   });
 }

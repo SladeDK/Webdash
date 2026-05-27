@@ -21,7 +21,24 @@
 // This file contains all destructive and high-impact operations.
 //
 
+// ======================================================================
+// Import Utilities
+// ======================================================================
 
+function guardAsync(fn) {
+  let running = false;
+
+  return async (...args) => {
+    if (running) return;
+    running = true;
+
+    try {
+      await fn(...args);
+    } finally {
+      running = false;
+    }
+  };
+}
 
 // ======================================================================
 // Import UI context (injected by preferences.ui.js)
@@ -444,7 +461,7 @@ function openImportSystemModal(payload) {
     return;
   }
 
-  confirmBtn.onclick = async () => {
+  const safeImportConfirm = guardAsync(async () => {
     const mode =
       overlay.querySelector('input[name="import-mode"]:checked')?.value ??
       IMPORT_MODE.MERGE;
@@ -457,13 +474,16 @@ function openImportSystemModal(payload) {
 
     openImportPreviewModal(plan, async () => {
       closeImportSystemModal();
+
       if (plan.type === SystemTransitionType.IMPORT_OVERWRITE) {
         await overwriteSystemImport(payload, replacePreferences);
       } else {
         await mergeSystemImport(payload, replacePreferences);
       }
     });
-  };
+  });
+
+  confirmBtn.onclick = safeImportConfirm;
 }
 
 function closeImportSystemModal() {
@@ -500,10 +520,12 @@ function openImportPreviewModal(changePlan, onConfirm) {
     focusFirstFocusableElement(previewOverlay);
   });
 
-  previewConfirm.onclick = async () => {
+  const safePreviewConfirm = guardAsync(async () => {
     closeImportPreviewModal();
     await onConfirm?.();
-  };
+  });
+
+  previewConfirm.onclick = safePreviewConfirm;
 }
 
 function closeImportPreviewModal() {
