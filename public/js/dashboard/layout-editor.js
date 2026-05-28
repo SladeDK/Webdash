@@ -113,12 +113,20 @@ function getItemsByIds(ids) {
     .filter(Boolean);
 }
 
+function getItemsFromCurrentDashboard(ids) {
+  const allItems = pageCategories.flatMap(cat => cat.items);
+
+  return ids
+    .map(id => allItems.find(item => item.id === id))
+    .filter(Boolean);
+}
+
 function renderQuickAccess(container) {
   const favorites = userPreferences?.behavior?.favorites || [];
   const recents = userPreferences?.behavior?.recents || [];
 
-  const favoriteItems = getItemsByIds(favorites);
-  const recentItems = getItemsByIds(recents);
+  const favoriteItems = getItemsFromCurrentDashboard(favorites);
+  const recentItems = getItemsFromCurrentDashboard(recents);
 
   // If nothing → don't render
   if (favoriteItems.length === 0 && recentItems.length === 0) return;
