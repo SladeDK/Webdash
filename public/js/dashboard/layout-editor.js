@@ -106,49 +106,19 @@ function getAllItems() {
   return pageCategories.flatMap(category => category.items);
 }
 
-let cachedGlobalItems = null;
-
-async function getAllItemsAcrossDashboards() {
-  if (cachedGlobalItems) return cachedGlobalItems;
-
-  const originalActiveId = activeDashboardId;
-  const seen = new Map();
-
-  for (const { id } of availableDashboards) {
-    await DashboardService.setActiveDashboardId(id);
-    const state = await DashboardService.load();
-
-    if (state?.categories) {
-      state.categories.forEach(category => {
-        category.items.forEach(item => {
-          if (!seen.has(item.id)) {
-            seen.set(item.id, item);
-          }
-        });
-      });
-    }
-  }
-
-  await DashboardService.setActiveDashboardId(originalActiveId);
-
-  cachedGlobalItems = Array.from(seen.values());
-  return cachedGlobalItems;
-}
-
-async function getItemsByIds(ids) {
-  const allItems = await getAllItemsAcrossDashboards();
-
+function getItemsByIds(ids) {
+  const allItems = getAllItems();
   return ids
     .map(id => allItems.find(item => item.id === id))
     .filter(Boolean);
 }
 
-async function renderQuickAccess(container) {
+function renderQuickAccess(container) {
   const favorites = userPreferences?.behavior?.favorites || [];
   const recents = userPreferences?.behavior?.recents || [];
 
-  const favoriteItems = await getItemsByIds(favorites);
-  const recentItems = await getItemsByIds(recents);
+  const favoriteItems = getItemsByIds(favorites);
+  const recentItems = getItemsByIds(recents);
 
   // If nothing → don't render
   if (favoriteItems.length === 0 && recentItems.length === 0) return;
@@ -227,14 +197,14 @@ function createQARow(icon, items) {
   return row;
 }
 
-async function renderCategories(categories) {
+function renderCategories(categories) {
   if (!appReady) return;
   const container = document.querySelector('.categories');
   if (!container) return;
 
   container.innerHTML = '';
-  await renderQuickAccess(container);
-  
+  renderQuickAccess(container);
+
   categories
     .filter(category => category.visible !== false)
     .sort((a, b) => a.order - b.order)
@@ -255,31 +225,6 @@ async function renderCategories(categories) {
         link.href = item.url;
         link.textContent = item.label;
         link.dataset.itemId = item.id;
-        
-        link.addEventListener('click', (event) => {
-          // Left click only
-          if (event.button === 0) {
-            addToRecents(item.id);
-
-            // Delay re-render so navigation is not interrupted
-            setTimeout(() => {
-              renderCategories(pageCategories);
-            }, 0);
-          }
-        });
-
-        link.addEventListener('auxclick', (event) => {
-          // Middle click
-          if (event.button === 1) {
-            addToRecents(item.id);
-
-            // No need to re-render immediately (tab opens anyway)
-            setTimeout(() => {
-              renderCategories(pageCategories);
-            }, 0);
-          }
-        });
-
         
         link.addEventListener('click', (event) => {
           // Left click only
@@ -391,17 +336,6 @@ function buildLayoutEditorDOM(container, categories) {
                 `
               }
 
-              <div class="item-actions">              
-                <button 
-                  type="button" 
-                  class="icon-button favorite-item-btn" 
-                  data-item-id="${item.id}"
-                  title="Toggle favorite"
-                >
-                  ${userPreferences?.behavior?.favorites?.includes(item.id)
-                    ? '<i class="fa-solid fa-star"></i>'
-                    : '<i class="fa-regular fa-star"></i>'}
-                </button>
               <div class="item-actions">              
                 <button 
                   type="button" 
@@ -554,20 +488,6 @@ function wireLayoutEditorActions(container) {
     button.onclick = () => {
       const categoryId = button.dataset.categoryId;
       deleteCategory(categoryId);
-    };
-  });
-
-  container.querySelectorAll('.favorite-item-btn').forEach(button => {
-    button.onclick = async () => {
-      const itemId = button.dataset.itemId;
-
-      await toggleFavorite(itemId);
-
-      // Re-render editor to update icon
-      renderLayoutEditor(pageCategories);
-
-      // Re-render main dashboard to update sticky section
-      renderCategories(pageCategories);
     };
   });
 
