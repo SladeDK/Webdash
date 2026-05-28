@@ -10,6 +10,7 @@
 // Editor state & constants
 // =====================================================
 
+let globalItemIndex = new Map();
 const SCROLL_ZONE  = 60;  // px from edge that triggers scrolling
 const SCROLL_SPEED = 10;  // px per frame at full speed
 
@@ -119,6 +120,26 @@ function getItemsFromCurrentDashboard(ids) {
   return ids
     .map(id => allItems.find(item => item.id === id))
     .filter(Boolean);
+}
+
+async function rebuildGlobalItemIndex() {
+  const map = new Map();
+
+  const dashboards = await DashboardService.listDashboards();
+
+  for (const { id } of dashboards) {
+    const state = await DashboardService.loadDashboardById(id);
+
+    if (!state || !state.categories) continue;
+
+    for (const category of state.categories) {
+      for (const item of category.items) {
+        map.set(item.id, item);
+      }
+    }
+  }
+
+  globalItemIndex = map;
 }
 
 function renderQuickAccess(container) {
