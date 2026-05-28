@@ -280,6 +280,31 @@ async function renderCategories(categories) {
           }
         });
 
+        
+        link.addEventListener('click', (event) => {
+          // Left click only
+          if (event.button === 0) {
+            addToRecents(item.id);
+
+            // Delay re-render so navigation is not interrupted
+            setTimeout(() => {
+              renderCategories(pageCategories);
+            }, 0);
+          }
+        });
+
+        link.addEventListener('auxclick', (event) => {
+          // Middle click
+          if (event.button === 1) {
+            addToRecents(item.id);
+
+            // No need to re-render immediately (tab opens anyway)
+            setTimeout(() => {
+              renderCategories(pageCategories);
+            }, 0);
+          }
+        });
+
         if (userPreferences.behavior.openLinksInNewTab) {
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
@@ -366,6 +391,17 @@ function buildLayoutEditorDOM(container, categories) {
                 `
               }
 
+              <div class="item-actions">              
+                <button 
+                  type="button" 
+                  class="icon-button favorite-item-btn" 
+                  data-item-id="${item.id}"
+                  title="Toggle favorite"
+                >
+                  ${userPreferences?.behavior?.favorites?.includes(item.id)
+                    ? '<i class="fa-solid fa-star"></i>'
+                    : '<i class="fa-regular fa-star"></i>'}
+                </button>
               <div class="item-actions">              
                 <button 
                   type="button" 
@@ -518,6 +554,20 @@ function wireLayoutEditorActions(container) {
     button.onclick = () => {
       const categoryId = button.dataset.categoryId;
       deleteCategory(categoryId);
+    };
+  });
+
+  container.querySelectorAll('.favorite-item-btn').forEach(button => {
+    button.onclick = async () => {
+      const itemId = button.dataset.itemId;
+
+      await toggleFavorite(itemId);
+
+      // Re-render editor to update icon
+      renderLayoutEditor(pageCategories);
+
+      // Re-render main dashboard to update sticky section
+      renderCategories(pageCategories);
     };
   });
 
