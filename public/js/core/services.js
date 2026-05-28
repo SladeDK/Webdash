@@ -68,6 +68,14 @@ const DashboardService = {
       body: JSON.stringify({ dashboardId })
     });
   },
+
+  async loadDashboardById(dashboardId) {
+    const res = await fetch(`/api/dashboards/${dashboardId}`);
+
+    if (!res.ok) return null;
+
+    return await res.json();
+  },
 };
 
 const PreferencesService = {

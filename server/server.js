@@ -268,6 +268,19 @@ app.post('/api/dashboards/reorder', (req, res) => {
   res.sendStatus(204);
 });
 
+app.get('/api/dashboards/:id', (req, res) => {
+  const data = readStorage();
+  const { id } = req.params;
+
+  const dashboard = data.dashboards[id];
+
+  if (!dashboard || dashboard.id !== id) {
+    return res.status(404).send('Dashboard not found');
+  }
+
+  res.json(dashboard);
+});
+
 // ------------------------------------------------------------------
 // Start server (ONLY ONCE)
 // ------------------------------------------------------------------
