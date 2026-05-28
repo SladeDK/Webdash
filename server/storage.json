@@ -1,7 +1,7 @@
 {
   "dashboards": {
-    "dashboard-1779266166674": {
-      "id": "dashboard-1779266166674",
+    "dashboard-1779963276103": {
+      "id": "dashboard-1779963276103",
       "name": "WebDash",
       "identity": {
         "name": "WebDash",
@@ -31,15 +31,11 @@
           ]
         }
       ],
-      "order": 0,
-      "appearance": {
-        "theme": "system",
-        "background": "bg-plain"
-      }
+      "order": 0
     }
   },
-  "activeDashboardId": "dashboard-1779266166674",
-  "defaultDashboardId": "dashboard-1779266166674",
+  "activeDashboardId": "dashboard-1779963276103",
+  "defaultDashboardId": "dashboard-1779963276103",
   "preferences": {
     "appearance": {
       "theme": "system",

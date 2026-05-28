@@ -31,9 +31,9 @@ if (!fs.existsSync(STORAGE_FILE)) {
     STORAGE_FILE,
     JSON.stringify(
       {
-        dashboards: { default: null },
-        activeDashboardId: "default",
-        defaultDashboardId: "default",
+        dashboards: {},
+        activeDashboardId: null,
+        defaultDashboardId: null,
         preferences: null
       },
       null,
@@ -59,17 +59,17 @@ function readStorage() {
     return raw
       ? JSON.parse(raw)
       : {
-          dashboards: { default: null },
-          activeDashboardId: "default",
-          defaultDashboardId: "default",
+          dashboards: {},
+          activeDashboardId: null,
+          defaultDashboardId: null,
           preferences: null
         };
   } catch (err) {
     console.error("Storage read failed, resetting:", err);
     return {
-      dashboards: { default: null },
-      activeDashboardId: "default",
-      defaultDashboardId: "default",
+      dashboards: {},
+      activeDashboardId: null,
+      defaultDashboardId: null,
       preferences: null
     };
   }
@@ -84,6 +84,8 @@ function writeStorage(data) {
 // ------------------------------------------------------------------
 app.get('/api/dashboard', (req, res) => {
   const data = readStorage();
+  console.log('[DEBUG] activeDashboardId:', data.activeDashboardId);  
+  console.log('[DEBUG] dashboards keys:', Object.keys(data.dashboards));
   res.json(data.dashboards[data.activeDashboardId]);
 });
 
@@ -188,7 +190,13 @@ app.post('/api/dashboards', (req, res) => {
 
   // Create dashboard WITH order
   data.dashboards[dashboardId] = {
-    ...(dashboardData ?? { categories: [] }),
+    id: dashboardId,
+    name: dashboardData?.name ?? "WebDash",
+    identity: {
+      name: dashboardData?.name ?? "WebDash",
+      icon: "/assets/webdash-logo.png"
+    },
+    categories: dashboardData?.categories ?? [],
     order: nextOrder
   };
 
