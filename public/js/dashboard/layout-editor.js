@@ -102,12 +102,108 @@ async function reorderCategoriesAdvanced(sourceId, targetId, insertBefore) {
 // Dashboard rendering (non-editor view)
 // =====================================================
 
+function getAllItems() {
+  return pageCategories.flatMap(category => category.items);
+}
+
+function getItemsByIds(ids) {
+  const allItems = getAllItems();
+  return ids
+    .map(id => allItems.find(item => item.id === id))
+    .filter(Boolean);
+}
+
+function renderQuickAccess(container) {
+  const favorites = userPreferences?.behavior?.favorites || [];
+  const recents = userPreferences?.behavior?.recents || [];
+
+  const favoriteItems = getItemsByIds(favorites);
+  const recentItems = getItemsByIds(recents);
+
+  // If nothing → don't render
+  if (favoriteItems.length === 0 && recentItems.length === 0) return;
+
+  const section = document.createElement('section');
+  section.className = 'quick-access';
+
+  // Title
+  const title = document.createElement('h2');
+  title.className = 'qa-title';
+  title.textContent = 'Quick Access';
+
+  section.appendChild(title);
+
+  // Favorites row
+  if (favoriteItems.length > 0) {
+    const favRow = createQARow('<i class="fa-solid fa-star"></i>', favoriteItems);
+    favRow.classList.add('qa-favorites');
+    section.appendChild(favRow);
+  }
+
+  // Recents row
+  if (recentItems.length > 0) {
+    const recRow = createQARow('<i class="fa-solid fa-clock-rotate-left"></i>', recentItems);
+    recRow.classList.add('qa-recents');
+    section.appendChild(recRow);
+  }
+
+  container.appendChild(section);
+}
+
+function createQARow(icon, items) {
+  const row = document.createElement('div');
+  row.className = 'qa-row';
+
+  const iconEl = document.createElement('span');
+  iconEl.className = 'qa-icon';
+  iconEl.innerHTML = icon;
+
+  const itemsContainer = document.createElement('div');
+  itemsContainer.className = 'qa-items';
+
+  items.forEach(item => {
+    const link = document.createElement('a');
+    link.href = item.url;
+    link.textContent = item.label;
+
+    // reuse button style
+    link.className = 'qa-button';
+
+    link.addEventListener('click', (event) => {
+      if (event.button === 0) {
+        addToRecents(item.id);
+        setTimeout(() => renderCategories(pageCategories), 0);
+      }
+    });
+
+    link.addEventListener('auxclick', (event) => {
+      if (event.button === 1) {
+        addToRecents(item.id);
+        setTimeout(() => renderCategories(pageCategories), 0);
+      }
+    });
+
+    if (userPreferences.behavior.openLinksInNewTab) {
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    }
+
+    itemsContainer.appendChild(link);
+  });
+
+  row.appendChild(iconEl);
+  row.appendChild(itemsContainer);
+
+  return row;
+}
+
 function renderCategories(categories) {
   if (!appReady) return;
   const container = document.querySelector('.categories');
   if (!container) return;
 
   container.innerHTML = '';
+  renderQuickAccess(container);
 
   categories
     .filter(category => category.visible !== false)
@@ -129,6 +225,31 @@ function renderCategories(categories) {
         link.href = item.url;
         link.textContent = item.label;
         link.dataset.itemId = item.id;
+        
+        link.addEventListener('click', (event) => {
+          // Left click only
+          if (event.button === 0) {
+            addToRecents(item.id);
+
+            // Delay re-render so navigation is not interrupted
+            setTimeout(() => {
+              renderCategories(pageCategories);
+            }, 0);
+          }
+        });
+
+        link.addEventListener('auxclick', (event) => {
+          // Middle click
+          if (event.button === 1) {
+            addToRecents(item.id);
+
+            // No need to re-render immediately (tab opens anyway)
+            setTimeout(() => {
+              renderCategories(pageCategories);
+            }, 0);
+          }
+        });
+
         if (userPreferences.behavior.openLinksInNewTab) {
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
@@ -215,7 +336,17 @@ function buildLayoutEditorDOM(container, categories) {
                 `
               }
 
-              <div class="item-actions">
+              <div class="item-actions">              
+                <button 
+                  type="button" 
+                  class="icon-button favorite-item-btn" 
+                  data-item-id="${item.id}"
+                  title="Toggle favorite"
+                >
+                  ${userPreferences?.behavior?.favorites?.includes(item.id)
+                    ? '<i class="fa-solid fa-star"></i>'
+                    : '<i class="fa-regular fa-star"></i>'}
+                </button>
                 <button type="button" class="icon-button rename-item-btn" data-item-id="${item.id}">
                   <i class="fa-solid fa-pen-to-square"></i>
                 </button>
@@ -357,6 +488,20 @@ function wireLayoutEditorActions(container) {
     button.onclick = () => {
       const categoryId = button.dataset.categoryId;
       deleteCategory(categoryId);
+    };
+  });
+
+  container.querySelectorAll('.favorite-item-btn').forEach(button => {
+    button.onclick = async () => {
+      const itemId = button.dataset.itemId;
+
+      await toggleFavorite(itemId);
+
+      // Re-render editor to update icon
+      renderLayoutEditor(pageCategories);
+
+      // Re-render main dashboard to update sticky section
+      renderCategories(pageCategories);
     };
   });
 

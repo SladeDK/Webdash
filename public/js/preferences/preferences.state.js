@@ -362,7 +362,66 @@ function syncBackgroundCards() {
 // BEHAVIOR PREFERENCES (NON-VISUAL)
 // ======================================================================
 
-// Reserved for future expansion
+// ======================================================================
+// FAVORITES & RECENTS (GLOBAL)
+// ======================================================================
+
+function ensureFavoritesRecentsDefaults() {
+  if (!userPreferences) return;
+
+  if (!userPreferences.behavior) {
+    userPreferences.behavior = {};
+  }
+
+  if (!userPreferences.behavior.favorites) {
+    userPreferences.behavior.favorites = [];
+  }
+
+  if (!userPreferences.behavior.recents) {
+    userPreferences.behavior.recents = [];
+  }
+
+  if (!userPreferences.behavior.recentsLimit) {
+    userPreferences.behavior.recentsLimit = 5;
+  }
+}
+
+async function toggleFavorite(itemId) {
+  ensureFavoritesRecentsDefaults();
+
+  const favorites = userPreferences.behavior.favorites;
+
+  const index = favorites.indexOf(itemId);
+
+  if (index === -1) {
+    favorites.push(itemId);
+  } else {
+    favorites.splice(index, 1);
+  }
+
+  await PreferencesService.save(userPreferences);
+}
+
+async function addToRecents(itemId) {
+  ensureFavoritesRecentsDefaults();
+
+  const recents = userPreferences.behavior.recents;
+  const limit = userPreferences.behavior.recentsLimit;
+
+  const existingIndex = recents.indexOf(itemId);
+
+  if (existingIndex !== -1) {
+    recents.splice(existingIndex, 1);
+  }
+
+  recents.unshift(itemId);
+
+  if (recents.length > limit) {
+    recents.pop();
+  }
+
+  await PreferencesService.save(userPreferences);
+}
 
 // ======================================================================
 // PREFERENCE SYNCHRONIZATION HELPERS
