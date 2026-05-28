@@ -91,10 +91,10 @@ async function exportSystem() {
 
       dashboards.push({
         id: state.id,
-        order: dashboardMeta?.order ?? 0,
+        order: dashboard.order ?? 0,
         identity: {
-          name: state.name,
-          icon: userPreferences?.appearance?.identity?.icon ?? null
+          name: dashboard.identity?.name ?? dashboard.name,
+          icon: dashboard.identity?.icon ?? null
         },
         categories: structuredClone(state.categories)
       });

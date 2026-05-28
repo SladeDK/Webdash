@@ -106,19 +106,49 @@ function getAllItems() {
   return pageCategories.flatMap(category => category.items);
 }
 
-function getItemsByIds(ids) {
-  const allItems = getAllItems();
+let cachedGlobalItems = null;
+
+async function getAllItemsAcrossDashboards() {
+  if (cachedGlobalItems) return cachedGlobalItems;
+
+  const originalActiveId = activeDashboardId;
+  const seen = new Map();
+
+  for (const { id } of availableDashboards) {
+    await DashboardService.setActiveDashboardId(id);
+    const state = await DashboardService.load();
+
+    if (state?.categories) {
+      state.categories.forEach(category => {
+        category.items.forEach(item => {
+          if (!seen.has(item.id)) {
+            seen.set(item.id, item);
+          }
+        });
+      });
+    }
+  }
+
+  await DashboardService.setActiveDashboardId(originalActiveId);
+
+  cachedGlobalItems = Array.from(seen.values());
+  return cachedGlobalItems;
+}
+
+async function getItemsByIds(ids) {
+  const allItems = await getAllItemsAcrossDashboards();
+
   return ids
     .map(id => allItems.find(item => item.id === id))
     .filter(Boolean);
 }
 
-function renderQuickAccess(container) {
+async function renderQuickAccess(container) {
   const favorites = userPreferences?.behavior?.favorites || [];
   const recents = userPreferences?.behavior?.recents || [];
 
-  const favoriteItems = getItemsByIds(favorites);
-  const recentItems = getItemsByIds(recents);
+  const favoriteItems = await getItemsByIds(favorites);
+  const recentItems = await getItemsByIds(recents);
 
   // If nothing → don't render
   if (favoriteItems.length === 0 && recentItems.length === 0) return;
@@ -197,14 +227,14 @@ function createQARow(icon, items) {
   return row;
 }
 
-function renderCategories(categories) {
+async function renderCategories(categories) {
   if (!appReady) return;
   const container = document.querySelector('.categories');
   if (!container) return;
 
   container.innerHTML = '';
-  renderQuickAccess(container);
-
+  await renderQuickAccess(container);
+  
   categories
     .filter(category => category.visible !== false)
     .sort((a, b) => a.order - b.order)
