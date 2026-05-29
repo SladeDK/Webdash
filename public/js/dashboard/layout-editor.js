@@ -146,11 +146,31 @@ function renderQuickAccess(container) {
   const favorites = userPreferences?.behavior?.favorites || [];
   const recents = userPreferences?.behavior?.recents || [];
 
-  const favoriteItems = getItemsFromCurrentDashboard(favorites);
-  const recentItems = getItemsFromCurrentDashboard(recents);
+  const favoriteItems = favorites.length
+    ? favorites
+        .map(id => globalItemIndex.get(id))
+        .filter(Boolean)
+    : [];
+
+  const recentItems = recents.length
+    ? recents
+        .map(id => globalItemIndex.get(id))
+        .filter(Boolean)
+    : [];
+
+  const finalFavoriteItems =
+    favoriteItems.length > 0
+      ? favoriteItems
+      : getItemsFromCurrentDashboard(favorites);
+
+  const finalRecentItems =
+    recentItems.length > 0
+      ? recentItems
+      : getItemsFromCurrentDashboard(recents);
+
 
   // If nothing → don't render
-  if (favoriteItems.length === 0 && recentItems.length === 0) return;
+  if (finalFavoriteItems.length === 0 && finalRecentItems.length === 0) return;
 
   const section = document.createElement('section');
   section.className = 'quick-access';
@@ -163,15 +183,15 @@ function renderQuickAccess(container) {
   section.appendChild(title);
 
   // Favorites row
-  if (favoriteItems.length > 0) {
-    const favRow = createQARow('<i class="fa-solid fa-star"></i>', favoriteItems);
+  if (finalFavoriteItems.length > 0) {
+    const favRow = createQARow('<i class="fa-solid fa-star"></i>', finalFavoriteItems);
     favRow.classList.add('qa-favorites');
     section.appendChild(favRow);
   }
 
   // Recents row
-  if (recentItems.length > 0) {
-    const recRow = createQARow('<i class="fa-solid fa-clock-rotate-left"></i>', recentItems);
+  if (finalRecentItems.length > 0) {
+    const recRow = createQARow('<i class="fa-solid fa-clock-rotate-left"></i>', finalRecentItems);
     recRow.classList.add('qa-recents');
     section.appendChild(recRow);
   }
@@ -253,6 +273,21 @@ function renderCategories(categories) {
         const link = document.createElement('a');
         link.href = item.url;
         link.textContent = item.label;
+
+        // GLOBAL FAVORITES / RECENTS (READ-ONLY)
+        const favorites = userPreferences?.behavior?.favorites ?? [];
+        const recents   = userPreferences?.behavior?.recents ?? [];
+
+        const isFavorite = favorites.includes(item.id);
+        const isRecent   = recents.includes(item.id);
+
+        if (isFavorite) {
+          link.classList.add('is-favorite');
+        }
+
+        if (isRecent) {
+          link.classList.add('is-recent');
+        }
         link.dataset.itemId = item.id;
         
         link.addEventListener('click', (event) => {

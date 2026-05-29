@@ -171,6 +171,7 @@ async function transitionToDashboard(dashboardId, context = '') {
   setActiveDashboardId(dashboardId, context);
 
   // 6. Render UI
+  await rebuildGlobalItemIndex();
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
 

@@ -532,6 +532,8 @@ async function initApp() {
 
   document.body.classList.add('categories-initialized');
 
+  await rebuildGlobalItemIndex();
+
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
   renderDashboardList();
