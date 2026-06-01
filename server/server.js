@@ -84,8 +84,6 @@ function writeStorage(data) {
 // ------------------------------------------------------------------
 app.get('/api/dashboard', (req, res) => {
   const data = readStorage();
-  console.log('[DEBUG] activeDashboardId:', data.activeDashboardId);  
-  console.log('[DEBUG] dashboards keys:', Object.keys(data.dashboards));
   res.json(data.dashboards[data.activeDashboardId]);
 });
 
@@ -266,6 +264,16 @@ app.post('/api/dashboards/reorder', (req, res) => {
 
   writeStorage(data);
   res.sendStatus(204);
+});
+
+app.get('/api/dashboards/full', (req, res) => {
+  const data = readStorage();
+
+  res.json({
+    dashboards: data.dashboards,
+    activeDashboardId: data.activeDashboardId,
+    defaultDashboardId: data.defaultDashboardId
+  });
 });
 
 app.get('/api/dashboards/:id', (req, res) => {

@@ -16,6 +16,7 @@ let lastDashboardDragDirection = null;
 let lastDashboardDragTarget = null;
 let isReorderingDashboards = false;
 let pendingDashboardReorder = null;
+let currentTransitionToken = 0;
 
 // ======================================================================
 // Dashboard invariants (authoritative rules)
@@ -138,15 +139,12 @@ async function commitDashboardChange(context = '') {
 //  * - invariants hold after completion
 
 async function transitionToDashboard(dashboardId, context = '') {
-  // 1. Tell backend which dashboard is active
-  await DashboardService.setActiveDashboardId(dashboardId);
-
-  // 2. Load authoritative dashboard state
-  let newDashboardState = await DashboardService.load();
+  // 1. Load authoritative dashboard state
+  let newDashboardState = await DashboardService.loadDashboardById(dashboardId);
 
   if (!newDashboardState) {
     console.warn(
-      `[WebDash] Dashboard "${dashboardId}" had no state. Recreating default dashboard state.`
+      `[WebDash] Dashboard "${dashboardId}" missing. Recreating default.`
     );
 
     const meta = availableDashboards.find(d => d.id === dashboardId);
@@ -160,9 +158,12 @@ async function transitionToDashboard(dashboardId, context = '') {
     await DashboardService.save(newDashboardState);
   }
 
-  // 3. Hydrate frontend state FIRST
+  // 2. Hydrate frontend state FIRST
   dashboardState = newDashboardState;
   pageCategories = dashboardState.categories;
+
+  // 3. Tell backend which dashboard is active
+  await DashboardService.setActiveDashboardId(dashboardId);
 
   // 4. Apply dashboard-scoped appearance
   applyDashboardAppearance();

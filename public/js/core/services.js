@@ -76,6 +76,14 @@ const DashboardService = {
 
     return await res.json();
   },
+
+  async loadAllDashboards() {
+    const res = await fetch('/api/dashboards/full');
+    if (!res.ok) return {};
+
+    const data = await res.json();
+    return data.dashboards || {};
+  }
 };
 
 const PreferencesService = {

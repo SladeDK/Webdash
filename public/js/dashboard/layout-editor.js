@@ -123,16 +123,13 @@ function getItemsFromCurrentDashboard(ids) {
 }
 
 async function rebuildGlobalItemIndex() {
+  const dashboards = await DashboardService.loadAllDashboards();
   const map = new Map();
 
-  const dashboards = await DashboardService.listDashboards();
+  for (const dashboard of Object.values(dashboards)) {
+    if (!dashboard?.categories) continue;
 
-  for (const { id } of dashboards) {
-    const state = await DashboardService.loadDashboardById(id);
-
-    if (!state || !state.categories) continue;
-
-    for (const category of state.categories) {
+    for (const category of dashboard.categories) {
       for (const item of category.items) {
         map.set(item.id, item);
       }
