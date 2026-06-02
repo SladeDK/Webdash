@@ -284,12 +284,12 @@ if (trackRecentCheckbox && !trackRecentCheckbox._wired) {
     if (!trackRecentCheckbox) return;
 
     trackRecentCheckbox.checked =
-      userPreferences?.behavior?.trackRecent ?? true;
+      userPreferences?.behavior?.trackRecents ?? true;
   }
 
   // Save on change
   trackRecentCheckbox.addEventListener('change', () => {
-    userPreferences.behavior.trackRecent =
+    userPreferences.behavior.trackRecents =
       trackRecentCheckbox.checked;
 
     PreferencesService.save(userPreferences);
@@ -728,10 +728,10 @@ if (settingsBtn && !settingsBtn._wiredExtra) {
 }
 
 function renderQuickAccessFavorites() {
-  ensureFavoritesRecentsDefaults();
+  ensureBehaviorDefaults();
 
-  if (userPreferences.behavior.trackRecent === undefined) {
-    userPreferences.behavior.trackRecent = true;
+  if (userPreferences.behavior.trackRecents === undefined) {
+    userPreferences.behavior.trackRecents = true;
   }
 
   const container =

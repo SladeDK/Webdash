@@ -19,6 +19,23 @@
 //
 
 // ======================================================================
+// Defaults & Constants
+// ======================================================================
+
+const DEFAULT_BEHAVIOR = {
+  favorites: [],
+  recents: [],
+  recentsLimit: 5,
+
+  trackRecents: true,
+  confirmDeleteButtons: true,
+  openLinksInNewTab: true,
+  autoCloseDropdowns: true,
+
+  syncDashboardAppearance: true
+};
+
+// ======================================================================
 // PREFERENCES STATE & PERSISTENCE
 // ======================================================================
 
@@ -366,32 +383,34 @@ function syncBackgroundCards() {
 // FAVORITES & RECENTS (GLOBAL)
 // ======================================================================
 
-function ensureFavoritesRecentsDefaults() {
+function ensureBehaviorDefaults() {
   if (!userPreferences) return;
 
   if (!userPreferences.behavior) {
     userPreferences.behavior = {};
   }
 
-  if (!userPreferences.behavior.favorites) {
-    userPreferences.behavior.favorites = [];
+  const behavior = userPreferences.behavior;
+
+  // migrate old key to new key
+  if (
+    behavior.trackRecent !== undefined &&
+    behavior.trackRecents === undefined
+  ) {
+    behavior.trackRecents = behavior.trackRecent;
+    delete behavior.trackRecent;
   }
 
-  if (!userPreferences.behavior.recents) {
-    userPreferences.behavior.recents = [];
-  }
-
-  if (!userPreferences.behavior.recentsLimit) {
-    userPreferences.behavior.recentsLimit = 5;
-  }
-
-  if (userPreferences.behavior.trackRecent === undefined) {
-    userPreferences.behavior.trackRecent = true;
+  // apply defaults
+  for (const key in DEFAULT_BEHAVIOR) {
+    if (behavior[key] === undefined) {
+      behavior[key] = structuredClone(DEFAULT_BEHAVIOR[key]);
+    }
   }
 }
 
 async function toggleFavorite(itemId) {
-  ensureFavoritesRecentsDefaults();
+  ensureBehaviorDefaults();
 
   const favorites = userPreferences.behavior.favorites;
 
@@ -407,9 +426,9 @@ async function toggleFavorite(itemId) {
 }
 
 async function addToRecents(itemId) {
-  ensureFavoritesRecentsDefaults();
+  ensureBehaviorDefaults();
 
-  if (userPreferences?.behavior?.trackRecent === false) return;
+  if (userPreferences?.behavior?.trackRecents === false) return;
 
   let recents = userPreferences.behavior.recents;
   const limit = userPreferences.behavior.recentsLimit;

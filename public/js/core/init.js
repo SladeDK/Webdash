@@ -95,11 +95,7 @@ function createDefaultPreferences() {
         syncWithDashboard: true
       }
     },
-    behavior: {
-      autoCloseDropdowns: true,
-      openLinksInNewTab: true,
-      syncDashboardAppearance: true,
-    }
+    behavior: {}
   };
 }
 
@@ -398,6 +394,7 @@ async function initApp() {
     dashboardPromise,
     (async () => {
       userPreferences = await PreferencesService.load();
+      ensureBehaviorDefaults();
     })()
   ]);
 
@@ -418,6 +415,8 @@ async function initApp() {
   // ----------------------------------
   if (!userPreferences) {
     userPreferences = createDefaultPreferences();
+
+    ensureBehaviorDefaults();
 
     // Only save if backend returned nothing
     await PreferencesService.save(userPreferences);
@@ -662,6 +661,7 @@ async function applySystemState({
   if (preferences) {
     userPreferences.appearance = structuredClone(preferences.appearance);
     userPreferences.behavior = structuredClone(preferences.behavior);
+    ensureBehaviorDefaults();
 
     // normalize and capture warnings
     const result = normalizeImportedPreferences(userPreferences);
