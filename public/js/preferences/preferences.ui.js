@@ -55,6 +55,7 @@ const panels = preferencesOverlay?.querySelectorAll('.panel');
 const importSystemOverlay = document.getElementById('import-system-overlay');
 
 const openLinksCheckbox = document.getElementById('pref-open-links-new-tab');
+const trackRecentCheckbox = document.getElementById('pref-track-recent');
 const autoCloseCheckbox = document.getElementById('pref-dropdown-autoclose');
 
 const themeRadios = document.querySelectorAll('input[name="pref-theme"]');
@@ -161,6 +162,7 @@ async function openPreferences() {
   await rebuildGlobalItemIndex();
   renderQuickAccessFavorites();
   renderFavoritesManager();
+  syncTrackRecentUI();
 }
 
 // ---------- Close modal ----------
@@ -270,6 +272,29 @@ if (openLinksCheckbox && !openLinksCheckbox._wired) {
     PreferencesService.save(userPreferences);
 
     // Re-render so link targets update immediately
+    renderCategories(pageCategories);
+  });
+}
+
+if (trackRecentCheckbox && !trackRecentCheckbox._wired) {
+  trackRecentCheckbox._wired = true;
+
+  // Set initial state
+  function syncTrackRecentUI() {
+    if (!trackRecentCheckbox) return;
+
+    trackRecentCheckbox.checked =
+      userPreferences?.behavior?.trackRecent ?? true;
+  }
+
+  // Save on change
+  trackRecentCheckbox.addEventListener('change', () => {
+    userPreferences.behavior.trackRecent =
+      trackRecentCheckbox.checked;
+
+    PreferencesService.save(userPreferences);
+
+    // Optional: re-render dashboard to reflect change instantly
     renderCategories(pageCategories);
   });
 }
@@ -704,6 +729,11 @@ if (settingsBtn && !settingsBtn._wiredExtra) {
 
 function renderQuickAccessFavorites() {
   ensureFavoritesRecentsDefaults();
+
+  if (userPreferences.behavior.trackRecent === undefined) {
+    userPreferences.behavior.trackRecent = true;
+  }
+
   const container =
     document.getElementById('quick-access-favorites-list');
 

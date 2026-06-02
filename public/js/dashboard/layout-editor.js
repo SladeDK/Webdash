@@ -197,7 +197,9 @@ function renderQuickAccess(container) {
   }
 
   // Recents row
-  if (finalRecentItems.length > 0) {
+  const trackRecent = userPreferences?.behavior?.trackRecent ?? true;
+
+  if (trackRecent && finalRecentItems.length > 0) {
     const recRow = createQARow(
       '<i class="fa-solid fa-clock-rotate-left"></i>',
       finalRecentItems

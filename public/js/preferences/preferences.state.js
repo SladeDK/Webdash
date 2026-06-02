@@ -384,6 +384,10 @@ function ensureFavoritesRecentsDefaults() {
   if (!userPreferences.behavior.recentsLimit) {
     userPreferences.behavior.recentsLimit = 5;
   }
+
+  if (userPreferences.behavior.trackRecent === undefined) {
+    userPreferences.behavior.trackRecent = true;
+  }
 }
 
 async function toggleFavorite(itemId) {
@@ -404,6 +408,8 @@ async function toggleFavorite(itemId) {
 
 async function addToRecents(itemId) {
   ensureFavoritesRecentsDefaults();
+
+  if (userPreferences?.behavior?.trackRecent === false) return;
 
   let recents = userPreferences.behavior.recents;
   const limit = userPreferences.behavior.recentsLimit;
