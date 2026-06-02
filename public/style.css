@@ -3545,3 +3545,39 @@ body.dashboard-loading .dashboard-item {
 
   border: 1px solid var(--border-color);
 }
+
+/* Optional: slightly tighter spacing within group */
+.modal-nav .nav-group .nav-item {
+  display: block;
+  width: 100%;
+}
+
+.modal-nav .nav-group:not(:first-child)::before {
+  content: "";
+
+  display: block;
+  height: 1px;
+
+  margin: 0.75rem 0 0.5rem;
+
+  background: color-mix(in srgb, var(--border-color) 50%, transparent);
+}
+
+.nav-group-title {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+
+  margin-bottom: 0.35rem;
+  padding-left: 0.25rem;
+
+  letter-spacing: 0.04em;
+}
+
+.nav-group .nav-item {
+  margin-bottom: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.nav-item:hover {
+  background: var(--bg-control-hover);
+}
