@@ -110,7 +110,7 @@ registerImportUI({
 // PREFERENCES MODAL SHELL & NAVIGATION
 // ======================================================================
 
-function openPreferences() {
+async function openPreferences() {
   const overlay = preferencesOverlay;
   if (!overlay) return;
 
@@ -158,6 +158,9 @@ function openPreferences() {
   syncDefaultDashboardSelector();
   syncLayoutDashboardSelector();
   renderDashboardManagementPanel();
+  await rebuildGlobalItemIndex();
+  renderQuickAccessFavorites();
+  renderFavoritesManager();
 }
 
 // ---------- Close modal ----------
@@ -213,6 +216,14 @@ navItems?.forEach(button => {
     if (target) {
       button.classList.add('active');
       target.classList.add('active');
+
+      if (panelName === 'quick-access') {
+        (async () => {
+          await rebuildGlobalItemIndex();
+          renderQuickAccessFavorites();
+          renderFavoritesManager();
+        })();
+      }
     } else {
       console.warn(`Panel panel-${panelName} not found`);
     }
@@ -222,6 +233,22 @@ navItems?.forEach(button => {
 // ======================================================================
 // BEHAVIOR PREFERENCES UI
 // ======================================================================
+
+const recentsLimitInput = document.getElementById('pref-recents-limit');
+
+if (recentsLimitInput && !recentsLimitInput._wired) {
+  recentsLimitInput._wired = true;
+
+  recentsLimitInput.value =
+    userPreferences?.behavior?.recentsLimit ?? 5;
+
+  recentsLimitInput.addEventListener('change', async () => {
+    userPreferences.behavior.recentsLimit =
+      Number(recentsLimitInput.value);
+
+    await PreferencesService.save(userPreferences);
+  });
+}
 
 if (autoCloseCheckbox && !autoCloseCheckbox._wired) {
   autoCloseCheckbox._wired = true;
@@ -672,5 +699,319 @@ if (settingsBtn && !settingsBtn._wiredExtra) {
     syncThemeRadios();
     syncThemeCards();
     syncBackgroundCards();
+  });
+}
+
+function renderQuickAccessFavorites() {
+  ensureFavoritesRecentsDefaults();
+  const container =
+    document.getElementById('quick-access-favorites-list');
+
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const favorites = userPreferences?.behavior?.favorites ?? [];
+
+  if (!favorites.length) {
+    container.innerHTML = '<div class="empty-state">No favorites yet</div>';
+    return;
+  }
+
+  favorites.forEach(id => {
+    let item = globalItemIndex.get(id);
+
+    // Fallback to current dashboard
+    if (!item) {
+      item = pageCategories
+        .flatMap(cat => cat.items)
+        .find(i => i.id === id);
+    }
+
+    if (!item) {
+      const row = document.createElement('div');
+      row.className = 'layout-item missing';
+      row.textContent = '[Missing item]';
+      container.appendChild(row);
+      return;
+    }
+
+    const row = document.createElement('div');
+    row.className = 'layout-item';
+    row.dataset.itemId = id;
+
+    const drag = document.createElement('span');
+    drag.className = 'drag-handle';
+    drag.textContent = '☰';
+
+    const label = document.createElement('span');
+    label.className = 'item-label';
+    label.textContent = item.label;
+
+    const actions = document.createElement('div');
+    actions.className = 'item-actions';
+
+    const star = document.createElement('button');
+    star.className = 'icon-button';
+    star.innerHTML = '<i class="fa-solid fa-star"></i>';
+    star.title = 'Remove from favorites';
+
+    star.onclick = async () => {
+      await toggleFavorite(id);
+      renderQuickAccessFavorites();
+      renderCategories(pageCategories);
+    };
+
+    actions.appendChild(star);
+
+    row.appendChild(drag);
+    row.appendChild(label);
+    row.appendChild(actions);
+
+    container.appendChild(row);
+  });
+
+  setupFavoritesDragAndDrop(container);
+}
+
+function renderFavoritesManager() {
+  let showAll = false;
+  const DEFAULT_VISIBLE = 5;
+
+  const container = document.getElementById('quick-access-manager');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const input = document.createElement('input');
+  input.className = 'quick-access-search';
+  input.id = 'quick-access-search';
+  input.placeholder = 'Search items...';
+
+  // Input row (unchanged)
+  const row = document.createElement('div');
+  row.className = 'setting-row';
+  row.appendChild(input);
+
+  // Create a category container (THIS is what you're missing)
+  const category = document.createElement('div');
+  category.className = 'layout-category';
+
+  // Optional: header label to mirror layout editor
+  const header = document.createElement('div');
+  header.className = 'layout-category-header';
+  const allItemsCount = getAllItemsSafe().length;
+  header.textContent = `All items (${allItemsCount})`;
+
+  // Item container (same as layout editor)
+  const list = document.createElement('div');
+  list.className = 'layout-category-items';
+
+  // Build structure
+  category.appendChild(header);
+  category.appendChild(list);
+
+  container.appendChild(row);
+  container.appendChild(category);
+
+  function getAllItemsSafe() {
+    // Use global index if available
+    if (globalItemIndex && globalItemIndex.size > 0) {
+      return [...globalItemIndex.values()];
+    }
+
+    // Fallback to current dashboard
+    return pageCategories.flatMap(cat => cat.items);
+  }
+
+  function renderList(query = '') {
+    list.innerHTML = '';
+
+    const favorites = userPreferences?.behavior?.favorites ?? [];
+
+    const allItems = getAllItemsSafe()
+      .filter(item => item.label.toLowerCase().includes(query))
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+    const items = showAll
+      ? allItems
+      : allItems.slice(0, DEFAULT_VISIBLE);
+
+
+    if (items.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'No matching items';
+      list.appendChild(empty);
+      return;
+    }
+
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'layout-item';
+
+      const label = document.createElement('span');
+      label.className = 'item-label';
+      label.textContent = item.label;
+
+      const btn = document.createElement('button');
+      btn.className = 'icon-button';
+
+      const isFav = favorites.includes(item.id);
+
+      btn.innerHTML = isFav
+        ? '<i class="fa-solid fa-star"></i>'
+        : '<i class="fa-regular fa-star"></i>';
+
+      btn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+
+      btn.onclick = async () => {
+        await toggleFavorite(item.id);
+
+        renderList(query);
+        renderQuickAccessFavorites();
+        renderCategories(pageCategories);
+      };
+
+      const actions = document.createElement('div');
+      actions.className = 'item-actions';
+
+      actions.appendChild(btn);
+
+      row.appendChild(label);
+      row.appendChild(actions);
+      list.appendChild(row);
+    });
+    // Expand / Collapse toggle
+    if (allItems.length > DEFAULT_VISIBLE) {
+      const toggleRow = document.createElement('div');
+      toggleRow.className = 'layout-item';
+
+      const label = document.createElement('span');
+      label.className = 'item-label';
+      label.textContent = showAll ? 'Show less' : 'Show more';
+
+      const actions = document.createElement('div');
+      actions.className = 'item-actions';
+
+      const btn = document.createElement('button');
+      btn.className = 'icon-button';
+      btn.innerHTML = showAll
+        ? '<i class="fa-solid fa-chevron-up"></i>'
+        : '<i class="fa-solid fa-chevron-down"></i>';
+
+      btn.onclick = () => {
+        showAll = !showAll;
+        renderList(query);
+      };
+
+      actions.appendChild(btn);
+
+      toggleRow.appendChild(label);
+      toggleRow.appendChild(actions);
+      list.appendChild(toggleRow);
+    }
+  }
+
+  input.addEventListener('input', () => {
+    renderList(input.value.toLowerCase());
+  });
+
+  renderList();
+}
+
+function setupFavoritesDragAndDrop(container) {
+  let draggedId = null;
+
+  function clearDragIndicators() {
+    container.querySelectorAll('.layout-item').forEach(el => {
+      el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+    });
+  }
+
+  container.querySelectorAll('.layout-item').forEach(el => {
+    const id = el.dataset.itemId;
+
+    el.draggable = true;
+
+    el.addEventListener('dragstart', () => {
+      draggedId = id;
+      el.classList.add('is-dragging');
+    });
+
+    el.addEventListener('dragend', () => {
+      draggedId = null;
+      el.classList.remove('is-dragging');
+      clearDragIndicators();
+    });
+  });
+
+  container.addEventListener('dragover', (e) => {
+    if (!draggedId) return;
+
+    e.preventDefault();
+
+    const target = e.target.closest('.layout-item');
+
+    container.querySelectorAll(
+      '.layout-item.drag-over, .layout-item.drag-over-top, .layout-item.drag-over-bottom'
+    ).forEach(el => {
+      el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+    });
+
+    if (target && target.dataset.itemId !== draggedId) {
+      const rect = target.getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+
+      if (e.clientY < midpoint) {
+        target.classList.add('drag-over-top');
+      } else {
+        target.classList.add('drag-over-bottom');
+      }
+
+      target.classList.add('drag-over');
+    }
+  });
+
+  container.addEventListener('drop', async (e) => {
+  e.preventDefault();
+
+  if (!draggedId) return;
+
+  const target = e.target.closest('.layout-item');
+  if (!target) return;
+
+  const targetId = target.dataset.itemId;
+  if (!targetId || targetId === draggedId) return;
+
+  const insertBefore = target.classList.contains('drag-over-top');
+
+  const favs = [...userPreferences.behavior.favorites];
+
+  const from = favs.indexOf(draggedId);
+  const to = favs.indexOf(targetId);
+
+  if (from === -1 || to === -1) return;
+
+  const [moved] = favs.splice(from, 1);
+
+  let newIndex = insertBefore ? to : to + 1;
+
+  if (from < newIndex) newIndex--;
+
+  favs.splice(newIndex, 0, moved);
+
+  userPreferences.behavior.favorites = favs;
+
+  await PreferencesService.save(userPreferences);
+
+  // Cleanup visuals
+  container.querySelectorAll(
+    '.layout-item.drag-over, .layout-item.drag-over-top, .layout-item.drag-over-bottom'
+  ).forEach(el => {
+      el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+    });
+
+    renderQuickAccessFavorites();
   });
 }

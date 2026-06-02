@@ -188,6 +188,9 @@
             <button class="nav-item" type="button" data-panel="behavior">
               System Behavior
             </button>
+            <button class="nav-item" type="button" data-panel="quick-access">
+              Quick Access
+            </button>
             <button class="nav-item" type="button" data-panel="layout">
               Dashboard Layout
             </button>
@@ -420,6 +423,38 @@
                     <span class="toggle-track"></span>
                   </span>
                 </label>
+              </fieldset>
+            </div>
+
+            <div class="panel" id="panel-quick-access">
+              <h3>Quick Access</h3>
+              <p>Manage favorites and recent items.</p>
+
+              <!-- RECENTS -->
+              <fieldset class="setting-group">
+                <legend>Recents</legend>
+
+                <label class="setting-row">
+                  <span>Maximum recent items</span>
+                  <input
+                    type="number"
+                    id="pref-recents-limit"
+                    min="1"
+                    max="50"
+                  />
+                </label>
+              </fieldset>
+
+              <!-- FAVORITES -->
+              <fieldset class="setting-group">
+                <legend>Manage favorites</legend>
+
+                <div id="quick-access-favorites-list" class="layout-category-items"></div>
+              </fieldset>
+              <fieldset class="setting-group">
+                <legend>Add favorites</legend>
+                <div id="quick-access-manager"></div>
+
               </fieldset>
             </div>
 

@@ -139,6 +139,13 @@ async function rebuildGlobalItemIndex() {
   globalItemIndex = map;
 }
 
+function removeFromFavorites(itemId) {
+  const favorites = userPreferences?.behavior?.favorites ?? [];
+
+  userPreferences.behavior.favorites =
+    favorites.filter(id => id !== itemId);
+}
+
 function renderQuickAccess(container) {
   const favorites = userPreferences?.behavior?.favorites || [];
   const recents = userPreferences?.behavior?.recents || [];
@@ -165,7 +172,6 @@ function renderQuickAccess(container) {
       ? recentItems
       : getItemsFromCurrentDashboard(recents);
 
-
   // If nothing → don't render
   if (finalFavoriteItems.length === 0 && finalRecentItems.length === 0) return;
 
@@ -181,14 +187,22 @@ function renderQuickAccess(container) {
 
   // Favorites row
   if (finalFavoriteItems.length > 0) {
-    const favRow = createQARow('<i class="fa-solid fa-star"></i>', finalFavoriteItems);
+    const favRow = createQARow(
+      '<i class="fa-solid fa-star"></i>',
+      finalFavoriteItems
+    );
+
     favRow.classList.add('qa-favorites');
     section.appendChild(favRow);
   }
 
   // Recents row
   if (finalRecentItems.length > 0) {
-    const recRow = createQARow('<i class="fa-solid fa-clock-rotate-left"></i>', finalRecentItems);
+    const recRow = createQARow(
+      '<i class="fa-solid fa-clock-rotate-left"></i>',
+      finalRecentItems
+    );
+
     recRow.classList.add('qa-recents');
     section.appendChild(recRow);
   }
@@ -211,10 +225,9 @@ function createQARow(icon, items) {
     const link = document.createElement('a');
     link.href = item.url;
     link.textContent = item.label;
-
-    // reuse button style
     link.className = 'qa-button';
 
+    // Add to recents on click
     link.addEventListener('click', (event) => {
       if (event.button === 0) {
         addToRecents(item.id);
@@ -222,6 +235,7 @@ function createQARow(icon, items) {
       }
     });
 
+    // Middle-click support
     link.addEventListener('auxclick', (event) => {
       if (event.button === 1) {
         addToRecents(item.id);
@@ -229,9 +243,13 @@ function createQARow(icon, items) {
       }
     });
 
+    // Respect user preference
     if (userPreferences.behavior.openLinksInNewTab) {
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
+    } else {
+      link.removeAttribute('target');
+      link.removeAttribute('rel');
     }
 
     itemsContainer.appendChild(link);

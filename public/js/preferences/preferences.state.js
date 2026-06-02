@@ -405,20 +405,21 @@ async function toggleFavorite(itemId) {
 async function addToRecents(itemId) {
   ensureFavoritesRecentsDefaults();
 
-  const recents = userPreferences.behavior.recents;
+  let recents = userPreferences.behavior.recents;
   const limit = userPreferences.behavior.recentsLimit;
 
-  const existingIndex = recents.indexOf(itemId);
+  // Remove existing (dedup)
+  recents = recents.filter(id => id !== itemId);
 
-  if (existingIndex !== -1) {
-    recents.splice(existingIndex, 1);
-  }
-
+  // Add to front
   recents.unshift(itemId);
 
+  // Enforce limit
   if (recents.length > limit) {
-    recents.pop();
+    recents = recents.slice(0, limit);
   }
+
+  userPreferences.behavior.recents = recents;
 
   await PreferencesService.save(userPreferences);
 }
