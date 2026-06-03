@@ -3581,3 +3581,18 @@ body.dashboard-loading .dashboard-item {
 .nav-item:hover {
   background: var(--bg-control-hover);
 }
+
+/* ==================================================== */
+/* ANIMATION OVERRIDE (Should always be the last lines) */
+/* ==================================================== */
+
+.no-animations *,
+.no-animations *::before,
+.no-animations *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* ==================================================== */
+/* ANIMATION OVERRIDE (Should always be the last lines) */
+/* ==================================================== */

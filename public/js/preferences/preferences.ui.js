@@ -26,9 +26,6 @@
 // DOM REFERENCES
 // ======================================================================
 
-const syncAppearanceCheckbox = document.getElementById('pref-sync-dashboard-appearance');
-const syncIdentityCheckbox = document.getElementById('pref-sync-dashboard-identity');
-
 const importSystemClose = document.getElementById('import-system-close');
 const importSystemCancel = document.getElementById('import-system-cancel');
 const importSystemConfirm = document.getElementById('import-system-confirm');
@@ -54,11 +51,6 @@ const panels = preferencesOverlay?.querySelectorAll('.panel');
 
 const importSystemOverlay = document.getElementById('import-system-overlay');
 
-const openLinksCheckbox = document.getElementById('pref-open-links-new-tab');
-const confirmDeleteButtonsCheckbox = document.getElementById('pref-confirm-delete-buttons');
-const trackRecentCheckbox = document.getElementById('pref-track-recent');
-const autoCloseCheckbox = document.getElementById('pref-dropdown-autoclose');
-
 const themeRadios = document.querySelectorAll('input[name="pref-theme"]');
 const themeCards = document.querySelectorAll('.theme-card:not(.bg-card)');
 const backgroundCards = document.querySelectorAll('.bg-card');
@@ -75,6 +67,16 @@ const resetDashboardBtn = document.getElementById('reset-dashboard-btn');
 
 let isRenamingIdentity = false;
 let pendingIdentityName = '';
+
+// DOM references for behavior preference toggles
+const syncAppearanceCheckbox = document.getElementById('pref-sync-dashboard-appearance');
+const syncIdentityCheckbox = document.getElementById('pref-sync-dashboard-identity');
+const openLinksCheckbox = document.getElementById('pref-open-links-new-tab');
+const confirmDeleteButtonsCheckbox = document.getElementById('pref-confirm-delete-buttons');
+const trackRecentCheckbox = document.getElementById('pref-track-recent');
+const autoCloseCheckbox = document.getElementById('pref-dropdown-autoclose');
+const enableAnimationsCheckbox = document.getElementById('pref-enable-animations');
+const storeRecentsCheckbox = document.getElementById('pref-store-recents');
 
 // ======================================================================
 // UI Utilities
@@ -331,6 +333,40 @@ function wireSyncAppearanceBehavior() {
 
       applyDashboardAppearance();
     }
+  });
+}
+
+if (enableAnimationsCheckbox && !enableAnimationsCheckbox._wired) {
+  enableAnimationsCheckbox._wired = true;
+
+  enableAnimationsCheckbox.addEventListener('change', () => {
+    userPreferences.behavior.enableAnimations =
+      enableAnimationsCheckbox.checked;
+
+    PreferencesService.save(userPreferences);
+
+    applyAnimationPreference();
+  });
+}
+
+function applyAnimationPreference() {
+  const enabled =
+    userPreferences?.behavior?.enableAnimations !== false;
+
+  document.documentElement.classList.toggle(
+    'no-animations',
+    !enabled
+  );
+}
+
+if (storeRecentsCheckbox && !storeRecentsCheckbox._wired) {
+  storeRecentsCheckbox._wired = true;
+
+  storeRecentsCheckbox.addEventListener('change', () => {
+    userPreferences.behavior.storeRecentsAcrossReloads =
+      storeRecentsCheckbox.checked;
+
+    PreferencesService.save(userPreferences);
   });
 }
 

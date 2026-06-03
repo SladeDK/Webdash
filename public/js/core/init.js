@@ -398,6 +398,11 @@ async function initApp() {
     })()
   ]);
 
+  if (userPreferences?.behavior?.storeRecentsAcrossReloads === false) {
+    userPreferences.behavior.recents = [];
+    await PreferencesService.save(userPreferences);
+  }
+
   if (dashboardState && Array.isArray(dashboardState.categories)) {
     pageCategories = dashboardState.categories;
   } else {
@@ -463,12 +468,13 @@ async function initApp() {
 
   ensureIdentityDefaults();
   applyIdentityToUI();
-  
+
   syncIdentityInputState();
   document.documentElement.classList.add('identity-ready');
 
   // Apply visual preferences immediately
   applyDashboardAppearance();
+  applyAnimationPreference();
 
   // Toasts (independent)
   if (themeInvalid) {

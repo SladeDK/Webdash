@@ -150,17 +150,28 @@ function renderQuickAccess(container) {
   const favorites = userPreferences?.behavior?.favorites || [];
   const recents = userPreferences?.behavior?.recents || [];
 
-  const favoriteItems = favorites.length
-    ? favorites
-        .map(id => globalItemIndex.get(id))
-        .filter(Boolean)
-    : [];
+  const trackRecents =
+    userPreferences?.behavior?.trackRecents === true;
 
-  const recentItems = recents.length
-    ? recents
-        .map(id => globalItemIndex.get(id))
-        .filter(Boolean)
-    : [];
+  let favoriteItems = [];
+  let recentItems = [];
+
+  try {
+    favoriteItems = favorites.length
+      ? favorites
+          .map(id => globalItemIndex.get(id))
+          .filter(Boolean)
+      : [];
+
+    recentItems = recents.length
+      ? recents
+          .map(id => globalItemIndex.get(id))
+          .filter(Boolean)
+      : [];
+  } catch (err) {
+    console.error('[QA] Failed to resolve items:', err);
+    return;
+  }
 
   const finalFavoriteItems =
     favoriteItems.length > 0
@@ -172,21 +183,22 @@ function renderQuickAccess(container) {
       ? recentItems
       : getItemsFromCurrentDashboard(recents);
 
-  // If nothing → don't render
-  if (finalFavoriteItems.length === 0 && finalRecentItems.length === 0) return;
+  const hasFavorites = finalFavoriteItems.length > 0;
+  const hasRecents = trackRecents && finalRecentItems.length > 0;
+
+  if (!hasFavorites && !hasRecents) {
+    return;
+  }
 
   const section = document.createElement('section');
   section.className = 'quick-access';
 
-  // Title
   const title = document.createElement('h2');
   title.className = 'qa-title';
   title.textContent = 'Quick Access';
-
   section.appendChild(title);
 
-  // Favorites row
-  if (finalFavoriteItems.length > 0) {
+  if (hasFavorites) {
     const favRow = createQARow(
       '<i class="fa-solid fa-star"></i>',
       finalFavoriteItems
@@ -196,10 +208,7 @@ function renderQuickAccess(container) {
     section.appendChild(favRow);
   }
 
-  // Recents row
-  const trackRecents = userPreferences?.behavior?.trackRecents ?? true;
-
-  if (trackRecents && finalRecentItems.length > 0) {
+  if (hasRecents) {
     const recRow = createQARow(
       '<i class="fa-solid fa-clock-rotate-left"></i>',
       finalRecentItems
@@ -263,12 +272,15 @@ function createQARow(icon, items) {
   return row;
 }
 
+
 function renderCategories(categories) {
   if (!appReady) return;
+
   const container = document.querySelector('.categories');
   if (!container) return;
 
   container.innerHTML = '';
+
   renderQuickAccess(container);
 
   categories

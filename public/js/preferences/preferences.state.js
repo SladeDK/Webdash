@@ -26,13 +26,13 @@ const DEFAULT_BEHAVIOR = {
   favorites: [],
   recents: [],
   recentsLimit: 5,
-
   trackRecents: true,
   confirmDeleteButtons: true,
   openLinksInNewTab: true,
   autoCloseDropdowns: true,
-
-  syncDashboardAppearance: true
+  syncDashboardAppearance: true,
+  enableAnimations: true,
+  storeRecentsAcrossReloads: true,
 };
 
 // ======================================================================
@@ -81,6 +81,20 @@ function syncDashboardIdentityUI() {
     userPreferences?.appearance?.identity?.syncWithDashboard !== false;
 }
 
+function syncAnimationsUI() {
+  if (!enableAnimationsCheckbox) return;
+
+  enableAnimationsCheckbox.checked =
+    userPreferences?.behavior?.enableAnimations !== false;
+}
+
+function syncStoreRecentsUI() {
+  if (!storeRecentsCheckbox) return;
+
+  storeRecentsCheckbox.checked =
+    userPreferences?.behavior?.storeRecentsAcrossReloads !== false;
+}
+
 function syncBehaviorUI() {
   syncAutoCloseUI();
   syncOpenLinksUI();
@@ -88,6 +102,8 @@ function syncBehaviorUI() {
   syncConfirmDeleteButtonsUI();
   syncDashboardAppearanceUI();
   syncDashboardIdentityUI();
+  syncAnimationsUI();
+  syncStoreRecentsUI();
 
   if (recentsLimitInput) {
     recentsLimitInput.value =
@@ -364,6 +380,17 @@ function syncBackgroundCards() {
 // ======================================================================
 // FAVORITES & RECENTS (GLOBAL)
 // ======================================================================
+
+function shouldShowQuickAccess() {
+  const hasFavorites =
+    (userPreferences?.behavior?.favorites ?? []).length > 0;
+
+  const hasRecents =
+    userPreferences?.behavior?.trackRecents !== false &&
+    (userPreferences?.behavior?.recents ?? []).length > 0;
+
+  return hasFavorites || hasRecents;
+}
 
 function ensureBehaviorDefaults() {
   if (!userPreferences) return;
