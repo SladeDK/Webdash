@@ -712,9 +712,15 @@ async function handleAppearanceChange({ theme, background }) {
 
   applyDashboardAppearance();
 
-  renderThemeGrid();
-  renderBackgroundGrid();
-  syncThemeRadios();
+  if (theme !== undefined) {
+    updateThemeSelectionUI(theme);
+  }
+
+  if (background !== undefined) {
+    updateBackgroundSelectionUI(background);
+  }
+
+  syncThemeRadios?.();
 
   if (theme !== undefined) {
     updateThemeSelectionUI(theme);

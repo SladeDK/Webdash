@@ -248,19 +248,22 @@ function syncIdentityInputState() {
 // ======================================================================
 
 function updateThemeSelectionUI(theme) {
-  // Theme cards
-  document.querySelectorAll('.theme-card[data-theme]').forEach(btn => {
+  const themeCards = document.querySelectorAll('.theme-card[data-theme]');
+  const dropdownItems = document.querySelectorAll('.theme-item');
+
+  themeCards.forEach(btn => {
     btn.classList.toggle('active', btn.dataset.theme === theme);
   });
 
-  // Dropdown (THIS WAS THE MISSING PART)
-  document.querySelectorAll('.theme-item').forEach(btn => {
+  dropdownItems.forEach(btn => {
     btn.classList.toggle('is-active', btn.dataset.theme === theme);
   });
 }
 
 function updateBackgroundSelectionUI(bg) {
-  document.querySelectorAll('.bg-card').forEach(btn => {
+  const bgCards = document.querySelectorAll('.bg-card');
+
+  bgCards.forEach(btn => {
     btn.classList.toggle('active', btn.dataset.bg === bg);
   });
 }
@@ -272,26 +275,28 @@ function resolveSystemTheme() {
 }
 
 function setActiveTheme(theme) {
-  document.documentElement.classList.add('theme-switching');
+  const root = document.documentElement;
 
   const resolvedTheme = theme === 'system'
     ? resolveSystemTheme()
     : theme;
 
-  document.documentElement.classList.remove(
-    'theme-dark',
-    'theme-light',
-    'theme-midnight',
-    'theme-slate',
-    'theme-nord',
-    'theme-carbon',
-    'theme-glass'
-  );
+  const currentTheme = THEMES.find(t =>
+    root.classList.contains(t.id)
+  )?.id;
 
-  document.documentElement.classList.add(resolvedTheme);
+  if (currentTheme === resolvedTheme) return;
+
+  root.classList.add('theme-switching');
+
+  if (currentTheme) {
+    root.classList.remove(currentTheme);
+  }
+
+  root.classList.add(resolvedTheme);
 
   requestAnimationFrame(() => {
-    document.documentElement.classList.remove('theme-switching');
+    root.classList.remove('theme-switching');
   });
 }
 
