@@ -38,25 +38,34 @@ async function deleteButton(itemId) {
     if (index !== -1) {
       const item = category.items[index];
 
+      async function performDelete() {
+      const latestIndex = category.items.findIndex(
+        i => i.id === itemId
+      );
+
+      if (latestIndex === -1) return;
+
+      category.items.splice(latestIndex, 1);
+
+      // Re-normalize order after deletion
+      category.items.forEach((item, index) => {
+        item.order = index;
+      });
+
+      await commitDashboardChange('deleteItem');
+    }
+
+    if (userPreferences.behavior.confirmDeleteButtons) {
       openConfirm({
         title: 'Delete button',
         message: `Delete button "${item.label}"?\nThis action cannot be undone.`,
         onConfirm: async () => {
-          const latestIndex = category.items.findIndex(
-            i => i.id === itemId
-          );
-          if (latestIndex === -1) return;
-
-          category.items.splice(latestIndex, 1);
-
-          // Re-normalize order after deletion
-          category.items.forEach((item, index) => {
-            item.order = index;
-          });
-
-          await commitDashboardChange('deleteItem'); 
+          await performDelete();
         }
       });
+    } else {
+      await performDelete();
+    }
 
       return;
     }

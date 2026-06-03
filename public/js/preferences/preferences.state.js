@@ -39,57 +39,60 @@ const DEFAULT_BEHAVIOR = {
 // PREFERENCES STATE & PERSISTENCE
 // ======================================================================
 
-function initSyncAppearanceBehavior() {
-  const checkbox =
-    document.getElementById('pref-sync-dashboard-appearance');
+function syncAutoCloseUI() {
+  if (!autoCloseCheckbox) return;
 
-  if (!checkbox || !userPreferences) return;
-
-  // Default ON unless explicitly disabled
-  checkbox.checked =
-    userPreferences.behavior.syncDashboardAppearance !== false;
-
-  // Prevent duplicate listeners
-  if (checkbox._wired) return;
-  checkbox._wired = true;
-
-  checkbox.addEventListener('change', async () => {
-    const enabled = checkbox.checked;
-
-    userPreferences.behavior.syncDashboardAppearance = enabled;
-    await PreferencesService.save(userPreferences);
-
-    // Only propagate when turning ON
-    if (enabled) {
-      await syncAppearanceToAllDashboards();
-    }
-  });
+  autoCloseCheckbox.checked =
+    userPreferences?.behavior?.autoCloseDropdowns ?? true;
 }
 
-function initSyncDashboardIdentityBehavior() {
-  const checkbox = document.getElementById('pref-sync-dashboard-identity');
-  if (!checkbox || !userPreferences) return;
+function syncOpenLinksUI() {
+  if (!openLinksCheckbox) return;
 
-  checkbox.checked =
-    userPreferences.appearance.identity.syncWithDashboard !== false;
+  openLinksCheckbox.checked =
+    userPreferences?.behavior?.openLinksInNewTab ?? true;
+}
 
-  if (checkbox._wired) return;
-  checkbox._wired = true;
+function syncTrackRecentUI() {
+  if (!trackRecentCheckbox) return;
 
-  checkbox.addEventListener('change', async () => {
-    const enabled = checkbox.checked;
-    userPreferences.appearance.identity.syncWithDashboard = enabled;
+  trackRecentCheckbox.checked =
+    userPreferences?.behavior?.trackRecents ?? true;
+}
 
-    if (enabled) {
-      // Force identity to match current dashboard
-      userPreferences.appearance.identity.name =
-        dashboardState?.name ?? 'Dashboard';
-    }
+function syncConfirmDeleteButtonsUI() {
+  if (!confirmDeleteButtonsCheckbox) return;
 
-    await PreferencesService.save(userPreferences);
-    applyIdentityToUI();
-    syncIdentityInputState();
-  });
+  confirmDeleteButtonsCheckbox.checked =
+    userPreferences?.behavior?.confirmDeleteButtons ?? true;
+}
+
+function syncDashboardAppearanceUI() {
+  if (!syncAppearanceCheckbox) return;
+
+  syncAppearanceCheckbox.checked =
+    userPreferences?.behavior?.syncDashboardAppearance !== false;
+}
+
+function syncDashboardIdentityUI() {
+  if (!syncIdentityCheckbox) return;
+
+  syncIdentityCheckbox.checked =
+    userPreferences?.appearance?.identity?.syncWithDashboard !== false;
+}
+
+function syncBehaviorUI() {
+  syncAutoCloseUI();
+  syncOpenLinksUI();
+  syncTrackRecentUI();
+  syncConfirmDeleteButtonsUI();
+  syncDashboardAppearanceUI();
+  syncDashboardIdentityUI();
+
+  if (recentsLimitInput) {
+    recentsLimitInput.value =
+      userPreferences?.behavior?.recentsLimit ?? 5;
+  }
 }
 
 // ======================================================================
@@ -256,31 +259,15 @@ function setActiveTheme(theme) {
 }
 
 function changeTheme(theme) {
+  // ONLY visual application
   setActiveTheme(theme);
-  userPreferences.appearance.theme = theme;
 
-  const syncOn =
-    userPreferences.behavior.syncDashboardAppearance !== false;
-
-  PreferencesService.save(userPreferences);
-
-  if (syncOn) {
-    // Propagate change globally
-    syncAppearanceToAllDashboards();
-  } else if (dashboardState) {
-    // Store locally (future‑safe)
-    dashboardState.appearance = {
-      ...dashboardState.appearance,
-      theme
-    };
-    DashboardService.save(dashboardState);
-  }
-
+  // Sync UI elements
   syncThemeCards();
   syncBackgroundCards();
   syncThemeRadios();
 
-  // Sync dropdown active state
+  // Dropdown state
   document.querySelectorAll('.theme-item').forEach(btn => {
     if (btn.dataset.theme === theme) {
       btn.classList.add('is-active');
@@ -307,52 +294,45 @@ function setActiveBackground(bg) {
 }
 
 function changeBackground(bg) {
+  // ONLY visual application
   setActiveBackground(bg);
-  userPreferences.appearance.background = bg;
 
-  const syncOn =
-    userPreferences.behavior.syncDashboardAppearance !== false;
-
-  PreferencesService.save(userPreferences);
-
-  if (syncOn) {
-    // Propagate change globally
-    syncAppearanceToAllDashboards();
-  } else if (dashboardState) {
-    // Store locally (future‑safe)
-    dashboardState.appearance = {
-      ...dashboardState.appearance,
-      background: bg
-    };
-    DashboardService.save(dashboardState);
-  }
-
+  // Sync UI elements
   syncBackgroundCards();
   syncThemeCards();
 }
 
 function syncThemeRadios() {
-  const activeTheme = getCurrentTheme();
+  const isSyncOn =
+    userPreferences?.behavior?.syncDashboardAppearance !== false;
+
+  const savedTheme = isSyncOn
+    ? userPreferences.appearance.theme
+    : dashboardState?.appearance?.theme ?? userPreferences.appearance.theme;
+
   if (!themeRadios) return;
 
   themeRadios.forEach(radio => {
-    radio.checked = radio.value === activeTheme;
+    radio.checked = radio.value === savedTheme;
   });
 }
 
 function syncThemeCards() {
-  const savedTheme = userPreferences.appearance.theme;
+  const isSyncOn =
+    userPreferences?.behavior?.syncDashboardAppearance !== false;
 
-  
+  const savedTheme = isSyncOn
+    ? userPreferences.appearance.theme
+    : dashboardState?.appearance?.theme ?? userPreferences.appearance.theme;
+
   if (!themeCards) return;
+
   themeCards.forEach(card => {
     let isActive = false;
 
     if (savedTheme === 'system') {
-      // Only system card is active
       isActive = card.dataset.theme === 'system';
     } else {
-      // Only direct match
       isActive = card.dataset.theme === savedTheme;
     }
 
@@ -361,17 +341,19 @@ function syncThemeCards() {
 }
 
 function syncBackgroundCards() {
-  const activeBg = VALID_BACKGROUNDS.find(bg =>
-    document.documentElement.classList.contains(bg)
-  );
+  const isSyncOn =
+    userPreferences?.behavior?.syncDashboardAppearance !== false;
 
-  
+  const activeBg = isSyncOn
+    ? userPreferences.appearance.background
+    : dashboardState?.appearance?.background ?? userPreferences.appearance.background;
+
   if (!backgroundCards) return;
+
   backgroundCards.forEach(card => {
-    card.classList.toggle(
-      'active',
-      card.dataset.bg === activeBg
-    );
+    const isActive = card.dataset.bg === activeBg;
+
+    card.classList.toggle('active', isActive);
   });
 }
 

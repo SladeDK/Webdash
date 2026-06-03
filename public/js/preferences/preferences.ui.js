@@ -55,6 +55,7 @@ const panels = preferencesOverlay?.querySelectorAll('.panel');
 const importSystemOverlay = document.getElementById('import-system-overlay');
 
 const openLinksCheckbox = document.getElementById('pref-open-links-new-tab');
+const confirmDeleteButtonsCheckbox = document.getElementById('pref-confirm-delete-buttons');
 const trackRecentCheckbox = document.getElementById('pref-track-recent');
 const autoCloseCheckbox = document.getElementById('pref-dropdown-autoclose');
 
@@ -162,7 +163,9 @@ async function openPreferences() {
   await rebuildGlobalItemIndex();
   renderQuickAccessFavorites();
   renderFavoritesManager();
-  syncTrackRecentUI();
+
+  // Ensure all settings reflect current preferences
+  syncBehaviorUI();
 }
 
 // ---------- Close modal ----------
@@ -241,9 +244,6 @@ const recentsLimitInput = document.getElementById('pref-recents-limit');
 if (recentsLimitInput && !recentsLimitInput._wired) {
   recentsLimitInput._wired = true;
 
-  recentsLimitInput.value =
-    userPreferences?.behavior?.recentsLimit ?? 5;
-
   recentsLimitInput.addEventListener('change', async () => {
     userPreferences.behavior.recentsLimit =
       Number(recentsLimitInput.value);
@@ -254,6 +254,7 @@ if (recentsLimitInput && !recentsLimitInput._wired) {
 
 if (autoCloseCheckbox && !autoCloseCheckbox._wired) {
   autoCloseCheckbox._wired = true;
+
   autoCloseCheckbox.addEventListener('change', () => {
     autoCloseDropdowns = autoCloseCheckbox.checked;
     userPreferences.behavior.autoCloseDropdowns = autoCloseDropdowns;
@@ -263,29 +264,30 @@ if (autoCloseCheckbox && !autoCloseCheckbox._wired) {
 
 if (openLinksCheckbox && !openLinksCheckbox._wired) {
   openLinksCheckbox._wired = true;
-  
-  // Persist preference + re-render dashboard on change
+
   openLinksCheckbox.addEventListener('change', () => {
     userPreferences.behavior.openLinksInNewTab =
       openLinksCheckbox.checked;
 
     PreferencesService.save(userPreferences);
 
-    // Re-render so link targets update immediately
     renderCategories(pageCategories);
+  });
+}
+
+if (confirmDeleteButtonsCheckbox && !confirmDeleteButtonsCheckbox._wired) {
+  confirmDeleteButtonsCheckbox._wired = true;
+
+  confirmDeleteButtonsCheckbox.addEventListener('change', () => {
+    userPreferences.behavior.confirmDeleteButtons =
+      confirmDeleteButtonsCheckbox.checked;
+
+    PreferencesService.save(userPreferences);
   });
 }
 
 if (trackRecentCheckbox && !trackRecentCheckbox._wired) {
   trackRecentCheckbox._wired = true;
-
-  // Set initial state
-  function syncTrackRecentUI() {
-    if (!trackRecentCheckbox) return;
-
-    trackRecentCheckbox.checked =
-      userPreferences?.behavior?.trackRecents ?? true;
-  }
 
   // Save on change
   trackRecentCheckbox.addEventListener('change', () => {
@@ -299,24 +301,74 @@ if (trackRecentCheckbox && !trackRecentCheckbox._wired) {
   });
 }
 
+function wireSyncAppearanceBehavior() {
+  if (!syncAppearanceCheckbox || syncAppearanceCheckbox._wired) return;
+
+  syncAppearanceCheckbox._wired = true;
+
+  syncAppearanceCheckbox.addEventListener('change', async () => {
+    const enabled = syncAppearanceCheckbox.checked;
+
+    userPreferences.behavior.syncDashboardAppearance = enabled;
+    await PreferencesService.save(userPreferences);
+
+    if (enabled && dashboardState) {
+      // Use current dashboard as source of truth for theme and background overwrite
+      const currentTheme =
+        dashboardState?.appearance?.theme ??
+        userPreferences.appearance.theme;
+
+      const currentBackground =
+        dashboardState?.appearance?.background ??
+        userPreferences.appearance.background;
+
+      userPreferences.appearance.theme = currentTheme;
+      userPreferences.appearance.background = currentBackground;
+
+      await PreferencesService.save(userPreferences);
+
+      await syncAppearanceToAllDashboards();
+
+      applyDashboardAppearance();
+    }
+  });
+}
+
 // ======================================================================
 // IDENTITY UI
 // ======================================================================
 
-if (syncIdentityCheckbox) {
+function wireSyncIdentityBehavior() {
+  if (!syncIdentityCheckbox || syncIdentityCheckbox._wired) return;
+
+  syncIdentityCheckbox._wired = true;
+
   syncIdentityCheckbox.addEventListener('change', async () => {
     const enabled = syncIdentityCheckbox.checked;
 
-    userPreferences.appearance.identity.syncWithDashboard = enabled;
-    await PreferencesService.save(userPreferences);
+    if (!userPreferences.appearance) {
+      userPreferences.appearance = {};
+    }
 
-    // Apply sync immediately when enabling
+    if (!userPreferences.appearance.identity) {
+      userPreferences.appearance.identity = {};
+    }
+
+    userPreferences.appearance.identity.syncWithDashboard = enabled;
+
     if (enabled && dashboardState && dashboardState.identity) {
-      dashboardState.identity.name = dashboardState.name;
+      const syncedName = dashboardState.name ?? 'Dashboard';
+
+      userPreferences.appearance.identity.name = syncedName;
+
+      dashboardState.identity.name = syncedName;
+
       await DashboardService.save(dashboardState);
     }
 
+    await PreferencesService.save(userPreferences);
     applyIdentityToUI();
+    syncIdentityInputState();
   });
 }
 
@@ -564,6 +616,45 @@ function compressImage(file, maxSize = 256, quality = 0.8) {
 // APPEARANCE UI
 // ======================================================================
 
+async function handleAppearanceChange({ theme, background }) {
+  const isSyncOn =
+    userPreferences?.behavior?.syncDashboardAppearance !== false;
+
+  if (isSyncOn) {
+    if (theme !== undefined) {
+      userPreferences.appearance.theme = theme;
+    }
+
+    if (background !== undefined) {
+      userPreferences.appearance.background = background;
+    }
+
+    await PreferencesService.save(userPreferences);
+    await syncAppearanceToAllDashboards();
+  } else {
+    if (!dashboardState.appearance) {
+      dashboardState.appearance = {};
+    }
+
+    if (theme !== undefined) {
+      dashboardState.appearance.theme = theme;
+    }
+
+    if (background !== undefined) {
+      dashboardState.appearance.background = background;
+    }
+
+    await DashboardService.save(dashboardState);
+  }
+
+  applyDashboardAppearance();
+
+  // Sync UI immediately
+  syncThemeCards();
+  syncThemeRadios();
+  syncBackgroundCards();
+}
+
 backgroundCards.forEach(card => {
   if (card._wired) return;
   card._wired = true;
@@ -571,7 +662,8 @@ backgroundCards.forEach(card => {
   card.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    changeBackground(card.dataset.bg);
+
+    handleAppearanceChange({ background: card.dataset.bg });
   });
 });
 
@@ -580,7 +672,7 @@ themeRadios.forEach(radio => {
   radio._wired = true;
 
   radio.addEventListener('change', () => {
-    setActiveTheme(radio.value); // uses existing logic
+    handleAppearanceChange({ theme: radio.value });
     syncThemeRadios();
   });
 });
@@ -592,7 +684,8 @@ themeCards.forEach(card => {
   card.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    changeTheme(card.dataset.theme);
+
+    handleAppearanceChange({ theme: card.dataset.theme });
   });
 });
 
@@ -730,7 +823,7 @@ if (settingsBtn && !settingsBtn._wiredExtra) {
 function renderQuickAccessFavorites() {
   ensureBehaviorDefaults();
 
-  if (userPreferences.behavior.trackRecents === undefined) {
+  if (userPreferences?.behavior?.trackRecents === undefined) {
     userPreferences.behavior.trackRecents = true;
   }
 
@@ -1016,7 +1109,7 @@ function setupFavoritesDragAndDrop(container) {
 
   const insertBefore = target.classList.contains('drag-over-top');
 
-  const favs = [...userPreferences.behavior.favorites];
+  const favs = [...(userPreferences?.behavior?.favorites ?? [])];
 
   const from = favs.indexOf(draggedId);
   const to = favs.indexOf(targetId);

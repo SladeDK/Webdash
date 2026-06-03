@@ -458,14 +458,12 @@ async function initApp() {
     await PreferencesService.save(userPreferences);
   }
 
-  // Apply (independent)
-  changeTheme(userPreferences.appearance.theme);
-  changeBackground(userPreferences.appearance.background);
+  wireSyncAppearanceBehavior();
+  wireSyncIdentityBehavior();
 
-  initSyncAppearanceBehavior();
   ensureIdentityDefaults();
   applyIdentityToUI();
-  initSyncDashboardIdentityBehavior();
+  
   syncIdentityInputState();
   document.documentElement.classList.add('identity-ready');
 
