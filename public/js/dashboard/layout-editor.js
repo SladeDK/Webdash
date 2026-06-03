@@ -196,6 +196,15 @@ function renderQuickAccess(container) {
   const title = document.createElement('h2');
   title.className = 'qa-title';
   title.textContent = 'Quick Access';
+
+  if (userPreferences?.behavior?.debugMode) {
+    const debug = document.createElement('span');
+    debug.className = 'debug-id';
+    debug.textContent = ' [quick-access]';
+
+    title.appendChild(debug);
+  }
+
   section.appendChild(title);
 
   if (hasFavorites) {
@@ -237,6 +246,14 @@ function createQARow(icon, items) {
     link.href = item.url;
     link.textContent = item.label;
     link.className = 'qa-button';
+
+    if (userPreferences?.behavior?.debugMode) {
+      const debug = document.createElement('span');
+      debug.className = 'debug-id';
+      debug.textContent = ` [${item.id}]`;
+
+      link.appendChild(debug);
+    }
 
     // Add to recents on click
     link.addEventListener('click', (event) => {
@@ -296,12 +313,28 @@ function renderCategories(categories) {
         <div class="buttons"></div>
       `;
 
+      if (userPreferences?.behavior?.debugMode) {
+        const debug = document.createElement('span');
+        debug.className = 'debug-id';
+        debug.textContent = ` [${category.id}]`;
+
+        categoryEl.querySelector('.category-title').appendChild(debug);
+      }
+
       const buttonsEl = categoryEl.querySelector('.buttons');
 
       category.items.forEach(item => {
         const link = document.createElement('a');
         link.href = item.url;
         link.textContent = item.label;
+
+        if (userPreferences?.behavior?.debugMode) {
+          const debug = document.createElement('span');
+          debug.className = 'debug-id';
+          debug.textContent = ` [${item.id}]`;
+
+          link.appendChild(debug);
+        }
 
         // GLOBAL FAVORITES / RECENTS (READ-ONLY)
         const favorites = userPreferences?.behavior?.favorites ?? [];

@@ -33,6 +33,7 @@ const DEFAULT_BEHAVIOR = {
   syncDashboardAppearance: true,
   enableAnimations: true,
   storeRecentsAcrossReloads: true,
+  debugMode: false,
 };
 
 // ======================================================================
@@ -95,6 +96,13 @@ function syncStoreRecentsUI() {
     userPreferences?.behavior?.storeRecentsAcrossReloads !== false;
 }
 
+function syncDebugModeUI() {
+  if (!debugModeCheckbox) return;
+
+  debugModeCheckbox.checked =
+    userPreferences?.behavior?.debugMode === true;
+}
+
 function syncBehaviorUI() {
   syncAutoCloseUI();
   syncOpenLinksUI();
@@ -104,6 +112,7 @@ function syncBehaviorUI() {
   syncDashboardIdentityUI();
   syncAnimationsUI();
   syncStoreRecentsUI();
+  syncDebugModeUI();
 
   if (recentsLimitInput) {
     recentsLimitInput.value =

@@ -68,15 +68,17 @@ const resetDashboardBtn = document.getElementById('reset-dashboard-btn');
 let isRenamingIdentity = false;
 let pendingIdentityName = '';
 
-// DOM references for behavior preference toggles
+// DOM references for behavior preference toggles and other toggles
 const syncAppearanceCheckbox = document.getElementById('pref-sync-dashboard-appearance');
 const syncIdentityCheckbox = document.getElementById('pref-sync-dashboard-identity');
 const openLinksCheckbox = document.getElementById('pref-open-links-new-tab');
 const confirmDeleteButtonsCheckbox = document.getElementById('pref-confirm-delete-buttons');
+const recentsLimitInput = document.getElementById('pref-recents-limit');
 const trackRecentCheckbox = document.getElementById('pref-track-recent');
 const autoCloseCheckbox = document.getElementById('pref-dropdown-autoclose');
 const enableAnimationsCheckbox = document.getElementById('pref-enable-animations');
 const storeRecentsCheckbox = document.getElementById('pref-store-recents');
+const debugModeCheckbox = document.getElementById('pref-debug-mode');
 
 // ======================================================================
 // UI Utilities
@@ -241,8 +243,6 @@ navItems?.forEach(button => {
 // BEHAVIOR PREFERENCES UI
 // ======================================================================
 
-const recentsLimitInput = document.getElementById('pref-recents-limit');
-
 if (recentsLimitInput && !recentsLimitInput._wired) {
   recentsLimitInput._wired = true;
 
@@ -368,6 +368,32 @@ if (storeRecentsCheckbox && !storeRecentsCheckbox._wired) {
 
     PreferencesService.save(userPreferences);
   });
+}
+
+if (debugModeCheckbox && !debugModeCheckbox._wired) {
+  debugModeCheckbox._wired = true;
+
+  debugModeCheckbox.addEventListener('change', () => {
+    userPreferences.behavior.debugMode =
+      debugModeCheckbox.checked;
+
+    PreferencesService.save(userPreferences);
+
+    applyDebugMode();
+    renderCategories(pageCategories);
+    initializeThemeDropdownItems();
+    renderDashboardList();
+  });
+}
+
+function applyDebugMode() {
+  const enabled =
+    userPreferences?.behavior?.debugMode === true;
+
+  document.documentElement.classList.toggle(
+    'debug-mode',
+    enabled
+  );
 }
 
 // ======================================================================

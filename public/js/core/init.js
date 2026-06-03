@@ -475,6 +475,7 @@ async function initApp() {
   // Apply visual preferences immediately
   applyDashboardAppearance();
   applyAnimationPreference();
+  applyDebugMode();
 
   // Toasts (independent)
   if (themeInvalid) {

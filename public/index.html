@@ -184,9 +184,11 @@
           <nav class="modal-nav" aria-label="Preferences categories">
             <div class="nav-group">
               <div class="nav-group-title">Personalization</div>
+
               <button class="nav-item active" type="button" data-panel="appearance">
                 Appearance
               </button>
+
               <button class="nav-item" type="button" data-panel="behavior">
                 System Behavior
               </button>
@@ -194,6 +196,7 @@
 
             <div class="nav-group">
               <div class="nav-group-title">Functionality</div>
+
               <button class="nav-item" type="button" data-panel="quick-access">
                 Quick Access
               </button>
@@ -201,9 +204,11 @@
 
             <div class="nav-group">
               <div class="nav-group-title">Management</div>
+
               <button class="nav-item" type="button" data-panel="layout">
                 Dashboard Layout
               </button>
+
               <button class="nav-item" type="button" data-panel="dashboard-management">
                 Dashboard Management
               </button>
@@ -211,9 +216,15 @@
 
             <div class="nav-group">
               <div class="nav-group-title">System</div>
+
               <button class="nav-item" type="button" data-panel="data">
                 Data Management
               </button>
+
+              <button class="nav-item" type="button" data-panel="advanced">
+                Advanced
+              </button>
+
             </div>
           </nav>
 
@@ -632,13 +643,32 @@
 
                 <div class="setting-actions">
                   <button 
-                  type="button"
-                  class="danger-outline-btn"
-                  id="reset-system-btn"
+                    type="button"
+                    class="danger-outline-btn"
+                    id="reset-system-btn"
                   >
-                  <i class="fa-solid fa-triangle-exclamation"></i>
-                  Reset System
-                </button>
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Reset System
+                  </button>
+                </div>
+              </fieldset>
+            </div>
+
+            <div class="panel" id="panel-advanced">
+              <h3>Advanced</h3>
+              <p>Advanced and developer-focused options.</p>
+              <fieldset class="setting-group">
+                <legend>Developer Tools:</legend>
+
+                <label class="setting-row" for="pref-debug-mode">
+                  <span>Enable debug mode</span>
+                  <span class="toggle">
+                    <input type="checkbox" id="pref-debug-mode">
+                    <span class="toggle-track"></span>
+                  </span>
+                </label>
+
+              </fieldset>
             </div>
           </section>
         </div>

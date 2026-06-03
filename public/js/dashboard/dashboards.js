@@ -543,7 +543,19 @@ function renderDashboardList() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'dashboard-item';
-    btn.textContent = name;
+    const label = document.createElement('span');
+    label.className = 'dashboard-label';
+    label.textContent = name;
+
+    btn.appendChild(label);
+
+    if (userPreferences?.behavior?.debugMode) {
+      const debug = document.createElement('span');
+      debug.className = 'debug-id';
+      debug.textContent = ` [${id}]`;
+
+      btn.appendChild(debug);
+    }
 
     if (id === activeDashboardId) {
       btn.classList.add('active-dashboard');

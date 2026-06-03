@@ -506,7 +506,10 @@ h1, h2 {
   left: 0;
 
   min-width: 220px;
-  max-width: 320px;
+  width: max-content;
+  max-width: 90vw;
+
+  box-sizing: border-box;
 
   background: var(--dropdown-bg);
   color: var(--dropdown-text);
@@ -3426,7 +3429,7 @@ body.dashboard-loading .dashboard-item {
   border-radius: 6px;
 
   background: var(--accent);
-  color: var(--text-main);
+  color: #fff;
   text-decoration: none;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 
@@ -3469,6 +3472,12 @@ body.dashboard-loading .dashboard-item {
 
 .qa-favorites .qa-button {
   opacity: 1;
+}
+
+.qa-button,
+.category .buttons a {
+  display: inline-flex;
+  align-items: center;
 }
 
 .quick-access-search {
@@ -3580,6 +3589,22 @@ body.dashboard-loading .dashboard-item {
 
 .nav-item:hover {
   background: var(--bg-control-hover);
+}
+
+.debug-id {
+  font-size: 11px;
+  font-family: monospace;
+
+  margin-left: 8px;
+
+  padding: 2px 6px;
+  border-radius: 4px;
+
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+
+  display: inline-flex;
+  align-items: center;
 }
 
 /* ==================================================== */
