@@ -37,8 +37,9 @@
     <script src="js/core/ids.js" defer></script>
     <script src="js/core/services.js" defer></script>
     <script src="js/core/validation.js" defer></script>
+    <script src="js/core/themes.js" defer></script>
     <script src="js/core/init.js" defer></script>
-
+    
     <script src="js/ui/modals.js" defer></script>
     <script src="js/interactions/keyboard.js" defer></script>
     <script src="js/preferences/preferences.state.js" defer></script>
@@ -74,7 +75,7 @@
             <button type="button" class="dropdown-close">✕</button>
           </div>
 
-          <!-- Dynamic dashboard list -->
+          <!-- Dynamic dashboard list rendered by JS -->
           <div id="dashboard-list"></div>
         </div>
       </div>
@@ -103,45 +104,14 @@
           <span class="icon"><i class="fa-solid fa-gear"></i></span>
         </button>
 
-      <div class="dropdown-menu">
-        
-        <div class="dropdown-header">
-          <span class="dropdown-label">Themes:</span>
-          <button class="dropdown-close" type="button" aria-label="Close themes menu">✕</button>
+        <div class="dropdown-menu">
+          
+          <div class="dropdown-header">
+            <span class="dropdown-label">Themes:</span>
+            <button class="dropdown-close" type="button" aria-label="Close themes menu">✕</button>
+          </div>
+          <!-- Dynamic themes list rendered by JS -->
         </div>
-
-        <button class="theme-item" data-theme="system" type="button" title="Follow your operating system’s theme">
-          System
-        </button>
-
-        <button class="theme-item" data-theme="theme-dark" type="button" title="Standard dark dashboard theme">
-          Dark
-        </button>
-
-        <button class="theme-item" data-theme="theme-light" type="button" title="Clean, bright layout for daytime use">
-          Light
-        </button>
-
-        <button class="theme-item" data-theme="theme-midnight" type="button" title="Deep blue tones for low-light environments">
-          Midnight
-        </button>
-
-        <button class="theme-item" data-theme="theme-slate" type="button" title="Neutral, professional gray-blue palette">
-          Slate
-        </button>
-
-        <button class="theme-item" data-theme="theme-nord" type="button" title="Soft, cool contrast inspired by Nord colors">
-          Nord
-        </button>
-
-        <button class="theme-item" data-theme="theme-carbon" type="button" title="Ultra-dark theme with high contrast">
-          Carbon
-        </button>
-
-        <button class="theme-item" data-theme="theme-glass" type="button" title="Frosted glass effect with depth">
-          Glass
-        </button>
-      </div>
       </div>
     </header>
 
@@ -298,103 +268,14 @@
                   <legend>Themes:</legend>
 
                   <div class="theme-grid">
-                    <button class="theme-card" type="button" data-theme="system">
-                      <span class="theme-preview theme-system"></span>
-                      <span class="theme-name">System</span>
-                    </button>
-
-                    <button class="theme-card" type="button" data-theme="theme-dark">
-                      <span class="theme-preview theme-dark"></span>
-                      <span class="theme-name">Dark</span>
-                    </button>
-
-                    <button class="theme-card" type="button"data-theme="theme-light">
-                      <span class="theme-preview theme-light"></span>
-                      <span class="theme-name">Light</span>
-                    </button>
-
-                    <button class="theme-card" type="button" data-theme="theme-midnight">
-                      <span class="theme-preview theme-midnight"></span>
-                      <span class="theme-name">Midnight</span>
-                    </button>
-
-                    <button class="theme-card" type="button" data-theme="theme-slate">
-                      <span class="theme-preview theme-slate"></span>
-                      <span class="theme-name">Slate</span>
-                    </button>
-
-                    <button class="theme-card" type="button" data-theme="theme-nord">
-                      <span class="theme-preview theme-nord"></span>
-                      <span class="theme-name">Nord</span>
-                    </button>
-
-                    <button class="theme-card" type="button" data-theme="theme-carbon">
-                      <span class="theme-preview theme-carbon"></span>
-                      <span class="theme-name">Carbon</span>
-                    </button>
-
-                    <button class="theme-card" type="button" data-theme="theme-glass">
-                      <span class="theme-preview theme-glass"></span>
-                      <span class="theme-name">Glass</span>
-                    </button>
+                    <!-- Theme options rendered by JS -->
                   </div>
                 </fieldset>
                 <fieldset class="setting-group">
                   <legend>Backgrounds:</legend>
 
                   <div class="theme-grid background-grid">
-                    <button class="theme-card bg-card" type="button" data-bg="bg-plain">
-                      <span class="theme-preview bg-preview-plain"></span>
-                      <span class="theme-name">Plain</span>
-                    </button>
-
-                    <button class="theme-card bg-card" type="button" data-bg="bg-gradient">
-                      <span class="theme-preview bg-preview-gradient"></span>
-                      <span class="theme-name">Soft Gradient</span>
-                    </button>
-
-                    <button class="theme-card bg-card" type="button" data-bg="bg-focus">
-                      <span class="theme-preview bg-preview-focus"></span>
-                      <span class="theme-name">Focus Glow</span>
-                    </button>
-                    <button class="theme-card bg-card" type="button" data-bg="bg-glass">
-                      <span class="theme-preview bg-preview-glass"></span>
-                      <span class="theme-name">Glass Atmosphere</span>
-                    </button>
-                    <button class="theme-card bg-card" type="button" data-bg="bg-dotted">
-                      <span class="theme-preview bg-preview-dotted"></span>
-                      <span class="theme-name">Dotted Pattern</span>
-                    </button>
-
-                    <button class="theme-card bg-card" type="button" data-bg="bg-webbed">
-                      <span class="theme-preview bg-preview-webbed"></span>
-                      <span class="theme-name">Webbed Pattern</span>
-                    </button>
-
-                    <button class="theme-card bg-card" type="button" data-bg="bg-triangle-gradient">
-                      <span class="theme-preview bg-preview-triangle-gradient"></span>
-                      <span class="theme-name">Triangle Gradient</span>
-                    </button>
-
-                    <button class="theme-card bg-card" type="button" data-bg="bg-triangle-subtle">
-                      <span class="theme-preview bg-preview-triangle-subtle"></span>
-                      <span class="theme-name">Triangle Subtle</span>
-                    </button>
-
-                    <button class="theme-card bg-card" type="button" data-bg="bg-hex">
-                      <span class="theme-preview bg-preview-hex"></span>
-                      <span class="theme-name">Hex Pattern</span>
-                    </button>
-
-                    <button class="theme-card bg-card" type="button" data-bg="bg-topo">
-                      <span class="theme-preview bg-preview-topo"></span>
-                      <span class="theme-name">Topographical</span>
-                    </button>
-
-                    <button class="theme-card bg-card" type="button" data-bg="bg-circuit">
-                      <span class="theme-preview bg-preview-circuit"></span>
-                      <span class="theme-name">Circuit Board</span>
-                    </button>
+                    <!-- Background options rendered by JS -->
                   </div>
                 </fieldset>
             </div>

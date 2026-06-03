@@ -247,10 +247,22 @@ function syncIdentityInputState() {
 // APPEARANCE PREFERENCES (STATE & APPLICATION)
 // ======================================================================
 
-function getCurrentTheme() {
-  return VALID_THEMES.find(t =>
-    document.documentElement.classList.contains(t)
-  );
+function updateThemeSelectionUI(theme) {
+  // Theme cards
+  document.querySelectorAll('.theme-card[data-theme]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === theme);
+  });
+
+  // Dropdown (THIS WAS THE MISSING PART)
+  document.querySelectorAll('.theme-item').forEach(btn => {
+    btn.classList.toggle('is-active', btn.dataset.theme === theme);
+  });
+}
+
+function updateBackgroundSelectionUI(bg) {
+  document.querySelectorAll('.bg-card').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.bg === bg);
+  });
 }
 
 function resolveSystemTheme() {
@@ -284,22 +296,13 @@ function setActiveTheme(theme) {
 }
 
 function changeTheme(theme) {
-  // ONLY visual application
+  // Apply visually
   setActiveTheme(theme);
 
-  // Sync UI elements
-  syncThemeCards();
-  syncBackgroundCards();
-  syncThemeRadios();
+  // Lightweight UI update (NO re-render)
+  updateThemeSelectionUI(theme);
 
-  // Dropdown state
-  document.querySelectorAll('.theme-item').forEach(btn => {
-    if (btn.dataset.theme === theme) {
-      btn.classList.add('is-active');
-    } else {
-      btn.classList.remove('is-active');
-    }
-  });
+  syncThemeRadios?.();
 }
 
 function setActiveBackground(bg) {
@@ -319,13 +322,13 @@ function setActiveBackground(bg) {
 }
 
 function changeBackground(bg) {
-  // ONLY visual application
+  // Apply visually
   setActiveBackground(bg);
 
-  // Sync UI elements
-  syncBackgroundCards();
-  syncThemeCards();
+  // Lightweight UI update
+  updateBackgroundSelectionUI(bg);
 }
+
 
 function syncThemeRadios() {
   const isSyncOn =
@@ -339,46 +342,6 @@ function syncThemeRadios() {
 
   themeRadios.forEach(radio => {
     radio.checked = radio.value === savedTheme;
-  });
-}
-
-function syncThemeCards() {
-  const isSyncOn =
-    userPreferences?.behavior?.syncDashboardAppearance !== false;
-
-  const savedTheme = isSyncOn
-    ? userPreferences.appearance.theme
-    : dashboardState?.appearance?.theme ?? userPreferences.appearance.theme;
-
-  if (!themeCards) return;
-
-  themeCards.forEach(card => {
-    let isActive = false;
-
-    if (savedTheme === 'system') {
-      isActive = card.dataset.theme === 'system';
-    } else {
-      isActive = card.dataset.theme === savedTheme;
-    }
-
-    card.classList.toggle('active', isActive);
-  });
-}
-
-function syncBackgroundCards() {
-  const isSyncOn =
-    userPreferences?.behavior?.syncDashboardAppearance !== false;
-
-  const activeBg = isSyncOn
-    ? userPreferences.appearance.background
-    : dashboardState?.appearance?.background ?? userPreferences.appearance.background;
-
-  if (!backgroundCards) return;
-
-  backgroundCards.forEach(card => {
-    const isActive = card.dataset.bg === activeBg;
-
-    card.classList.toggle('active', isActive);
   });
 }
 

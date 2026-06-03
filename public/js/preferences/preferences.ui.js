@@ -52,8 +52,6 @@ const panels = preferencesOverlay?.querySelectorAll('.panel');
 const importSystemOverlay = document.getElementById('import-system-overlay');
 
 const themeRadios = document.querySelectorAll('input[name="pref-theme"]');
-const themeCards = document.querySelectorAll('.theme-card:not(.bg-card)');
-const backgroundCards = document.querySelectorAll('.bg-card');
 
 const identityNameInput = document.querySelector('.identity-name-input');
 const identityIconWrapper = document.querySelector('.identity-icon-wrapper');
@@ -380,8 +378,11 @@ if (debugModeCheckbox && !debugModeCheckbox._wired) {
     PreferencesService.save(userPreferences);
 
     applyDebugMode();
+
     renderCategories(pageCategories);
-    initializeThemeDropdownItems();
+    renderThemeDropdown();  
+    renderThemeGrid();
+    renderBackgroundGrid();
     renderDashboardList();
   });
 }
@@ -711,45 +712,110 @@ async function handleAppearanceChange({ theme, background }) {
 
   applyDashboardAppearance();
 
-  // Sync UI immediately
-  syncThemeCards();
+  renderThemeGrid();
+  renderBackgroundGrid();
   syncThemeRadios();
-  syncBackgroundCards();
+
+  if (theme !== undefined) {
+    updateThemeSelectionUI(theme);
+  }
 }
 
-backgroundCards.forEach(card => {
-  if (card._wired) return;
-  card._wired = true;
+function renderThemeGrid() {
+  const grid = document.querySelector('.theme-grid:not(.background-grid)');
+  if (!grid) return;
 
-  card.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  grid.innerHTML = '';
 
-    handleAppearanceChange({ background: card.dataset.bg });
+  THEMES.forEach(theme => {
+    const btn = document.createElement('button');
+    btn.className = 'theme-card';
+    btn.type = 'button';
+    btn.dataset.theme = theme.id;
+
+    const preview = document.createElement('span');
+    preview.className =
+      theme.id === 'system'
+        ? 'theme-preview theme-system'
+        : `theme-preview ${theme.id}`;
+
+    const label = document.createElement('span');
+    label.className = 'theme-name';
+    label.textContent = theme.label;
+
+    btn.appendChild(preview);
+    btn.appendChild(label);
+
+    const currentTheme =
+      userPreferences?.appearance?.theme ??
+      dashboardState?.appearance?.theme;
+
+    if (theme.id === currentTheme) {
+      btn.classList.add('active');
+    }
+
+    // Debug mode
+    if (userPreferences?.behavior?.debugMode) {
+      const debug = document.createElement('span');
+      debug.className = 'debug-id';
+      debug.textContent = ` [${theme.id}]`;
+      btn.appendChild(debug);
+    }
+
+    btn.addEventListener('click', () => {
+      handleAppearanceChange({ theme: theme.id });
+    });
+
+    grid.appendChild(btn);
   });
-});
+}
 
-themeRadios.forEach(radio => {
-  if (radio._wired) return;
-  radio._wired = true;
+function renderBackgroundGrid() {
+  const grid = document.querySelector('.background-grid');
+  if (!grid) return;
 
-  radio.addEventListener('change', () => {
-    handleAppearanceChange({ theme: radio.value });
-    syncThemeRadios();
+  grid.innerHTML = '';
+
+  BACKGROUNDS.forEach(bg => {
+    const btn = document.createElement('button');
+    btn.className = 'theme-card bg-card';
+    btn.type = 'button';
+    btn.dataset.bg = bg.id;
+
+    const preview = document.createElement('span');
+    preview.className = `theme-preview ${bg.previewClass}`;
+
+    const label = document.createElement('span');
+    label.className = 'theme-name';
+    label.textContent = bg.label;
+
+    btn.appendChild(preview);
+    btn.appendChild(label);
+
+    const currentBackground =
+      userPreferences?.appearance?.background ??
+      dashboardState?.appearance?.background;
+
+    if (bg.id === currentBackground) {
+      btn.classList.add('active');
+    }
+
+    // Debug mode
+    if (userPreferences?.behavior?.debugMode) {
+      const debug = document.createElement('span');
+      debug.className = 'debug-id';
+      debug.textContent = ` [${bg.id}]`;
+      btn.appendChild(debug);
+    }
+
+    // Click behavior
+    btn.addEventListener('click', () => {
+      handleAppearanceChange({ background: bg.id });
+    });
+
+    grid.appendChild(btn);
   });
-});
-
-themeCards.forEach(card => {
-  if (card._wired) return;
-  card._wired = true;
-
-  card.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    handleAppearanceChange({ theme: card.dataset.theme });
-  });
-});
+}
 
 // ======================================================================
 // IMPORT / PREVIEW UI WIRING
@@ -876,9 +942,10 @@ if (settingsBtn && !settingsBtn._wiredExtra) {
   settingsBtn._wiredExtra = true;
 
   settingsBtn.addEventListener('click', () => {
-    syncThemeRadios();
-    syncThemeCards();
-    syncBackgroundCards();
+    syncThemeRadios?.();
+
+    renderThemeGrid();
+    renderBackgroundGrid();
   });
 }
 

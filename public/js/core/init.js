@@ -13,8 +13,6 @@
 // =====================================================
 
 // Keys
-const THEME_KEY = 'webdash-theme';
-const BACKGROUND_KEY = 'webdash-background';
 const USER_PREFS_KEY = 'webdash-user-preferences';
 const HAS_SEEDED_DASHBOARD_KEY = "webdash.hasSeededDashboard";
 const DASHBOARD_STATE_KEY = 'webdash-dashboard-state';
@@ -507,8 +505,9 @@ async function initApp() {
 
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (userPreferences.appearance.theme === 'system') {
-        changeTheme('system');
-        syncThemeCards();
+        setActiveTheme('system');
+
+        updateThemeSelectionUI('system');
       }
     });
   }
@@ -541,9 +540,11 @@ async function initApp() {
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
   renderDashboardList();
+  renderThemeDropdown();
+  renderThemeGrid();
+  renderBackgroundGrid();
 
   initializeDropdowns();
-  initializeThemeDropdownItems();
   initializeDashboardUIBindings();
   initializeButtonEditorBindings();
 }
