@@ -3668,14 +3668,11 @@ body.dashboard-loading .dashboard-item {
 #command-results {
   padding: 6px 0;
   overflow-y: auto;
-}
+  position: relative;
+  max-height: 320px;
 
-
-/* ============================= */
-/* Results container */
-/* ============================= */
-#command-results {
-  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
 }
 
 /* ============================= */
@@ -3702,10 +3699,56 @@ body.dashboard-loading .dashboard-item {
   padding-left: 14px;
 }
 
+.command-item.selected:hover {
+  background: var(--bg-control-hover);
+}
+
 /* Optional category label feel */
 .command-item .meta {
   font-size: 12px;
   opacity: 0.6;
+}
+
+.command-more {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  padding: 4px 0;
+  margin-top: 2px;
+}
+
+.command-empty {
+  padding: 20px 16px;
+  text-align: center;
+  color: var(--text-main);
+  opacity: 0.6;
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.command-empty-title {
+  font-size: 14px;
+}
+
+.command-empty-sub {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* WebKit */
+#command-results::-webkit-scrollbar {
+  width: 8px;
+}
+
+#command-results::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+#command-results:hover::-webkit-scrollbar-thumb {
+  opacity: 1;
 }
 
 /* ==================================================== */

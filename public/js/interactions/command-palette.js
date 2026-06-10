@@ -2,8 +2,11 @@
 // Constants & State
 // =============================
 
+const MAX_VISIBLE_RESULTS = 8;
+
 let commandResults = [];
 let selectedIndex = 0;
+let allDashboardStates = [];
 
 // =============================================================
 // Gather dashboards, items, and etc. for commands
@@ -16,16 +19,51 @@ function getAllDashboards() {
 
 
 function getAllButtons() {
-  if (!dashboardState?.categories) return [];
+  if (!allDashboardStates.length) return [];
 
-  return dashboardState.categories.flatMap(cat =>
-    (cat.items || []).map(item => ({
-      ...item,
-      categoryTitle: cat.title
-    }))
-  );
+  const seen = new Set();
+
+  const buttons = allDashboardStates.flatMap(dashboard => {
+    const meta = availableDashboards.find(d => d.id === dashboard.id);
+
+    return (dashboard.categories || []).flatMap(cat =>
+      (cat.items || [])
+        .filter(item => {
+          const key = `${dashboard.id}-${item.id}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .map(item => ({
+          ...item,
+          dashboardId: dashboard.id,
+          dashboardName: meta?.name ?? 'Unknown',
+          categoryTitle: cat.title
+        }))
+    );
+  });
+
+  const activeId = dashboardState?.id;
+
+  buttons.sort((a, b) => {
+    if (a.dashboardId === activeId && b.dashboardId !== activeId) return -1;
+    if (a.dashboardId !== activeId && b.dashboardId === activeId) return 1;
+    return 0;
+  });
+
+  return buttons;
 }
 
+async function loadAllDashboardStates() {
+  try {
+    const dashboards = await DashboardService.loadAllDashboards();
+
+    return Object.values(dashboards); // convert object → array
+  } catch (e) {
+    console.warn('Failed to load all dashboards', e);
+    return [];
+  }
+}
 
 // =============================
 // Command registry
@@ -54,8 +92,8 @@ function getCommands() {
   // Dynamic: buttons from dashboard
 	const buttonCommands = getAllButtons().map(btn => ({
 		id: `btn-${btn.id}`,
-		label: `${btn.categoryTitle} → ${btn.label}`,
-		category: btn.dashboardName ?? 'Services',
+		label: btn.label,
+		category: `${btn.dashboardName} • ${btn.categoryTitle}`,
 		run: () => {
 			const newTab = userPreferences?.behavior?.openLinksInNewTab;
 
@@ -90,9 +128,13 @@ function getCommands() {
 // Core controls
 // =============================
 
-function openCommandPalette() {
+async function openCommandPalette() {
   const palette = document.getElementById('command-palette');
   if (!palette) return;
+
+	selectedIndex = 0; // Reset selection
+
+  allDashboardStates = await loadAllDashboardStates();
 
   palette.hidden = false;
 
@@ -100,7 +142,7 @@ function openCommandPalette() {
 
   if (input) {
     input.value = '';
-    renderCommandResults('');
+    renderCommandResults('', true);
     setTimeout(() => input.focus(), 0);
   }
 }
@@ -150,51 +192,64 @@ function fuzzyMatch(query, text) {
   return false;
 }
 
-function renderCommandResults(query = '') {
+function renderCommandResults(query = '', resetSelection = false) {
   const container = document.getElementById('command-results');
   if (!container) return;
-
-  const prevIndex = selectedIndex;
 
   container.innerHTML = '';
 
   const allCommands = getCommands();
 
-	commandResults = allCommands.filter(cmd =>
-		fuzzyMatch(query, cmd.label)
-	);
+  commandResults = query
+    ? allCommands.filter(cmd => fuzzyMatch(query, cmd.label))
+    : allCommands;
 
-  selectedIndex = Math.min(prevIndex, commandResults.length - 1);
-  if (selectedIndex < 0) selectedIndex = 0;
+  // Only reset when explicitly requested
+  if (resetSelection) {
+    selectedIndex = 0;
+  } else {
+    selectedIndex = Math.min(selectedIndex, commandResults.length - 1);
+    if (selectedIndex < 0) selectedIndex = 0;
+  }
 
   if (commandResults.length === 0) {
-    container.innerHTML = '<div class="empty">No results</div>';
+    container.innerHTML = `
+			<div class="command-empty">
+				<div class="command-empty-title">No results</div>
+				<div class="command-empty-sub">Try a different search</div>
+			</div>
+		`;
     return;
   }
 
-  commandResults.forEach((cmd, index) => {
-    const el = document.createElement('div');
-    el.className = 'command-item';
+	commandResults.forEach((cmd, index) => {
+		const el = document.createElement('div');
+		el.className = 'command-item';
 
-    el.innerHTML = `
+		el.innerHTML = `
 			<span>${cmd.label}</span>
 			<span class="meta">${cmd.destructive ? 'Danger • Hold Ctrl/Alt to skip' : cmd.category ?? ''}</span>
 		`;
 
-    if (index === selectedIndex) {
-      el.classList.add('selected');
+		if (index === selectedIndex) {
+			el.classList.add('selected');
+		}
 
-      requestAnimationFrame(() => {
-        el.scrollIntoView({ block: 'nearest' });
-      });
-    }
-
-    el.addEventListener('click', (e) => {
+		el.addEventListener('click', (e) => {
 			executeCommand(index, e);
 		});
 
-    container.appendChild(el);
-  });
+		container.appendChild(el);
+	});
+
+	const selectedEl = container.querySelector('.command-item.selected');
+
+	if (selectedEl) {
+		selectedEl.scrollIntoView({
+			block: 'nearest',
+			behavior: 'auto'
+		});
+	}
 }
 
 // =============================
@@ -208,7 +263,7 @@ function renderCommandResults(query = '') {
   input._wired = true;
 
   input.addEventListener('input', () => {
-    renderCommandResults(input.value);
+    renderCommandResults(input.value, true); // reset on typing
   });
 
 	input.addEventListener('mousedown', (e) => {
