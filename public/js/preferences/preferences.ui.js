@@ -114,7 +114,15 @@ registerImportUI({
 // PREFERENCES MODAL SHELL & NAVIGATION
 // ======================================================================
 
-async function openPreferences() {
+async function openPreferences(panelNameOrEvent = null) {
+  
+  // Normalize input (supports both button click and CP usage)
+  let panelName = null;
+
+  if (typeof panelNameOrEvent === 'string') {
+    panelName = panelNameOrEvent;
+  }
+  
   const overlay = preferencesOverlay;
   if (!overlay) return;
 
@@ -165,6 +173,21 @@ async function openPreferences() {
   await rebuildGlobalItemIndex();
   renderQuickAccessFavorites();
   renderFavoritesManager();
+
+  // Switch to specific panel if requested
+  if (panelName) {
+    setTimeout(() => {
+      const targetButton = preferencesOverlay.querySelector(
+        `[data-panel="${panelName}"]`
+      );
+
+      if (targetButton) {
+        targetButton.click();
+      } else {
+        console.warn(`Panel "${panelName}" not found`);
+      }
+    }, 0);
+  }
 
   // Ensure all settings reflect current preferences
   syncBehaviorUI();

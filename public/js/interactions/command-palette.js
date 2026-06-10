@@ -71,23 +71,75 @@ async function loadAllDashboardStates() {
 
 function getCommands() {
 	
-  const baseCommands = [
-    {
-      id: 'open-preferences',
-      label: 'Open Preferences',
-      category: 'Navigation',
-      run: () => openPreferences?.()
-    },
-    {
-      id: 'reset-dashboard',
-      label: 'Reset Current Dashboard',
-      category: 'Danger',
-      destructive: true,
-      run: async () => {
-        await safeResetDashboard();
-      }
-    }
-  ];
+	const baseCommands = [
+		{
+			id: 'open-preferences',
+			label: 'Open Preferences',
+			category: 'Preferences',
+			run: () => openPreferences?.()
+		},
+		{
+			id: 'reset-dashboard',
+			label: 'Reset Current Dashboard',
+			category: 'Danger',
+			destructive: true,
+			run: async () => {
+				await safeResetDashboard();
+			}
+		}
+	];
+
+	const preferenceCommands = [
+		// Personalization
+		{
+			id: 'prefs-appearance',
+			label: 'Open Appearance',
+			category: 'Preferences',
+			run: () => openPreferences('appearance')
+		},
+		{
+			id: 'prefs-behavior',
+			label: 'Open System Behavior',
+			category: 'Preferences',
+			run: () => openPreferences('behavior')
+		},
+
+		// Functionality
+		{
+			id: 'prefs-quick-access',
+			label: 'Open Quick Access',
+			category: 'Preferences',
+			run: () => openPreferences('quick-access')
+		},
+
+		// Management
+		{
+			id: 'prefs-layout',
+			label: 'Open Dashboard Layout',
+			category: 'Preferences',
+			run: () => openPreferences('layout')
+		},
+		{
+			id: 'prefs-dashboard-management',
+			label: 'Open Dashboard Management',
+			category: 'Preferences',
+			run: () => openPreferences('dashboard-management')
+		},
+
+		// System
+		{
+			id: 'prefs-data',
+			label: 'Open Data Management',
+			category: 'Preferences',
+			run: () => openPreferences('data')
+		},
+		{
+			id: 'prefs-advanced',
+			label: 'Open Advanced',
+			category: 'Preferences',
+			run: () => openPreferences('advanced')
+		}
+	];
 
   // Dynamic: buttons from dashboard
 	const buttonCommands = getAllButtons().map(btn => ({
@@ -113,12 +165,13 @@ function getCommands() {
 		.map(d => ({
 			id: `dash-${d.id}`,
 			label: `Switch to ${d.name}`,
-			category: 'Dashboards',
+			category: 'Navigation',
 			run: () => switchDashboard(d.id)
 		}));
 
   return [
     ...baseCommands,
+		...preferenceCommands,
     ...dashboardCommands,
     ...buttonCommands
   ];
@@ -340,7 +393,19 @@ function executeCommand(index, event = {}) {
     return;
   }
 
-  // Normal / bypass
-  closeCommandPalette();
-  cmd.run();
+	// Execute command first
+	cmd.run();
+
+	if (cmd.id?.startsWith('btn-')) {
+		const buttonId = cmd.id.replace('btn-', '');
+
+		addToRecents?.(buttonId);
+
+		setTimeout(() => {
+			renderCategories?.(pageCategories);
+		}, 0);
+	}
+
+	// Close palette
+	closeCommandPalette();
 }
