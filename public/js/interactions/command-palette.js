@@ -17,7 +17,6 @@ function getAllDashboards() {
   return availableDashboards;
 }
 
-
 function getAllButtons() {
   if (!allDashboardStates.length) return [];
 
@@ -54,6 +53,34 @@ function getAllButtons() {
   return buttons;
 }
 
+let cachedPreferenceButtons = null;
+
+function getPreferenceCommands() {
+  const groups = document.querySelectorAll('.modal-nav .nav-group');
+
+  const commands = [];
+
+  groups.forEach(group => {
+    const groupTitle = group.querySelector('.nav-group-title')?.textContent.trim();
+
+    const buttons = group.querySelectorAll('.nav-item');
+
+    buttons.forEach(btn => {
+      const panel = btn.dataset.panel;
+      const label = btn.textContent.trim();
+
+      commands.push({
+        id: `prefs-${panel}`,
+        label: `Open ${label}`,
+        category: `Preferences • ${groupTitle}`,
+        run: () => openPreferences(panel)
+      });
+    });
+  });
+
+  return commands;
+}
+
 async function loadAllDashboardStates() {
   try {
     const dashboards = await DashboardService.loadAllDashboards();
@@ -73,12 +100,6 @@ function getCommands() {
 	
 	const baseCommands = [
 		{
-			id: 'open-preferences',
-			label: 'Open Preferences',
-			category: 'Preferences',
-			run: () => openPreferences?.()
-		},
-		{
 			id: 'reset-dashboard',
 			label: 'Reset Current Dashboard',
 			category: 'Danger',
@@ -86,58 +107,6 @@ function getCommands() {
 			run: async () => {
 				await safeResetDashboard();
 			}
-		}
-	];
-
-	const preferenceCommands = [
-		// Personalization
-		{
-			id: 'prefs-appearance',
-			label: 'Open Appearance',
-			category: 'Preferences',
-			run: () => openPreferences('appearance')
-		},
-		{
-			id: 'prefs-behavior',
-			label: 'Open System Behavior',
-			category: 'Preferences',
-			run: () => openPreferences('behavior')
-		},
-
-		// Functionality
-		{
-			id: 'prefs-quick-access',
-			label: 'Open Quick Access',
-			category: 'Preferences',
-			run: () => openPreferences('quick-access')
-		},
-
-		// Management
-		{
-			id: 'prefs-layout',
-			label: 'Open Dashboard Layout',
-			category: 'Preferences',
-			run: () => openPreferences('layout')
-		},
-		{
-			id: 'prefs-dashboard-management',
-			label: 'Open Dashboard Management',
-			category: 'Preferences',
-			run: () => openPreferences('dashboard-management')
-		},
-
-		// System
-		{
-			id: 'prefs-data',
-			label: 'Open Data Management',
-			category: 'Preferences',
-			run: () => openPreferences('data')
-		},
-		{
-			id: 'prefs-advanced',
-			label: 'Open Advanced',
-			category: 'Preferences',
-			run: () => openPreferences('advanced')
 		}
 	];
 
@@ -170,10 +139,10 @@ function getCommands() {
 		}));
 
   return [
-    ...baseCommands,
-		...preferenceCommands,
+    ...buttonCommands,
     ...dashboardCommands,
-    ...buttonCommands
+		...getPreferenceCommands(),
+    ...baseCommands,
   ];
 }
 
@@ -254,7 +223,10 @@ function renderCommandResults(query = '', resetSelection = false) {
   const allCommands = getCommands();
 
   commandResults = query
-    ? allCommands.filter(cmd => fuzzyMatch(query, cmd.label))
+    ? allCommands.filter(cmd => 
+			fuzzyMatch(query, cmd.label) ||
+			fuzzyMatch(query, cmd.category)
+		)
     : allCommands;
 
   // Only reset when explicitly requested
