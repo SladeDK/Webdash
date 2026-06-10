@@ -151,9 +151,9 @@ function openConfirm({ title, message, confirmLabel = 'Delete', onConfirm }) {
 
   pushModal(overlay, closeConfirm);
 
-  requestAnimationFrame(() => {
-    focusFirstFocusableElement(overlay);
-  });
+  setTimeout(() => {
+    document.getElementById('confirm-accept')?.focus();
+  }, 0);
 }
 
 function closeConfirm() {

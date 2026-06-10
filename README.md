@@ -1,4 +1,4 @@
-# WebDash - v0.14.1
+# WebDash - v0.15.0
 A self-hosted, configurable dashboard for organizing services, links, and systems in one place.
 
 WebDash is designed to be easy to deploy, easy to customize, and fully self-hosted. It works well on local machines, home servers, NAS devices, and small VPS setups.
@@ -10,7 +10,7 @@ WebDash is designed to be easy to deploy, easy to customize, and fully self-host
 - Drag-and-drop layout editor
 - Import and export of full system backups
 - Theme and background system
-- No external services or cloud dependencies
+- No external services or cloud dependencies except FontAwesome
 - Designed for private and local deployments
 
 ---

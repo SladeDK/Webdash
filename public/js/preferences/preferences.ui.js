@@ -721,10 +721,6 @@ async function handleAppearanceChange({ theme, background }) {
   }
 
   syncThemeRadios?.();
-
-  if (theme !== undefined) {
-    updateThemeSelectionUI(theme);
-  }
 }
 
 function renderThemeGrid() {

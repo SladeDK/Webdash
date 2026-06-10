@@ -3607,6 +3607,107 @@ body.dashboard-loading .dashboard-item {
   align-items: center;
 }
 
+#command-palette {
+  position: fixed;
+  inset: 0;
+
+  background: rgb(0 0 0 / 28%);
+  backdrop-filter: blur(2px);
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+
+  padding-top: 15vh;
+
+  z-index: 99999;
+}
+
+#command-palette[hidden] {
+  display: none;
+}
+
+/* ============================= */
+/* Command container */
+/* ============================= */
+.command-box {
+  background: var(--bg-card);
+  color: var(--text-main);
+
+  width: 520px;
+  max-height: 70vh;
+
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ============================= */
+/* Input */
+/* ============================= */
+#command-input {
+  width: 100%;
+  padding: 14px 16px;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+  color: inherit;
+
+  font-size: 15px;
+
+  /* Stronger visual separation */
+  border-bottom: 1px solid var(--bg-control-hover)
+}
+
+/* Add spacing so it breathes */
+#command-results {
+  padding: 6px 0;
+  overflow-y: auto;
+}
+
+
+/* ============================= */
+/* Results container */
+/* ============================= */
+#command-results {
+  overflow-y: auto;
+}
+
+/* ============================= */
+/* Command item */
+/* ============================= */
+.command-item {
+  padding: 10px 16px;
+  cursor: pointer;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  transition: background 0.1s ease;
+}
+
+.command-item:hover {
+  background: var(--bg-control-hover);
+}
+
+.command-item.selected {
+  background: var(--bg-active);
+  border-left: 2px solid var(--color-accent, #4da3ff);
+  padding-left: 14px;
+}
+
+/* Optional category label feel */
+.command-item .meta {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
 /* ==================================================== */
 /* ANIMATION OVERRIDE (Should always be the last lines) */
 /* ==================================================== */

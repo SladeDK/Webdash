@@ -41,6 +41,7 @@
     <script src="js/core/init.js" defer></script>
     
     <script src="js/ui/modals.js" defer></script>
+    <script src="js/interactions/command-palette.js" defer></script>
     <script src="js/interactions/keyboard.js" defer></script>
     <script src="js/preferences/preferences.state.js" defer></script>
     <script src="js/preferences/preferences.import.js" defer></script>
@@ -249,19 +250,21 @@
                     >
 
                     <!-- Name input -->
-                    <label class="identity-row">
+                    <div class="identity-row">
+                      <label>
                         <span>Dashboard name:</span>
+                      </label>
 
-                        <div class="identity-input-wrapper">
-                            <input
-                                type="text"
-                                class="identity-name-input"
-                                value="SladeDK"
-                                placeholder="Dashboard"
-                            >
-                            <!-- JS will insert buttons here -->
-                        </div>
-                    </label>
+                      <div class="identity-input-wrapper">
+                        <input
+                          type="text"
+                          class="identity-name-input"
+                          value="SladeDK"
+                          placeholder="Dashboard"
+                        >
+                        <!-- JS will insert buttons here -->
+                      </div>
+                    </div>
                   </div>
                 </fieldset>
                 <fieldset class="setting-group">
@@ -554,7 +557,8 @@
           </section>
         </div>
       </div>
-      <!-- Button Editor Modal -->
+    </div>
+    <!-- Button Editor Modal -->
     <div
       id="button-editor-overlay"
       class="modal-overlay"
@@ -664,11 +668,10 @@
       id="delete-default-dashboard-overlay"
       class="modal-overlay"
       hidden
-      aria-hidden="true"
     >
-      <div 
-        class="modal modal-container confirm-modal" 
-        role="dialog" 
+      <div
+        class="modal modal-container confirm-modal"
+        role="dialog"
         aria-modal="true"
         aria-labelledby="delete-default-dashboard-title"
       >
@@ -691,38 +694,38 @@
           <fieldset class="setting-group">
             <legend>New default dashboard</legend>
 
+            <div>
+              <p class="setting-description">
+                You are deleting the default dashboard.
+                Please choose a new default dashboard to continue.
+              </p>
 
-          <div>
-            <p class="setting-description">
-              You are deleting the default dashboard.
-              Please choose a new default dashboard to continue.
-            </p>
+              <label class="setting-row">
+                <span>New default dashboard</span>
+                <select id="delete-default-dashboard-select"></select>
+              </label>
+            </div>
 
-            <label class="setting-row">
-              <span>New default dashboard</span>
-              <select id="delete-default-dashboard-select"></select>
-            </label>
-          </div>
+            <!-- ACTIONS INSIDE FIELDSET -->
+            <div class="modal-actions">
+              <button
+                type="button"
+                class="secondary-btn"
+                id="delete-default-dashboard-cancel"
+              >
+                Cancel
+              </button>
 
-          <!-- ACTIONS BLOCK -->
-          <div class="modal-actions">
-            <button
-              type="button"
-              class="secondary-btn"
-              id="delete-default-dashboard-cancel"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="button"
-              class="danger-btn"
-              id="delete-default-dashboard-confirm"
-              disabled
-            >
-              Delete
-            </button>
-          </div>
+              <button
+                type="button"
+                class="danger-btn"
+                id="delete-default-dashboard-confirm"
+                disabled
+              >
+                Delete
+              </button>
+            </div>
+          </fieldset>
         </div>
       </div>
     </div>
@@ -861,6 +864,23 @@
           >
             Apply import
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Command Palette -->
+    <div id="command-palette" hidden>
+      <div class="command-box">
+        <input
+          id="command-input"
+          type="text"
+          placeholder="Type..."
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+        />
+        <div id="command-results">
         </div>
       </div>
     </div>
