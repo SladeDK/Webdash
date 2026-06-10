@@ -1,4 +1,17 @@
 // =====================================================
+// Active Helpers
+// =====================================================
+
+function getCurrentTheme() {
+  return userPreferences?.appearance?.theme;
+}
+
+function getCurrentBackground() {
+  return userPreferences?.appearance?.background;
+}
+
+
+// =====================================================
 // Theme definitions (global)
 // =====================================================
 

@@ -81,6 +81,54 @@ function getPreferenceCommands() {
   return commands;
 }
 
+function getThemeCommands() {
+  const themes = window.THEMES || [];
+
+  const currentTheme = userPreferences?.appearance?.theme;
+
+  return themes.map(theme => ({
+    id: `theme-${theme.id}`,
+    label: theme.label,
+    category: 'Themes',
+    active: theme.id === currentTheme,
+    run: () => {
+      handleAppearanceChange?.({ theme: theme.id });
+    }
+  }));
+}
+
+
+function getBackgroundCommands() {
+  const backgrounds = window.BACKGROUNDS || [];
+
+  const currentBackground = userPreferences?.appearance?.background;
+
+  return backgrounds.map(bg => ({
+    id: `background-${bg.id}`,
+    label: bg.label,
+    category: 'Backgrounds',
+    active: bg.id === currentBackground,
+    run: () => {
+      handleAppearanceChange?.({ background: bg.id });
+    }
+  }));
+}
+
+const COMMAND_SCOPES = {
+  'open:': {
+    name: 'Open',
+    getCommands: () => getPreferenceCommands()
+  },
+  'theme:': {
+    name: 'Theme',
+    getCommands: () => getThemeCommands()
+  },
+  'background:': {
+    name: 'Background',
+    getCommands: () => getBackgroundCommands()
+  }
+};
+
 async function loadAllDashboardStates() {
   try {
     const dashboards = await DashboardService.loadAllDashboards();
@@ -98,6 +146,54 @@ async function loadAllDashboardStates() {
 
 function getCommands() {
 	
+	const dynamicCommands = [
+		{
+			id: 'scope-open',
+			label: 'Open:',
+			category: 'Actions',
+			isScope: true,
+			run: () => {
+				const input = document.getElementById('command-input');
+				if (!input) return;
+
+				input.value = 'open: ';
+				renderCommandResults('open: ', true);
+
+				input.focus();
+			}
+		},
+		{
+			id: 'scope-theme',
+			label: 'Theme:',
+			category: 'Actions',
+			isScope: true,
+			run: () => {
+				const input = document.getElementById('command-input');
+				if (!input) return;
+
+				input.value = 'theme: ';
+				renderCommandResults('theme: ', true);
+
+				input.focus();
+			}
+		},
+		{
+			id: 'scope-background',
+			label: 'Background:',
+			category: 'Actions',
+			isScope: true,
+			run: () => {
+				const input = document.getElementById('command-input');
+				if (!input) return;
+
+				input.value = 'background: ';
+				renderCommandResults('background: ', true);
+
+				input.focus();
+			}
+		},
+	];
+
 	const baseCommands = [
 		{
 			id: 'reset-dashboard',
@@ -107,7 +203,7 @@ function getCommands() {
 			run: async () => {
 				await safeResetDashboard();
 			}
-		}
+		},
 	];
 
   // Dynamic: buttons from dashboard
@@ -139,10 +235,10 @@ function getCommands() {
 		}));
 
   return [
-    ...buttonCommands,
+		...dynamicCommands,
     ...dashboardCommands,
-		...getPreferenceCommands(),
     ...baseCommands,
+    ...buttonCommands,
   ];
 }
 
@@ -214,20 +310,81 @@ function fuzzyMatch(query, text) {
   return false;
 }
 
+function highlightMatch(text, query) {
+  if (!query) return text;
+
+  const lowerText = text.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+
+  let result = '';
+  let qIndex = 0;
+
+  for (let i = 0; i < text.length; i++) {
+    if (lowerText[i] === lowerQuery[qIndex]) {
+      result += `<span class="match">${text[i]}</span>`;
+      qIndex++;
+    } else {
+      result += text[i];
+    }
+  }
+
+  return result;
+}
+
 function renderCommandResults(query = '', resetSelection = false) {
+	const originalQuery = query;
   const container = document.getElementById('command-results');
   if (!container) return;
 
   container.innerHTML = '';
 
-  const allCommands = getCommands();
+  let allCommands;
 
-  commandResults = query
-    ? allCommands.filter(cmd => 
-			fuzzyMatch(query, cmd.label) ||
-			fuzzyMatch(query, cmd.category)
-		)
-    : allCommands;
+	const lowerQuery = query.toLowerCase();
+
+	// Find matching scope
+	const activeScopeEntry = Object.entries(COMMAND_SCOPES)
+		.find(([prefix]) => lowerQuery.startsWith(prefix));
+
+	const inputEl = document.getElementById('command-input');
+
+	if (inputEl) {
+		if (activeScopeEntry) {
+			inputEl.dataset.scope = activeScopeEntry[1].name;
+		} else {
+			delete inputEl.dataset.scope;
+		}
+	}
+
+	if (activeScopeEntry) {
+		const [prefix, scope] = activeScopeEntry;
+
+		// slice using LOWERCASE string length, but apply to original safely
+		query = query.substring(prefix.length).trim();
+
+		allCommands = scope.getCommands();
+	} else {
+		allCommands = getCommands();
+	}
+
+  const normalizedQuery = query.trimEnd(); // remove trailing spaces
+
+	commandResults = normalizedQuery
+		? allCommands.filter(cmd => 
+				fuzzyMatch(normalizedQuery, cmd.label) ||
+				fuzzyMatch(normalizedQuery, cmd.category)
+			)
+		: allCommands;
+
+	commandResults.sort((a, b) => {
+		const aExact = a.label.toLowerCase() === normalizedQuery.toLowerCase();
+		const bExact = b.label.toLowerCase() === normalizedQuery.toLowerCase();
+
+		if (aExact && !bExact) return -1;
+		if (!aExact && bExact) return 1;
+
+		return 0;
+	});
 
   // Only reset when explicitly requested
   if (resetSelection) {
@@ -251,8 +408,12 @@ function renderCommandResults(query = '', resetSelection = false) {
 		const el = document.createElement('div');
 		el.className = 'command-item';
 
+		const displayLabel = highlightMatch(cmd.label, originalQuery);
+
 		el.innerHTML = `
-			<span>${cmd.label}</span>
+			<span class="${cmd.active ? 'active' : ''}">
+				${displayLabel}
+			</span>
 			<span class="meta">${cmd.destructive ? 'Danger • Hold Ctrl/Alt to skip' : cmd.category ?? ''}</span>
 		`;
 
@@ -297,6 +458,24 @@ function renderCommandResults(query = '', resetSelection = false) {
 
   input.addEventListener('keydown', (e) => {
 
+		const value = input.value.toLowerCase();
+
+		const activeScope = Object.keys(COMMAND_SCOPES)
+			.find(prefix => value.startsWith(prefix));
+
+		// Exit scope on backspace
+		if (
+			e.key === 'Backspace' &&
+			activeScope &&
+			value.trim() === activeScope
+		) {
+			e.preventDefault();
+
+			input.value = '';
+			renderCommandResults('', true);
+			return;
+		}
+
 		if (commandResults.length === 0) return;
 
 		if (e.key === 'ArrowDown') {
@@ -312,6 +491,48 @@ function renderCommandResults(query = '', resetSelection = false) {
 			renderCommandResults(input.value);
 			return;
 		}
+
+	if (e.key === 'Tab') {
+		e.preventDefault();
+
+		const cmd = commandResults[selectedIndex];
+		if (!cmd) return;
+
+		const input = document.getElementById('command-input');
+		if (!input) return;
+
+		const value = input.value;
+
+		const activeScopeEntry = Object.entries(COMMAND_SCOPES)
+			.find(([prefix]) => value.toLowerCase().startsWith(prefix));
+
+		// Scope handling
+		if (activeScopeEntry) {
+			const [prefix] = activeScopeEntry;
+
+			let label = cmd.label;
+
+			// Remove redundant prefix word
+			if (prefix === 'open:' && label.toLowerCase().startsWith('open ')) {
+				label = label.slice(5);
+			}
+
+			input.value = prefix + ' ' + label.toLowerCase();
+			renderCommandResults(input.value, true);
+			return;
+		}
+
+		// Scope command itself
+		if (cmd.isScope) {
+			input.value = cmd.label.toLowerCase() + ' ';
+			renderCommandResults(input.value, true);
+			return;
+		}
+
+		// Normal command
+		input.value = cmd.label.toLowerCase();
+		renderCommandResults(input.value, true);
+	}
 
 		if (e.key === 'Enter') {
 			e.preventDefault();
@@ -345,11 +566,16 @@ function executeCommand(index, event = {}) {
   const isDestructive = cmd.destructive === true;
   const bypassConfirm = event.ctrlKey || event.altKey;
 
+  // Scope commands (like "Open:")
+  if (cmd.isScope) {
+    cmd.run(); // Only update input + rerender
+    return;    // Do NOT close palette
+  }
+
   // Destructive (with confirm)
   if (isDestructive && !bypassConfirm) {
     closeCommandPalette();
 
-    // CRITICAL: delay modal opening
     setTimeout(() => {
       openConfirm({
         title: cmd.label,
@@ -365,19 +591,20 @@ function executeCommand(index, event = {}) {
     return;
   }
 
-	// Execute command first
-	cmd.run();
+  // Normal commands
+  cmd.run();
 
-	if (cmd.id?.startsWith('btn-')) {
-		const buttonId = cmd.id.replace('btn-', '');
+  // Handle button recents
+  if (cmd.id?.startsWith('btn-')) {
+    const buttonId = cmd.id.replace('btn-', '');
 
-		addToRecents?.(buttonId);
+    addToRecents?.(buttonId);
 
-		setTimeout(() => {
-			renderCategories?.(pageCategories);
-		}, 0);
-	}
+    setTimeout(() => {
+      renderCategories?.(pageCategories);
+    }, 0);
+  }
 
-	// Close palette
-	closeCommandPalette();
+  // Close only for real commands
+  closeCommandPalette();
 }

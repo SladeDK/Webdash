@@ -3668,6 +3668,7 @@ body.dashboard-loading .dashboard-item {
 #command-results {
   padding: 6px 0;
   overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
   max-height: 320px;
 
@@ -3695,7 +3696,7 @@ body.dashboard-loading .dashboard-item {
 
 .command-item.selected {
   background: var(--bg-active);
-  border-left: 2px solid var(--color-accent, #4da3ff);
+  border-left: 2px solid var(--accent, #4da3ff);
   padding-left: 14px;
 }
 
@@ -3750,6 +3751,58 @@ body.dashboard-loading .dashboard-item {
 #command-results:hover::-webkit-scrollbar-thumb {
   opacity: 1;
 }
+
+.match {
+  font-weight: 600;
+}
+
+.command-item span.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+#command-input[data-scope] {
+  position: relative;
+}
+
+#command-input[data-scope]::before {
+  content: attr(data-scope) ":";
+  position: absolute;
+  left: 12px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.command-item {
+  transition: 
+    background 0.15s ease,
+    transform 0.1s ease,
+    opacity 0.15s ease;
+}
+
+.command-item:hover {
+  transform: translateX(2px);
+}
+
+.command-item.selected {
+  transition: background 0.1s ease;
+}
+
+#command-results {
+  animation: fadeIn 0.12s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
 /* ==================================================== */
 /* ANIMATION OVERRIDE (Should always be the last lines) */
