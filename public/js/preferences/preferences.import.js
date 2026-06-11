@@ -40,6 +40,30 @@ function guardAsync(fn) {
   };
 }
 
+function migrateSystemImportPayload(payload) {
+  switch (payload.schemaVersion) {
+    case 2:
+      return payload;
+
+    case 1:
+      return {
+        ...payload,
+        schemaVersion: 2,
+        meta: payload.meta ?? {
+          activeDashboardId: null,
+          defaultDashboardId: null
+        },
+        preferences: payload.preferences ?? {
+          appearance: {},
+          behavior: {}
+        }
+      };
+
+    default:
+      throw new Error('Unsupported import schema version');
+  }
+}
+
 // ======================================================================
 // Import UI context (injected by preferences.ui.js)
 // ======================================================================
@@ -78,39 +102,69 @@ async function exportSystem() {
   try {
     const dashboards = [];
 
+    const originalActiveId = activeDashboardId;
+
     for (const { id } of availableDashboards) {
       await DashboardService.setActiveDashboardId(id);
+
       const state = await DashboardService.load();
       if (!state) continue;
-      
+
       const dashboardMeta = availableDashboards.find(d => d.id === state.id);
 
-      if (!dashboardMeta) {
-        console.warn('[Export] Missing metadata for dashboard:', state.id);
-      }
+      const name =
+        state.identity?.name ??
+        dashboardMeta?.name ??
+        state.name ??
+        'Unnamed';
+
+      const categories = (state.categories ?? []).map(cat => ({
+        ...cat,
+        visible: cat.visible ?? true,
+        items: (cat.items ?? []).map(item => ({
+          ...item,
+          visible: item.visible ?? true
+        }))
+      }));
 
       dashboards.push({
         id: state.id,
-        order: dashboard.order ?? 0,
+        name,
+        order: state.order ?? 0,
+
         identity: {
-          name: dashboard.identity?.name ?? dashboard.name,
-          icon: dashboard.identity?.icon ?? null
+          name,
+          icon: state.identity?.icon ?? null
         },
-        categories: structuredClone(state.categories)
+
+        appearance: {
+          theme: state.appearance?.theme ?? 'system',
+          background: state.appearance?.background ?? 'bg-plain'
+        },
+
+        categories
       });
     }
 
-    await DashboardService.setActiveDashboardId(activeDashboardId);
+    if (originalActiveId) {
+      await DashboardService.setActiveDashboardId(originalActiveId);
+    }
 
     const exportPayload = {
       schemaVersion: 2,
       type: 'system',
       exportedAt: new Date().toISOString(),
+
       dashboards,
-      meta: { activeDashboardId, defaultDashboardId },
+
+      meta: {
+        activeDashboardId: originalActiveId ?? null,
+        defaultDashboardId: defaultDashboardId ?? null
+      },
+
       preferences: {
-        appearance: structuredClone(userPreferences.appearance),
-        behavior: structuredClone(userPreferences.behavior)
+        appearance: structuredClone(userPreferences?.appearance ?? {}),
+        behavior: structuredClone(userPreferences?.behavior ?? {})
       }
     };
 
@@ -125,16 +179,17 @@ async function exportSystem() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
     showToast({
       title: 'Export completed',
-      lines: [
-        'Your system configuration is being exported...'
-      ],
+      lines: ['Your system configuration has been exported.'],
       type: 'success',
       duration: 5000
     });
+
   } catch (err) {
     console.error('[WebDash] System export failed:', err);
+
     showToast({
       title: 'Export failed',
       lines: [
@@ -146,6 +201,7 @@ async function exportSystem() {
     });
   }
 }
+
 
 // ======================================================================
 // IMPORT VALIDATION & PREVIEW
@@ -407,6 +463,40 @@ function renderImportPreview(plan) {
 // IMPORT NORMALIZATION HELPERS (local, runtime-safe)
 // ======================================================================
 
+function normalizeImportedDashboard(d) {
+  const name =
+    d.identity?.name ??
+    d.name ??
+    'Unnamed';
+
+  return {
+    id: d.id,
+
+    name,
+
+    identity: {
+      name,
+      icon: d.identity?.icon ?? null
+    },
+
+    appearance: {
+      theme: d.appearance?.theme ?? 'system',
+      background: d.appearance?.background ?? 'bg-plain'
+    },
+
+    order: d.order ?? 0,
+
+    categories: (d.categories ?? []).map(cat => ({
+      ...cat,
+      visible: cat.visible ?? true,
+      items: (cat.items ?? []).map(item => ({
+        ...item,
+        visible: item.visible ?? true
+      }))
+    }))
+  };
+}
+
 // ======================================================================
 // IMPORT NORMALIZATION & COMPATIBILITY
 // ======================================================================
@@ -470,15 +560,40 @@ function openImportSystemModal(payload) {
       overlay.querySelector('#import-replace-preferences')?.checked ?? true;
 
     // Build preview context FIRST
-    const plan = await buildPreviewContext(payload, mode);
+    let safePayload;
+
+    try {
+      // Basic sanity check
+      if (!payload || typeof payload !== 'object') {
+        throw new Error('Invalid import data');
+      }
+
+      // Migrate (handles older schema versions)
+      safePayload = migrateSystemImportPayload(payload);
+
+      // Validate (strict schema check)
+      validateSystemImportPayload(safePayload);
+
+    } catch (err) {
+      showToast({
+        title: 'Import failed',
+        lines: [err.message],
+        type: 'error',
+        duration: 5000
+      });
+      return;
+    }
+
+    //  Continue with safe payload
+    const plan = await buildPreviewContext(safePayload, mode);
 
     openImportPreviewModal(plan, async () => {
       closeImportSystemModal();
 
       if (plan.type === SystemTransitionType.IMPORT_OVERWRITE) {
-        await overwriteSystemImport(payload, replacePreferences);
+        await overwriteSystemImport(safePayload, replacePreferences);
       } else {
-        await mergeSystemImport(payload, replacePreferences);
+        await mergeSystemImport(safePayload, replacePreferences);
       }
     });
   });
@@ -620,14 +735,34 @@ function showImportSuccess(summary) {
     });
   }
 
-  // Re-apply appearance
+  // Force immediate UI sync
+
+  // Apply global preferences
   setActiveTheme(userPreferences.appearance.theme);
   setActiveBackground(userPreferences.appearance.background);
 
-  // Re-sync appearance-driven UI
-  syncThemeCards();
-  syncBackgroundCards();
-  syncThemeRadios?.();
+  // Re-apply active dashboard appearance if applicable
+  if (activeDashboardId) {
+    const activeDashboard = availableDashboards.find(
+      d => d.id === activeDashboardId
+    );
+
+    if (activeDashboard) {
+      DashboardService.setActiveDashboardId(activeDashboard.id)
+        .then(() => DashboardService.load())
+        .then(state => {
+          if (state?.appearance) {
+            setActiveTheme(state.appearance.theme ?? userPreferences.appearance.theme);
+            setActiveBackground(state.appearance.background ?? userPreferences.appearance.background);
+          }
+        });
+    }
+  }
+
+  // Sync UI safely
+  if (typeof syncThemeCards === 'function') syncThemeCards();
+  if (typeof syncBackgroundCards === 'function') syncBackgroundCards();
+  if (typeof syncThemeRadios === 'function') syncThemeRadios();
 
   // Re-hydrate dropdown components after DOM replacement
   initializeDropdowns();

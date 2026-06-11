@@ -665,18 +665,25 @@ async function applySystemState({
   // Apply preferences (if provided)
   // ---------------------------
   if (preferences) {
-    userPreferences.appearance = structuredClone(preferences.appearance);
-    userPreferences.behavior = structuredClone(preferences.behavior);
+    // Normalize FIRST using raw imported data
+    const { prefs, warnings } = normalizeImportedPreferences(
+      structuredClone(preferences)
+    );
+
+    importWarnings = warnings;
+
+    // Replace entire preferences safely
+    userPreferences = {
+      ...userPreferences,
+      appearance: structuredClone(prefs.appearance ?? {}),
+      behavior: structuredClone(prefs.behavior ?? {})
+    };
+
     ensureBehaviorDefaults();
 
-    // normalize and capture warnings
-    const result = normalizeImportedPreferences(userPreferences);
-    userPreferences = result.prefs;
-    importWarnings = result.warnings;
-
     await PreferencesService.save(userPreferences);
+
   } else {
-    // Clear warnings if no preferences were imported
     importWarnings = [];
   }
 
@@ -1159,7 +1166,8 @@ async function mergeSystemImport(payload, replacePreferences) {
     availableDashboards.map(d => [d.id, d])
   );
 
-  for (const imported of payload.dashboards) {
+  for (const importedRaw of payload.dashboards) {
+    const imported = normalizeImportedDashboard(importedRaw);
     if (localDashboards.has(imported.id)) {
       importSummary.dashboardsMerged++;
 
@@ -1172,14 +1180,20 @@ async function mergeSystemImport(payload, replacePreferences) {
       );
 
       const mergedIdentity = mergeIdentity(
-        { name: localState.name, icon: userPreferences.appearance.identity?.icon },
+        {
+          name: localState.identity?.name ?? localState.name,
+          icon: localState.identity?.icon ?? null
+        },
         imported.identity
       );
 
       const mergedState = {
         ...localState,
         name: mergedIdentity.name,
-        categories: mergedCategories
+        identity: mergedIdentity,
+        appearance: imported.appearance ?? localState.appearance ?? null,
+        categories: mergedCategories,
+        order: imported.order ?? localState.order ?? 0
       };
 
       await DashboardService.save(mergedState);
@@ -1187,7 +1201,7 @@ async function mergeSystemImport(payload, replacePreferences) {
     } else {
       importSummary.dashboardsCreated++;
 
-      const importedName = imported.identity.name;
+      const importedName = imported.name;
       const hasNameCollision = availableDashboards.some(
         d => d.name.toLowerCase() === importedName.toLowerCase()
       );
@@ -1204,7 +1218,10 @@ async function mergeSystemImport(payload, replacePreferences) {
       await DashboardService.save({
         id: imported.id,
         name: finalName,
-        categories: structuredClone(imported.categories)
+        identity: imported.identity,
+        appearance: imported.appearance,
+        categories: structuredClone(imported.categories),
+        order: imported.order ?? 0
       });
 
       availableDashboards.push({ id: imported.id, name: finalName });
@@ -1214,7 +1231,7 @@ async function mergeSystemImport(payload, replacePreferences) {
   // Build system intent from IMPORTED data (NOT local)
   const dashboards = payload.dashboards.map(d => ({
     id: d.id,
-    name: d.identity.name,
+    name: d.name ?? d.identity?.name ?? 'Unnamed',
     order: d.order ?? 0
   }));
 
@@ -1243,23 +1260,28 @@ async function overwriteSystemImport(payload, replacePreferences) {
   pageCategories = null;
 
   // ----------------------------------------
-  // Import dashboards fresh from backup
+  // Import dashboards fresh from backup (NORMALIZED)
   // ----------------------------------------
   for (const imported of payload.dashboards) {
+    const normalized = normalizeImportedDashboard(imported);
+
     await DashboardService.createDashboard({
-      id: imported.id,
-      name: imported.identity.name
+      id: normalized.id,
+      name: normalized.name
     });
 
     await DashboardService.save({
-      id: imported.id,
-      name: imported.identity.name,
-      categories: structuredClone(imported.categories)
+      id: normalized.id,
+      name: normalized.name,
+      identity: normalized.identity,
+      appearance: normalized.appearance,
+      categories: structuredClone(normalized.categories),
+      order: normalized.order
     });
 
     availableDashboards.push({
-      id: imported.id,
-      name: imported.identity.name
+      id: normalized.id,
+      name: normalized.name
     });
   }
 

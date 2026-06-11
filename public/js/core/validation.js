@@ -123,14 +123,20 @@ function validateButtonInput({ label, url, existingItems, currentItemId }) {
 // Validate system import structure and content
 // =====================================================
 
+const CURRENT_SCHEMA_VERSION = 2;
+
 function validateSystemImportPayload(payload) {
   if (!payload || typeof payload !== 'object') {
     throw new Error('Invalid import file');
   }
 
-  if (payload.schemaVersion !== 2) {
+  if (typeof payload.schemaVersion !== 'number') {
+    throw new Error('Missing schema version');
+  }
+
+  if (payload.schemaVersion > CURRENT_SCHEMA_VERSION) {
     throw new Error(
-      `Unsupported import schema version: ${payload.schemaVersion}`
+      `Import file is from a newer version (v${payload.schemaVersion})`
     );
   }
 
