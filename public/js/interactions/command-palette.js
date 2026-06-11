@@ -331,6 +331,27 @@ function highlightMatch(text, query) {
   return result;
 }
 
+function getMatchScore(query, text) {
+  if (!query) return 0;
+
+  const q = query.toLowerCase();
+  const t = text.toLowerCase();
+
+  // Exact match
+  if (t === q) return 100;
+
+  // Starts with
+  if (t.startsWith(q)) return 75;
+
+  // Includes substring
+  if (t.includes(q)) return 50;
+
+  // Fuzzy match (fallback)
+  if (fuzzyMatch(q, t)) return 25;
+
+  return 0;
+}
+
 function renderCommandResults(query = '', resetSelection = false) {
 	const originalQuery = query;
   const container = document.getElementById('command-results');
@@ -370,18 +391,32 @@ function renderCommandResults(query = '', resetSelection = false) {
   const normalizedQuery = query.trimEnd(); // remove trailing spaces
 
 	commandResults = normalizedQuery
-		? allCommands.filter(cmd => 
-				fuzzyMatch(normalizedQuery, cmd.label) ||
-				fuzzyMatch(normalizedQuery, cmd.category)
-			)
-		: allCommands;
+  ? allCommands
+      .map(cmd => {
+        const labelScore = getMatchScore(normalizedQuery, cmd.label);
+        const categoryScore = getMatchScore(normalizedQuery, cmd.category || '');
+
+        const score = Math.max(labelScore, categoryScore);
+
+        return { ...cmd, _score: score };
+      })
+      .filter(cmd => cmd._score > 0)
+  : allCommands.map(cmd => ({ ...cmd, _score: 0 }));
 
 	commandResults.sort((a, b) => {
-		const aExact = a.label.toLowerCase() === normalizedQuery.toLowerCase();
-		const bExact = b.label.toLowerCase() === normalizedQuery.toLowerCase();
+		const queryLower = normalizedQuery.toLowerCase();
+
+		// Exact match priority
+		const aExact = a.label.toLowerCase() === queryLower;
+		const bExact = b.label.toLowerCase() === queryLower;
 
 		if (aExact && !bExact) return -1;
 		if (!aExact && bExact) return 1;
+
+		// Score-based sorting
+		if (a._score !== b._score) {
+			return b._score - a._score;
+		}
 
 		return 0;
 	});
