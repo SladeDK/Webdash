@@ -211,6 +211,15 @@ function renderImportPreview(plan) {
   if (!importUI?.previewContent) return;
 
   let html = '';
+
+  // Merge explanation
+  html += `
+    <div class="preview-section preview-info">
+      <div class="preview-info-text">
+        Merge mode: Imported data will overwrite matching items and restore missing ones.
+      </div>
+    </div>
+  `;
   const dashboards = plan.dashboards ?? { added: [], updated: [], removed: [] };
 
   // ==================================================
@@ -228,7 +237,7 @@ function renderImportPreview(plan) {
       <ul class="dashboard-summary">
   `;
 
-  dashboards.removed.forEach(d => {
+  (dashboards.removed ?? []).forEach(d => {
     html += `
       <li class="dashboard-item removed">
         <div class="dashboard-name">${d.name.before}</div>
@@ -237,7 +246,7 @@ function renderImportPreview(plan) {
     `;
   });
 
-  dashboards.added.forEach(d => {
+  (dashboards.added ?? []).forEach(d => {
     html += `
       <li class="dashboard-item added">
         <div class="dashboard-name">${d.name.after}</div>
@@ -246,30 +255,41 @@ function renderImportPreview(plan) {
     `;
   });
 
-  dashboards.updated.forEach(d => {
+  (dashboards.updated ?? []).forEach(d => {
     const renamed = d.name.before !== d.name.after;
-    const hasInternalChanges =
-      d.categories &&
-      (
-        d.categories.added.length ||
-        d.categories.updated.length ||
-        d.categories.removed.length ||
-        d.categories.updated.some(c =>
-          c.items &&
-          (c.items.added.length || c.items.updated.length || c.items.removed.length)
-        )
-      );
+    let changeSummary = [];
+
+    if (d.categories) {
+      const added = d.categories.added?.length ?? 0;
+      const removed = d.categories.removed?.length ?? 0;
+
+      let itemChanges = 0;
+
+      (d.categories.updated ?? []).forEach(c => {
+        if (!c.items) return;
+        itemChanges +=
+          (c.items.added?.length ?? 0) +
+          (c.items.updated?.length ?? 0) +
+          (c.items.removed?.length ?? 0);
+      });
+
+      if (added > 0) changeSummary.push(`+${added} categories`);
+      if (removed > 0) changeSummary.push(`-${removed} categories`);
+      if (itemChanges > 0) changeSummary.push(`${itemChanges} item changes`);
+    }
 
     html += `
       <li class="dashboard-item">
         <div class="dashboard-name">
           ${renamed
-            ? `${d.name.before} <span class="rename-arrow">→</span> ${d.name.after}`
+            ? `${d.name.before} <span class="rename-arrow">→</span> ${d.name.after} (import override)`
             : d.name.after}
         </div>
         <div class="dashboard-changes">
-          ${renamed ? `<div class="change-label renamed">Renamed</div>` : ``}
-          ${hasInternalChanges ? `<div class="change-label internal">Modified Internally</div>` : ``}
+          ${renamed ? `<div class="change-label renamed">Renamed (local → imported)</div>` : ``}
+          ${changeSummary.length
+            ? `<div class="change-label internal">${changeSummary.join(', ')}</div>`
+            : ``}
         </div>
       </li>
     `;
@@ -295,10 +315,10 @@ function renderImportPreview(plan) {
       <ul class="dashboard-summary">
   `;
 
-  dashboards.updated.forEach(d => {
+  (dashboards.updated ?? []).forEach(d => {
     if (!d.categories) return;
 
-    d.categories.updated.forEach(cat => {
+    (d.categories.updated ?? []).forEach(cat => {
       const renamed = cat.name.before !== cat.name.after;
 
       html += `
@@ -308,18 +328,18 @@ function renderImportPreview(plan) {
               Dashboard · ${d.name.after}
             </div>
             <div class="item-entity">
-              ${renamed ? `${cat.name.before} → ${cat.name.after}` : cat.name.after}
+              ${renamed ? `${cat.name.before} → ${cat.name.after} (import override)` : cat.name.after}
             </div>
           </div>
           <div class="dashboard-changes">
-            ${renamed ? `<div class="change-label updated">Renamed</div>` : ``}
-            <div class="change-label internal">Modified Internally</div>
+            ${renamed ? `<div class="change-label updated">Renamed (local → imported)</div>` : ``}
+            <div class="change-label internal">Modified</div>
           </div>
         </li>
       `;
     });
 
-    d.categories.added.forEach(cat => {
+    (d.categories.added ?? []).forEach(cat => {
       html += `
         <li class="dashboard-item">
           <div class="dashboard-name">
@@ -332,13 +352,13 @@ function renderImportPreview(plan) {
           </div>
           <div class="dashboard-changes">
             <div class="change-label added">Added</div>
-            <div class="change-label internal">Modified Internally</div>
+            <div class="change-label internal">Modified</div>
           </div>
         </li>
       `;
     });
 
-    d.categories.removed.forEach(cat => {
+    (d.categories.removed ?? []).forEach(cat => {
       html += `
         <li class="dashboard-item removed">
           <div class="dashboard-name">
@@ -377,13 +397,13 @@ function renderImportPreview(plan) {
       <ul class="dashboard-summary">
   `;
 
-  dashboards.updated.forEach(d => {
+  (dashboards.updated ?? []).forEach(d => {
     if (!d.categories) return;
 
-    d.categories.updated.forEach(cat => {
+    (d.categories.updated ?? []).forEach(cat => {
       if (!cat.items) return;
 
-      cat.items.updated.forEach(item => {
+      (cat.items.updated ?? []).forEach(item => {
         const renamed = item.name.before !== item.name.after;
         const urlChanged = item.url.before !== item.url.after;
 
@@ -412,7 +432,8 @@ function renderImportPreview(plan) {
         `;
       });
 
-      cat.items.added.forEach(item => {
+      (cat.items.added ?? []).forEach(item => {
+        const restored = item.before !== undefined;
         html += `
           <li class="dashboard-item">
             <div class="dashboard-name">
@@ -425,13 +446,15 @@ function renderImportPreview(plan) {
               <div class="preview-muted">${item.url.after}</div>
             </div>
             <div class="dashboard-changes">
-              <div class="change-label added">Added</div>
+              <div class="change-label added">
+                ${restored ? 'Restored from import' : 'Added'}
+              </div>
             </div>
           </li>
         `;
       });
 
-      cat.items.removed.forEach(item => {
+      (cat.items.removed ?? []).forEach(item => {
         html += `
           <li class="dashboard-item removed">
             <div class="dashboard-name">
@@ -455,6 +478,23 @@ function renderImportPreview(plan) {
       </ul>
     </div>
   `;
+
+  // Show fallback if nothing meaningful was rendered
+  const hasChanges =
+    (dashboards.added?.length ?? 0) > 0 ||
+    (dashboards.removed?.length ?? 0) > 0 ||
+    (dashboards.updated?.length ?? 0) > 0;
+
+  if (!hasChanges) {
+    html = `
+      <div class="preview-section">
+        <h3>No changes detected</h3>
+        <p class="preview-muted">
+          The imported data matches your current setup.
+        </p>
+      </div>
+    `;
+  }
 
   importUI.previewContent.innerHTML = html;
 }
