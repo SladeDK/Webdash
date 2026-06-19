@@ -44,35 +44,35 @@ function syncAutoCloseUI() {
   if (!autoCloseCheckbox) return;
 
   autoCloseCheckbox.checked =
-    userPreferences?.behavior?.autoCloseDropdowns ?? true;
+    getToggleByKey('autoCloseDropdowns')?.get();
 }
 
 function syncOpenLinksUI() {
   if (!openLinksCheckbox) return;
 
   openLinksCheckbox.checked =
-    userPreferences?.behavior?.openLinksInNewTab ?? true;
+    getToggleByKey('openLinksInNewTab')?.get();
 }
 
 function syncTrackRecentUI() {
   if (!trackRecentCheckbox) return;
 
   trackRecentCheckbox.checked =
-    userPreferences?.behavior?.trackRecents ?? true;
+    getToggleByKey('trackRecents')?.get();
 }
 
 function syncConfirmDeleteButtonsUI() {
   if (!confirmDeleteButtonsCheckbox) return;
 
   confirmDeleteButtonsCheckbox.checked =
-    userPreferences?.behavior?.confirmDeleteButtons ?? true;
+    getToggleByKey('confirmDeleteButtons')?.get();
 }
 
 function syncDashboardAppearanceUI() {
   if (!syncAppearanceCheckbox) return;
 
   syncAppearanceCheckbox.checked =
-    userPreferences?.behavior?.syncDashboardAppearance !== false;
+    getToggleByKey('syncDashboardAppearance')?.get();
 }
 
 function syncDashboardIdentityUI() {
@@ -86,21 +86,21 @@ function syncAnimationsUI() {
   if (!enableAnimationsCheckbox) return;
 
   enableAnimationsCheckbox.checked =
-    userPreferences?.behavior?.enableAnimations !== false;
+    getToggleByKey('enableAnimations')?.get();
 }
 
 function syncStoreRecentsUI() {
   if (!storeRecentsCheckbox) return;
 
   storeRecentsCheckbox.checked =
-    userPreferences?.behavior?.storeRecentsAcrossReloads !== false;
+    getToggleByKey('storeRecentsAcrossReloads')?.get();
 }
 
 function syncDebugModeUI() {
   if (!debugModeCheckbox) return;
 
   debugModeCheckbox.checked =
-    userPreferences?.behavior?.debugMode === true;
+    getToggleByKey('debugMode')?.get();
 }
 
 function syncBehaviorUI() {

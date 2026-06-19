@@ -114,6 +114,29 @@ function getBackgroundCommands() {
   }));
 }
 
+function getToggleCommands() {
+  const toggles = window.TOGGLE_DEFINITIONS || [];
+
+  return toggles.map(toggle => {
+    const value = toggle.get();
+
+    return {
+      id: `toggle-${toggle.key}`,
+      label: toggle.label,
+      category: `Toggle • ${toggle.category}`,
+      active: value,
+
+      run: () => {
+        const currentValue = toggle.get();
+        toggle.set(!currentValue);
+
+        const input = document.getElementById('command-input');
+        renderCommandResults(input?.value ?? '');
+      }
+    };
+  });
+}
+
 const COMMAND_SCOPES = {
   'open:': {
     name: 'Open',
@@ -126,7 +149,11 @@ const COMMAND_SCOPES = {
   'background:': {
     name: 'Background',
     getCommands: () => getBackgroundCommands()
-  }
+  },
+  'toggle:': {
+    name: 'Toggle',
+    getCommands: () => getToggleCommands()
+  },
 };
 
 async function loadAllDashboardStates() {
@@ -192,6 +219,21 @@ function getCommands() {
 				input.focus();
 			}
 		},
+    {
+      id: 'scope-toggle',
+      label: 'Toggle:',
+      category: 'Actions',
+      isScope: true,
+      run: () => {
+        const input = document.getElementById('command-input');
+        if (!input) return;
+
+        input.value = 'toggle: ';
+        renderCommandResults('toggle: ', true);
+
+        input.focus();
+      }
+    },
 	];
 
 	const baseCommands = [
@@ -439,29 +481,36 @@ function renderCommandResults(query = '', resetSelection = false) {
     return;
   }
 
-	commandResults.forEach((cmd, index) => {
-		const el = document.createElement('div');
-		el.className = 'command-item';
+  commandResults.forEach((cmd, index) => {
+    const el = document.createElement('div');
+    el.className = 'command-item';
 
-		const displayLabel = highlightMatch(cmd.label, originalQuery);
+    const displayLabel = highlightMatch(cmd.label, originalQuery);
 
-		el.innerHTML = `
-			<span class="${cmd.active ? 'active' : ''}">
-				${displayLabel}
-			</span>
-			<span class="meta">${cmd.destructive ? 'Danger • Hold Ctrl/Alt to skip' : cmd.category ?? ''}</span>
-		`;
+    const metaText =
+      cmd.active !== undefined
+        ? (cmd.active ? 'ON' : 'OFF')
+        : (cmd.destructive
+            ? 'Danger • Hold Ctrl/Alt to skip'
+            : cmd.category ?? '');
 
-		if (index === selectedIndex) {
-			el.classList.add('selected');
-		}
+    el.innerHTML = `
+      <span class="${cmd.active ? 'active' : ''}">
+        ${displayLabel}
+      </span>
+      <span class="meta">${metaText}</span>
+    `;
 
-		el.addEventListener('click', (e) => {
-			executeCommand(index, e);
-		});
+    if (index === selectedIndex) {
+      el.classList.add('selected');
+    }
 
-		container.appendChild(el);
-	});
+    el.addEventListener('click', (e) => {
+      executeCommand(index, e);
+    });
+
+    container.appendChild(el);
+  });
 
 	const selectedEl = container.querySelector('.command-item.selected');
 
@@ -513,61 +562,70 @@ function renderCommandResults(query = '', resetSelection = false) {
 
 		if (commandResults.length === 0) return;
 
-		if (e.key === 'ArrowDown') {
-			e.preventDefault();
-			selectedIndex = Math.min(selectedIndex + 1, commandResults.length - 1);
-			renderCommandResults(input.value);
-			return;
-		}
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
 
-		if (e.key === 'ArrowUp') {
-			e.preventDefault();
-			selectedIndex = Math.max(selectedIndex - 1, 0);
-			renderCommandResults(input.value);
-			return;
-		}
+      if (commandResults.length > 0) {
+        selectedIndex = (selectedIndex + 1) % commandResults.length;
+      }
 
-	if (e.key === 'Tab') {
-		e.preventDefault();
+      renderCommandResults(input.value);
+      return;
+    }
 
-		const cmd = commandResults[selectedIndex];
-		if (!cmd) return;
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
 
-		const input = document.getElementById('command-input');
-		if (!input) return;
+      if (commandResults.length > 0) {
+        selectedIndex =
+          (selectedIndex - 1 + commandResults.length) % commandResults.length;
+      }
 
-		const value = input.value;
+      renderCommandResults(input.value);
+      return;
+    }
 
-		const activeScopeEntry = Object.entries(COMMAND_SCOPES)
-			.find(([prefix]) => value.toLowerCase().startsWith(prefix));
+    if (e.key === 'Tab') {
+      e.preventDefault();
 
-		// Scope handling
-		if (activeScopeEntry) {
-			const [prefix] = activeScopeEntry;
+      const cmd = commandResults[selectedIndex];
+      if (!cmd) return;
 
-			let label = cmd.label;
+      const input = document.getElementById('command-input');
+      if (!input) return;
 
-			// Remove redundant prefix word
-			if (prefix === 'open:' && label.toLowerCase().startsWith('open ')) {
-				label = label.slice(5);
-			}
+      const value = input.value;
 
-			input.value = prefix + ' ' + label.toLowerCase();
-			renderCommandResults(input.value, true);
-			return;
-		}
+      const activeScopeEntry = Object.entries(COMMAND_SCOPES)
+        .find(([prefix]) => value.toLowerCase().startsWith(prefix));
 
-		// Scope command itself
-		if (cmd.isScope) {
-			input.value = cmd.label.toLowerCase() + ' ';
-			renderCommandResults(input.value, true);
-			return;
-		}
+      // Scope handling
+      if (activeScopeEntry) {
+        const [prefix] = activeScopeEntry;
 
-		// Normal command
-		input.value = cmd.label.toLowerCase();
-		renderCommandResults(input.value, true);
-	}
+        let label = cmd.label;
+
+        // Remove redundant prefix word
+        if (prefix === 'open:' && label.toLowerCase().startsWith('open ')) {
+          label = label.slice(5);
+        }
+
+        input.value = prefix + ' ' + label.toLowerCase();
+        renderCommandResults(input.value, true);
+        return;
+      }
+
+      // Scope command itself
+      if (cmd.isScope) {
+        input.value = cmd.label.toLowerCase() + ' ';
+        renderCommandResults(input.value, true);
+        return;
+      }
+
+      // Normal command
+      input.value = cmd.label.toLowerCase();
+      renderCommandResults(input.value, true);
+    }
 
 		if (e.key === 'Enter') {
 			e.preventDefault();

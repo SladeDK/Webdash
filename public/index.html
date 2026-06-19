@@ -37,7 +37,7 @@
     <script src="js/core/ids.js" defer></script>
     <script src="js/core/services.js" defer></script>
     <script src="js/core/validation.js" defer></script>
-    <script src="js/core/themes.js" defer></script>
+    <script src="js/core/registries.js" defer></script>
     <script src="js/core/init.js" defer></script>
     
     <script src="js/ui/modals.js" defer></script>
@@ -287,80 +287,17 @@
               <h3>System Behavior</h3>
               <p>Here you can change how the system behaves across dashboards.</p>
 
+              <!-- Dynamic toggles will be injected here -->
+              <div id="behavior-container"></div>
+
+              <!-- Identity (not part of TOGGLE_DEFINITIONS) -->
               <fieldset class="setting-group">
-                <legend>Appearance:</legend>
-                
-                <label class="setting-row" for="pref-sync-dashboard-appearance">
-                  <span>Synchronize theme and background across dashboards</span>
-                  <span class="toggle">
-                    <input type="checkbox" id="pref-sync-dashboard-appearance">
-                    <span class="toggle-track"></span>
-                  </span>
-                </label>
+                <legend>Identity:</legend>
+
                 <label class="setting-row" for="pref-sync-dashboard-identity">
                   <span>Synchronize dashboard name and identity</span>
                   <span class="toggle">
                     <input type="checkbox" id="pref-sync-dashboard-identity">
-                    <span class="toggle-track"></span>
-                  </span>
-                </label>
-              </fieldset>
-
-              <fieldset class="setting-group">
-                <legend>Buttons:</legend>
-                
-                <label class="setting-row" for="pref-track-recent">
-                  <span>Track and show recently used buttons</span>
-                  <span class="toggle">
-                    <input type="checkbox" id="pref-track-recent">
-                    <span class="toggle-track"></span>
-                  </span>
-                </label>
-
-                <label class="setting-row" for="pref-store-recents">
-                  <span>Store recents between sessions</span>
-                  <span class="toggle">
-                    <input type="checkbox" id="pref-store-recents">
-                    <span class="toggle-track"></span>
-                  </span>
-                </label>
-
-                <label class="setting-row" for="pref-open-links-new-tab">
-                  <span>Open button links in new tab</span>
-                  <span class="toggle">
-                    <input type="checkbox" id="pref-open-links-new-tab">
-                    <span class="toggle-track"></span>
-                  </span>
-                </label>
-
-                <label class="setting-row" for="pref-confirm-delete-buttons">
-                  <span>Confirm before deleting buttons</span>
-                  <span class="toggle">
-                    <input type="checkbox" id="pref-confirm-delete-buttons">
-                    <span class="toggle-track"></span>
-                  </span>
-                </label>
-              </fieldset>
-
-              <fieldset class="setting-group">
-                <legend>Dropdowns:</legend>
-
-                <label class="setting-row" for="pref-dropdown-autoclose">
-                  <span>Automatically close dropdowns when clicking outside</span>
-                  <span class="toggle">
-                    <input type="checkbox" id="pref-dropdown-autoclose">
-                    <span class="toggle-track"></span>
-                  </span>
-                </label>
-              </fieldset>
-
-              <fieldset class="setting-group">
-                <legend>Accessibility:</legend>
-
-                <label class="setting-row" for="pref-enable-animations">
-                  <span>Enable UI animations</span>
-                  <span class="toggle">
-                    <input type="checkbox" id="pref-enable-animations">
                     <span class="toggle-track"></span>
                   </span>
                 </label>

@@ -2093,14 +2093,14 @@ html.theme-light .bg-preview-circuit {
 }
 
 .setting-group {
-  margin-bottom: 2rem;
+  margin-bottom: 1.2rem;
   border: none;
   padding: 0;
 }
 
 .setting-group legend {
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .setting-row {
@@ -2765,7 +2765,7 @@ html.bg-switching::after {
   content: "";
   display: block;
   height: 1px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
 
   background: linear-gradient(
     to right,

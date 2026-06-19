@@ -190,7 +190,8 @@ async function openPreferences(panelNameOrEvent = null) {
   }
 
   // Ensure all settings reflect current preferences
-  syncBehaviorUI();
+  renderBehaviorToggles();
+  wireSyncAppearanceBehavior();
 }
 
 // ---------- Close modal ----------
@@ -264,6 +265,83 @@ navItems?.forEach(button => {
 // BEHAVIOR PREFERENCES UI
 // ======================================================================
 
+function renderBehaviorToggles() {
+  const container = document.getElementById('behavior-container');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const groups = {};
+
+  // Group toggles using new layout metadata
+  (window.TOGGLE_DEFINITIONS || [])
+    .filter(toggle => toggle.panel === 'behavior')
+    .forEach(toggle => {
+      const groupName = toggle.group || 'Other';
+
+      if (!groups[groupName]) {
+        groups[groupName] = [];
+      }
+
+      groups[groupName].push(toggle);
+    });
+
+  // Desired order (matches your original UI)
+  const groupOrder = [
+    'Appearance',
+    'Buttons',
+    'Dropdowns',
+    'Accessibility'
+  ];
+
+  groupOrder.forEach(groupName => {
+    const toggles = groups[groupName];
+    if (!toggles) return;
+
+    // Sort toggles within the group
+    toggles.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    const fieldset = document.createElement('fieldset');
+    fieldset.className = 'setting-group';
+
+    const legend = document.createElement('legend');
+    legend.textContent = groupName + ':';
+    fieldset.appendChild(legend);
+
+    toggles.forEach(toggle => {
+      const label = document.createElement('label');
+      label.className = 'setting-row';
+
+      const text = document.createElement('span');
+      text.textContent = toggle.label;
+
+      const toggleWrapper = document.createElement('span');
+      toggleWrapper.className = 'toggle';
+
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = toggle.get();
+
+      input.addEventListener('change', async () => {
+        await toggle.set(input.checked);
+      });
+
+      const track = document.createElement('span');
+      track.className = 'toggle-track';
+
+      toggleWrapper.appendChild(input);
+      toggleWrapper.appendChild(track);
+
+      label.appendChild(text);
+      label.appendChild(toggleWrapper);
+
+      fieldset.appendChild(label);
+    });
+
+    container.appendChild(fieldset);
+  });
+}
+
 if (recentsLimitInput && !recentsLimitInput._wired) {
   recentsLimitInput._wired = true;
 
@@ -278,49 +356,36 @@ if (recentsLimitInput && !recentsLimitInput._wired) {
 if (autoCloseCheckbox && !autoCloseCheckbox._wired) {
   autoCloseCheckbox._wired = true;
 
-  autoCloseCheckbox.addEventListener('change', () => {
-    autoCloseDropdowns = autoCloseCheckbox.checked;
-    userPreferences.behavior.autoCloseDropdowns = autoCloseDropdowns;
-    PreferencesService.save(userPreferences);
+  autoCloseCheckbox.addEventListener('change', async () => {
+    const toggle = getToggleByKey('autoCloseDropdowns');
+    await toggle?.set(autoCloseCheckbox.checked);
   });
 }
 
 if (openLinksCheckbox && !openLinksCheckbox._wired) {
   openLinksCheckbox._wired = true;
 
-  openLinksCheckbox.addEventListener('change', () => {
-    userPreferences.behavior.openLinksInNewTab =
-      openLinksCheckbox.checked;
-
-    PreferencesService.save(userPreferences);
-
-    renderCategories(pageCategories);
+  openLinksCheckbox.addEventListener('change', async () => {
+    const toggle = getToggleByKey('openLinksInNewTab');
+    await toggle?.set(openLinksCheckbox.checked);
   });
 }
 
 if (confirmDeleteButtonsCheckbox && !confirmDeleteButtonsCheckbox._wired) {
   confirmDeleteButtonsCheckbox._wired = true;
 
-  confirmDeleteButtonsCheckbox.addEventListener('change', () => {
-    userPreferences.behavior.confirmDeleteButtons =
-      confirmDeleteButtonsCheckbox.checked;
-
-    PreferencesService.save(userPreferences);
+  confirmDeleteButtonsCheckbox.addEventListener('change', async () => {
+    const toggle = getToggleByKey('confirmDeleteButtons');
+    await toggle?.set(confirmDeleteButtonsCheckbox.checked);
   });
 }
 
 if (trackRecentCheckbox && !trackRecentCheckbox._wired) {
   trackRecentCheckbox._wired = true;
 
-  // Save on change
-  trackRecentCheckbox.addEventListener('change', () => {
-    userPreferences.behavior.trackRecents =
-      trackRecentCheckbox.checked;
-
-    PreferencesService.save(userPreferences);
-
-    // Optional: re-render dashboard to reflect change instantly
-    renderCategories(pageCategories);
+  trackRecentCheckbox.addEventListener('change', async () => {
+    const toggle = getToggleByKey('trackRecents');
+    await toggle?.set(trackRecentCheckbox.checked);
   });
 }
 
@@ -330,43 +395,17 @@ function wireSyncAppearanceBehavior() {
   syncAppearanceCheckbox._wired = true;
 
   syncAppearanceCheckbox.addEventListener('change', async () => {
-    const enabled = syncAppearanceCheckbox.checked;
-
-    userPreferences.behavior.syncDashboardAppearance = enabled;
-    await PreferencesService.save(userPreferences);
-
-    if (enabled && dashboardState) {
-      // Use current dashboard as source of truth for theme and background overwrite
-      const currentTheme =
-        dashboardState?.appearance?.theme ??
-        userPreferences.appearance.theme;
-
-      const currentBackground =
-        dashboardState?.appearance?.background ??
-        userPreferences.appearance.background;
-
-      userPreferences.appearance.theme = currentTheme;
-      userPreferences.appearance.background = currentBackground;
-
-      await PreferencesService.save(userPreferences);
-
-      await syncAppearanceToAllDashboards();
-
-      applyDashboardAppearance();
-    }
+    const toggle = getToggleByKey('syncDashboardAppearance');
+    await toggle?.set(syncAppearanceCheckbox.checked);
   });
 }
 
 if (enableAnimationsCheckbox && !enableAnimationsCheckbox._wired) {
   enableAnimationsCheckbox._wired = true;
 
-  enableAnimationsCheckbox.addEventListener('change', () => {
-    userPreferences.behavior.enableAnimations =
-      enableAnimationsCheckbox.checked;
-
-    PreferencesService.save(userPreferences);
-
-    applyAnimationPreference();
+  enableAnimationsCheckbox.addEventListener('change', async () => {
+    const toggle = getToggleByKey('enableAnimations');
+    await toggle?.set(enableAnimationsCheckbox.checked);
   });
 }
 
@@ -383,30 +422,18 @@ function applyAnimationPreference() {
 if (storeRecentsCheckbox && !storeRecentsCheckbox._wired) {
   storeRecentsCheckbox._wired = true;
 
-  storeRecentsCheckbox.addEventListener('change', () => {
-    userPreferences.behavior.storeRecentsAcrossReloads =
-      storeRecentsCheckbox.checked;
-
-    PreferencesService.save(userPreferences);
+  storeRecentsCheckbox.addEventListener('change', async () => {
+    const toggle = getToggleByKey('storeRecentsAcrossReloads');
+    await toggle?.set(storeRecentsCheckbox.checked);
   });
 }
 
 if (debugModeCheckbox && !debugModeCheckbox._wired) {
   debugModeCheckbox._wired = true;
 
-  debugModeCheckbox.addEventListener('change', () => {
-    userPreferences.behavior.debugMode =
-      debugModeCheckbox.checked;
-
-    PreferencesService.save(userPreferences);
-
-    applyDebugMode();
-
-    renderCategories(pageCategories);
-    renderThemeDropdown();  
-    renderThemeGrid();
-    renderBackgroundGrid();
-    renderDashboardList();
+  debugModeCheckbox.addEventListener('change', async () => {
+    const toggle = getToggleByKey('debugMode');
+    await toggle?.set(debugModeCheckbox.checked);
   });
 }
 
