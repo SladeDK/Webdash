@@ -1,17 +1,4 @@
 // =====================================================
-// Active Helpers
-// =====================================================
-
-function getCurrentTheme() {
-  return userPreferences?.appearance?.theme;
-}
-
-function getCurrentBackground() {
-  return userPreferences?.appearance?.background;
-}
-
-
-// =====================================================
 // Theme definitions (global)
 // =====================================================
 
@@ -207,8 +194,9 @@ window.TOGGLE_DEFINITIONS = [
   {
     key: 'debugMode',
     label: 'Debug mode',
-    category: 'Advanced',
     panel: 'advanced',
+
+    group: 'Advanced',
 
     get: () =>
       userPreferences?.behavior?.debugMode === true,

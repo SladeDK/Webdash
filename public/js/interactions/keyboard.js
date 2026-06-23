@@ -3,13 +3,15 @@ if (!document._keyboardHandler) {
 
   document.addEventListener('keydown', (e) => {
 
+    const key = e.key;
+
     const confirmOverlay = document.getElementById('confirm-overlay');
     const confirmOpen = confirmOverlay && !confirmOverlay.hidden;
 
     // ===============================
-    // CTRL + K → Command palette (GLOBAL)
+    // CTRL / CMD + K → Command palette (GLOBAL)
     // ===============================
-    if (e.ctrlKey && e.key.toLowerCase() === 'k') {
+    if ((e.ctrlKey || e.metaKey) && key.toLowerCase() === 'k') {
       e.preventDefault();
       e.stopPropagation();
 
@@ -23,10 +25,9 @@ if (!document._keyboardHandler) {
     // ===============================
     // ENTER = confirm dialog (only if open)
     // ===============================
-    if (e.key === 'Enter' && confirmOpen) {
+    if (key === 'Enter' && confirmOpen) {
       const active = document.activeElement;
 
-      // ONLY confirm if "Continue" is focused
       if (active && active.id === 'confirm-accept') {
         e.preventDefault();
         e.stopPropagation();
@@ -35,58 +36,58 @@ if (!document._keyboardHandler) {
         closeConfirm();
       }
 
-      // Otherwise let browser handle it
       return;
     }
 
     // ===============================
     // ESCAPE handling (layered system)
     // ===============================
-    if (e.key !== 'Escape') return;
+    if (key === 'Escape') {
 
-    // Command palette ALWAYS has priority
-    const palette = document.getElementById('command-palette');
-    if (palette && !palette.hidden) {
-      e.preventDefault();
-      e.stopPropagation();
+      // Command palette ALWAYS has priority
+      const palette = document.getElementById('command-palette');
+      if (palette && !palette.hidden) {
+        e.preventDefault();
+        e.stopPropagation();
 
-      if (typeof closeCommandPalette === 'function') {
-        closeCommandPalette();
+        if (typeof closeCommandPalette === 'function') {
+          closeCommandPalette();
+        }
+
+        return;
       }
 
-      return;
-    }
+      // Inline rename protection (but allow cancel)
+      const isRenamingIdentitySafe =
+        typeof isRenamingIdentity !== 'undefined' &&
+        isRenamingIdentity === true;
 
-    // Inline rename protection
-    const isRenamingIdentitySafe =
-      typeof isRenamingIdentity !== 'undefined' &&
-      isRenamingIdentity === true;
+      if (
+        renamingDashboardId !== null ||
+        renamingCategoryId !== null ||
+        isRenamingIdentitySafe
+      ) {
+        // Let rename handlers handle ESC themselves
+        return;
+      }
 
-    if (
-      renamingDashboardId !== null ||
-      renamingCategoryId !== null ||
-      isRenamingIdentitySafe
-    ) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
+      // Modal stack handling
+      const top = typeof getTopModal === 'function' ? getTopModal() : null;
 
-    // Modal stack handling
-    const top = typeof getTopModal === 'function' ? getTopModal() : null;
+      if (top) {
+        e.preventDefault();
+        e.stopPropagation();
+        top.onClose?.();
+        return;
+      }
 
-    if (top) {
-      e.preventDefault();
-      e.stopPropagation();
-      top.onClose?.();
-      return;
-    }
-
-    // Fallback → dropdowns
-    if (typeof closeAllDropdowns === 'function') {
-      e.preventDefault();
-      e.stopPropagation();
-      closeAllDropdowns();
+      // Fallback → dropdowns
+      if (typeof closeAllDropdowns === 'function') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeAllDropdowns();
+        return;
+      }
     }
   });
 }

@@ -2,37 +2,14 @@
 // Appearance validators
 // =========================================
 
-const VALID_THEMES = [
-  'system',
-  'theme-dark',
-  'theme-light',
-  'theme-midnight',
-  'theme-slate',
-  'theme-nord',
-  'theme-carbon',
-  'theme-glass'
-];
-
-const VALID_BACKGROUNDS = [
-	'bg-plain',
-	'bg-gradient',
-	'bg-focus',
-	'bg-glass',
-	'bg-dotted',
-	'bg-webbed',
-	'bg-triangle-gradient',
-	'bg-triangle-subtle',
-	'bg-hex',
-	'bg-topo',
-	'bg-circuit'
-];
-
 function isValidTheme(theme) {
-  return typeof theme === 'string' && VALID_THEMES.includes(theme);
+  return typeof theme === 'string' &&
+    (window.THEMES || []).some(t => t.id === theme);
 }
 
 function isValidBackground(bg) {
-  return typeof bg === 'string' && VALID_BACKGROUNDS.includes(bg);
+  return typeof bg === 'string' &&
+    (window.BACKGROUNDS || []).some(b => b.id === bg);
 }
 
 function validateAppearance(prefs) {
@@ -40,6 +17,10 @@ function validateAppearance(prefs) {
   const warnings = [];
 
   // Ensure structure exists
+  if (!prefs || typeof prefs !== 'object') {
+    prefs = {};
+  }
+
   if (!prefs.appearance) {
     prefs.appearance = structuredClone(defaults.appearance);
   }
@@ -47,13 +28,13 @@ function validateAppearance(prefs) {
   // Validate theme
   if (!isValidTheme(prefs.appearance.theme)) {
     prefs.appearance.theme = defaults.appearance.theme;
-    warnings.push('theme');
+    warnings.push({ field: 'theme' });
   }
 
   // Validate background
   if (!isValidBackground(prefs.appearance.background)) {
     prefs.appearance.background = defaults.appearance.background;
-    warnings.push('background');
+    warnings.push({ field: 'background' });
   }
 
   return { prefs, warnings };

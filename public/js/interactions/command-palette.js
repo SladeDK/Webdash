@@ -2,8 +2,6 @@
 // Constants & State
 // =============================
 
-const MAX_VISIBLE_RESULTS = 8;
-
 let commandResults = [];
 let selectedIndex = 0;
 let allDashboardStates = [];
@@ -292,9 +290,12 @@ async function openCommandPalette() {
   const palette = document.getElementById('command-palette');
   if (!palette) return;
 
-	selectedIndex = 0; // Reset selection
+  selectedIndex = 0;
 
-  allDashboardStates = await loadAllDashboardStates();
+  // Only load once per session
+  if (!allDashboardStates.length) {
+    allDashboardStates = await loadAllDashboardStates();
+  }
 
   palette.hidden = false;
 
@@ -395,75 +396,67 @@ function getMatchScore(query, text) {
 }
 
 function renderCommandResults(query = '', resetSelection = false) {
-	const originalQuery = query;
   const container = document.getElementById('command-results');
   if (!container) return;
 
   container.innerHTML = '';
 
+  const inputEl = document.getElementById('command-input');
+
+  const lowerQuery = query.toLowerCase();
+
   let allCommands;
 
-	const lowerQuery = query.toLowerCase();
+  // Scope handling
+  const activeScopeEntry = Object.entries(COMMAND_SCOPES)
+    .find(([prefix]) => lowerQuery.startsWith(prefix));
 
-	// Find matching scope
-	const activeScopeEntry = Object.entries(COMMAND_SCOPES)
-		.find(([prefix]) => lowerQuery.startsWith(prefix));
+  if (inputEl) {
+    if (activeScopeEntry) {
+      inputEl.dataset.scope = activeScopeEntry[1].name;
+    } else {
+      delete inputEl.dataset.scope;
+    }
+  }
 
-	const inputEl = document.getElementById('command-input');
+  let searchQuery = query;
 
-	if (inputEl) {
-		if (activeScopeEntry) {
-			inputEl.dataset.scope = activeScopeEntry[1].name;
-		} else {
-			delete inputEl.dataset.scope;
-		}
-	}
+  if (activeScopeEntry) {
+    const [prefix, scope] = activeScopeEntry;
+    searchQuery = query.substring(prefix.length).trim();
+    allCommands = scope.getCommands();
+  } else {
+    allCommands = getCommands();
+  }
 
-	if (activeScopeEntry) {
-		const [prefix, scope] = activeScopeEntry;
+  const normalizedQuery = searchQuery.trimEnd();
 
-		// slice using LOWERCASE string length, but apply to original safely
-		query = query.substring(prefix.length).trim();
+  commandResults = normalizedQuery
+    ? allCommands
+        .map(cmd => {
+          const score = Math.max(
+            getMatchScore(normalizedQuery, cmd.label),
+            getMatchScore(normalizedQuery, cmd.category || '')
+          );
+          return { ...cmd, _score: score };
+        })
+        .filter(cmd => cmd._score > 0)
+    : allCommands.map(cmd => ({ ...cmd, _score: 0 }));
 
-		allCommands = scope.getCommands();
-	} else {
-		allCommands = getCommands();
-	}
+  // Sort
+  const queryLower = normalizedQuery.toLowerCase();
 
-  const normalizedQuery = query.trimEnd(); // remove trailing spaces
+  commandResults.sort((a, b) => {
+    const aExact = a.label.toLowerCase() === queryLower;
+    const bExact = b.label.toLowerCase() === queryLower;
 
-	commandResults = normalizedQuery
-  ? allCommands
-      .map(cmd => {
-        const labelScore = getMatchScore(normalizedQuery, cmd.label);
-        const categoryScore = getMatchScore(normalizedQuery, cmd.category || '');
+    if (aExact && !bExact) return -1;
+    if (!aExact && bExact) return 1;
 
-        const score = Math.max(labelScore, categoryScore);
+    return b._score - a._score;
+  });
 
-        return { ...cmd, _score: score };
-      })
-      .filter(cmd => cmd._score > 0)
-  : allCommands.map(cmd => ({ ...cmd, _score: 0 }));
-
-	commandResults.sort((a, b) => {
-		const queryLower = normalizedQuery.toLowerCase();
-
-		// Exact match priority
-		const aExact = a.label.toLowerCase() === queryLower;
-		const bExact = b.label.toLowerCase() === queryLower;
-
-		if (aExact && !bExact) return -1;
-		if (!aExact && bExact) return 1;
-
-		// Score-based sorting
-		if (a._score !== b._score) {
-			return b._score - a._score;
-		}
-
-		return 0;
-	});
-
-  // Only reset when explicitly requested
+  // ✅ Selection logic (uses full list now)
   if (resetSelection) {
     selectedIndex = 0;
   } else {
@@ -473,19 +466,20 @@ function renderCommandResults(query = '', resetSelection = false) {
 
   if (commandResults.length === 0) {
     container.innerHTML = `
-			<div class="command-empty">
-				<div class="command-empty-title">No results</div>
-				<div class="command-empty-sub">Try a different search</div>
-			</div>
-		`;
+      <div class="command-empty">
+        <div class="command-empty-title">No results</div>
+        <div class="command-empty-sub">Try a different search</div>
+      </div>
+    `;
     return;
   }
 
+  // ✅ Render ALL results
   commandResults.forEach((cmd, index) => {
     const el = document.createElement('div');
     el.className = 'command-item';
 
-    const displayLabel = highlightMatch(cmd.label, originalQuery);
+    const displayLabel = highlightMatch(cmd.label, normalizedQuery);
 
     const metaText =
       cmd.active !== undefined
@@ -512,14 +506,14 @@ function renderCommandResults(query = '', resetSelection = false) {
     container.appendChild(el);
   });
 
-	const selectedEl = container.querySelector('.command-item.selected');
+  const selectedEl = container.querySelector('.command-item.selected');
 
-	if (selectedEl) {
-		selectedEl.scrollIntoView({
-			block: 'nearest',
-			behavior: 'auto'
-		});
-	}
+  if (selectedEl) {
+    selectedEl.scrollIntoView({
+      block: 'nearest',
+      behavior: 'auto'
+    });
+  }
 }
 
 // =============================

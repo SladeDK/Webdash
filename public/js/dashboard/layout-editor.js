@@ -31,9 +31,7 @@ async function reorderItems(categoryId, sourceItemId, targetItemId) {
   category.items.splice(targetIndex, 0, moved);
 
   // normalize order
-  category.items.forEach((item, index) => {
-    item.order = index;
-  });
+  normalizeItemOrder(category.items);
 
   await commitDashboardChange('reorderItems');
 }
@@ -92,9 +90,7 @@ async function reorderCategoriesAdvanced(sourceId, targetId, insertBefore) {
   pageCategories.splice(newIndex, 0, moved);
 
   // Update order values
-  pageCategories.forEach((category, index) => {
-    category.order = index;
-  });
+  normalizeCategoryOrder();
 
   await commitDashboardChange('reorderCategories');
 }
@@ -105,13 +101,6 @@ async function reorderCategoriesAdvanced(sourceId, targetId, insertBefore) {
 
 function getAllItems() {
   return pageCategories.flatMap(category => category.items);
-}
-
-function getItemsByIds(ids) {
-  const allItems = getAllItems();
-  return ids
-    .map(id => allItems.find(item => item.id === id))
-    .filter(Boolean);
 }
 
 function getItemsFromCurrentDashboard(ids) {
@@ -157,34 +146,30 @@ function renderQuickAccess(container) {
   let recentItems = [];
 
   try {
-    favoriteItems = favorites.length
-      ? favorites
-          .map(id => globalItemIndex.get(id))
-          .filter(Boolean)
-      : [];
+    // Build fast lookup from CURRENT dashboard state
+    const currentItemMap = new Map(
+      pageCategories
+        .flatMap(cat => cat.items)
+        .map(item => [item.id, item])
+    );
 
-    recentItems = recents.length
-      ? recents
-          .map(id => globalItemIndex.get(id))
-          .filter(Boolean)
-      : [];
+    // Resolve items from:
+    // 1. current dashboard (live state)
+    // 2. fallback to global index (other dashboards)
+    function resolveItem(id) {
+      return currentItemMap.get(id) || globalItemIndex.get(id);
+    }
+
+    favoriteItems = favorites.map(resolveItem).filter(Boolean);
+    recentItems = recents.map(resolveItem).filter(Boolean);
+
   } catch (err) {
     console.error('[QA] Failed to resolve items:', err);
     return;
   }
 
-  const finalFavoriteItems =
-    favoriteItems.length > 0
-      ? favoriteItems
-      : getItemsFromCurrentDashboard(favorites);
-
-  const finalRecentItems =
-    recentItems.length > 0
-      ? recentItems
-      : getItemsFromCurrentDashboard(recents);
-
-  const hasFavorites = finalFavoriteItems.length > 0;
-  const hasRecents = trackRecents && finalRecentItems.length > 0;
+  const hasFavorites = favoriteItems.length > 0;
+  const hasRecents = trackRecents && recentItems.length > 0;
 
   if (!hasFavorites && !hasRecents) {
     return;
@@ -201,7 +186,6 @@ function renderQuickAccess(container) {
     const debug = document.createElement('span');
     debug.className = 'debug-id';
     debug.textContent = ' [quick-access]';
-
     title.appendChild(debug);
   }
 
@@ -210,7 +194,7 @@ function renderQuickAccess(container) {
   if (hasFavorites) {
     const favRow = createQARow(
       '<i class="fa-solid fa-star"></i>',
-      finalFavoriteItems
+      favoriteItems
     );
 
     favRow.classList.add('qa-favorites');
@@ -220,7 +204,7 @@ function renderQuickAccess(container) {
   if (hasRecents) {
     const recRow = createQARow(
       '<i class="fa-solid fa-clock-rotate-left"></i>',
-      finalRecentItems
+      recentItems
     );
 
     recRow.classList.add('qa-recents');

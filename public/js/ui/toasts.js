@@ -10,7 +10,13 @@ function ensureToastContainer() {
     container.id = 'toast-container';
     container.setAttribute('aria-live', 'polite');
     container.setAttribute('aria-atomic', 'true');
-    document.body.appendChild(container);
+
+    // Prevent duplicates in extreme race conditions
+    if (!document.getElementById('toast-container')) {
+      document.body.appendChild(container);
+    } else {
+      container = document.getElementById('toast-container');
+    }
   }
 
   return container;
@@ -81,11 +87,19 @@ function showToast({
 
     clearTimer();
     toast.classList.add('is-leaving');
-    toast.addEventListener(
-      'transitionend',
-      () => toast.remove(),
-      { once: true }
-    );
+
+    let removed = false;
+
+    const cleanup = () => {
+      if (removed) return;
+      removed = true;
+      toast.remove();
+    };
+
+    toast.addEventListener('transitionend', cleanup, { once: true });
+
+    // Fallback in case transition doesn't fire
+    setTimeout(cleanup, 300);
   }
 
   closeBtn.addEventListener('click', (e) => {

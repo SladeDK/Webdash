@@ -18,18 +18,18 @@
 //
 
 
-
 // ======================================================================
 // APPEARANCE LIFECYCLE
 // ======================================================================
 
-const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+if (!window.__preferencesLifecycleWired__) {
+  window.__preferencesLifecycleWired__ = true;
 
-if (!mediaQuery._wired) {
-  mediaQuery._wired = true;
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
   mediaQuery.addEventListener('change', () => {
     const savedTheme = userPreferences?.appearance?.theme;
+
     if (savedTheme === 'system') {
       setActiveTheme('system');
     }

@@ -2,25 +2,44 @@
 // Dev helpers — State inspection
 // =====================================================
 
-if (__DEV__) {
+// Safe dev flag (works even without build tools)
+const DEV_MODE =
+  typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).has('dev');
+
+if (DEV_MODE) {
   window.__dumpState = function (label = 'WebDash State') {
     console.group(label);
 
-    console.log('Lifecycle');
-    console.log('  lifecyclePhase:', lifecyclePhase);
-    console.log('  appReady:', appReady);
+    console.group('Lifecycle');
+    console.log('lifecyclePhase:', lifecyclePhase);
+    console.log('appReady:', appReady);
+    console.groupEnd();
 
-    console.log('Dashboard Identity');
-    console.log('  activeDashboardId:', activeDashboardId);
-    console.log('  defaultDashboardId:', defaultDashboardId);
+    console.group('Dashboard Identity');
+    console.log('activeDashboardId:', activeDashboardId);
+    console.log('defaultDashboardId:', defaultDashboardId);
+    console.groupEnd();
 
-    console.log('Dashboard Structure');
-    console.log('  availableDashboards:', availableDashboards);
-    console.log('  dashboardState:', dashboardState);
-    console.log('  pageCategories:', pageCategories);
+    console.group('Dashboard Structure');
+    console.log('availableDashboards:', availableDashboards);
+    console.log('dashboardState:', dashboardState);
+    console.log('pageCategories:', pageCategories);
+    console.groupEnd();
 
-    console.log('Preferences');
-    console.log('  userPreferences:', userPreferences);
+    console.group('Preferences');
+    console.log('userPreferences:', userPreferences);
+    console.groupEnd();
+
+    console.groupEnd();
+  };
+
+  // Optional helper (nice to have)
+  window.__dumpQA = function () {
+    console.group('Quick Access');
+
+    console.log('Favorites:', userPreferences?.behavior?.favorites);
+    console.log('Recents:', userPreferences?.behavior?.recents);
 
     console.groupEnd();
   };
@@ -30,25 +49,50 @@ if (__DEV__) {
 // Dev helpers — Lifecycle indicator
 // =====================================================
 
-if (__DEV__) {
-  const badge = document.createElement('div');
-  badge.style.position = 'fixed';
-  badge.style.bottom = '8px';
-  badge.style.right = '8px';
-  badge.style.padding = '4px 8px';
-  badge.style.background = '#111';
-  badge.style.color = '#00ff88';
-  badge.style.fontFamily = 'monospace';
-  badge.style.fontSize = '11px';
-  badge.style.borderRadius = '4px';
-  badge.style.zIndex = '9999';
-  badge.style.pointerEvents = 'none';
+if (DEV_MODE) {
+  function createLifecycleBadge() {
+    // Prevent duplicate badge
+    if (document.getElementById('dev-lifecycle-badge')) return;
 
-  badge.textContent = `Phase: ${lifecyclePhase}`;
-  document.body.appendChild(badge);
+    const badge = document.createElement('div');
+    badge.id = 'dev-lifecycle-badge';
 
-  setInterval(() => {
-    badge.textContent = `Phase: ${lifecyclePhase}`;
-  }, 200);
+    Object.assign(badge.style, {
+      position: 'fixed',
+      bottom: '8px',
+      right: '8px',
+      padding: '4px 8px',
+      background: '#111',
+      color: '#00ff88',
+      fontFamily: 'monospace',
+      fontSize: '11px',
+      borderRadius: '4px',
+      zIndex: '9999',
+      pointerEvents: 'none'
+    });
+
+    document.body.appendChild(badge);
+
+    let lastValue = null;
+
+    function update() {
+      if (!document.body.contains(badge)) return;
+
+      if (lifecyclePhase !== lastValue) {
+        badge.textContent = `System Phase: ${lifecyclePhase}`;
+        lastValue = lifecyclePhase;
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    update();
+  }
+
+  // Ensure DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', createLifecycleBadge);
+  } else {
+    createLifecycleBadge();
+  }
 }
-``

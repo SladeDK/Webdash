@@ -76,7 +76,11 @@ function readStorage() {
 }
 
 function writeStorage(data) {
-  fs.writeFileSync(STORAGE_FILE, JSON.stringify(data, null, 2));
+  try {
+    fs.writeFileSync(STORAGE_FILE, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error("Storage write failed:", err);
+  }
 }
 
 // ------------------------------------------------------------------
@@ -84,7 +88,7 @@ function writeStorage(data) {
 // ------------------------------------------------------------------
 app.get('/api/dashboard', (req, res) => {
   const data = readStorage();
-  res.json(data.dashboards[data.activeDashboardId]);
+  res.json(data.dashboards[data.activeDashboardId] || null);
 });
 
 app.post('/api/dashboard', (req, res) => {
@@ -217,7 +221,11 @@ app.delete('/api/dashboards/:id', (req, res) => {
   delete data.dashboards[dashboardId];
 
   if (data.activeDashboardId === dashboardId) {
-    data.activeDashboardId = Object.keys(data.dashboards)[0] || 'default';
+    data.activeDashboardId = Object.keys(data.dashboards)[0] || null;
+  }
+
+  if (data.defaultDashboardId === dashboardId) {
+    data.defaultDashboardId = Object.keys(data.dashboards)[0] || null;
   }
 
   writeStorage(data);

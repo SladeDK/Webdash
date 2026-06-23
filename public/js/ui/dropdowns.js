@@ -51,6 +51,9 @@ function initializeDropdowns() {
 
   // Explicit close buttons inside dropdowns
   document.querySelectorAll('.dropdown-close').forEach(btn => {
+    if (btn._wired) return;
+    btn._wired = true;
+
     btn.addEventListener('click', closeAllDropdowns);
   });
 }
@@ -71,7 +74,10 @@ function closeAllDropdowns() {
     const menu = dropdown.querySelector('.dropdown-menu');
     const button = dropdown.querySelector('.dropdown-btn');
 
-    if (menu) menu.classList.remove('open');
+    if (menu) {
+      menu.classList.remove('open');
+      menu.setAttribute('aria-hidden', 'true');
+    }
     if (button) button.setAttribute('aria-expanded', 'false');
   });
   assertDropdownInvariant('after closeAllDropdowns');

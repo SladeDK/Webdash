@@ -100,7 +100,9 @@ if (!document._modalOutsideHandler) {
     if (!isInsideModal && !isInsideToast) {
       e.preventDefault();
       e.stopPropagation();
-      onClose();
+      if (typeof onClose === 'function') {
+        onClose();
+      }
     }
   });
 }
@@ -199,12 +201,16 @@ if (confirmCloseBtn && !confirmCloseBtn._wired) {
 
 if (confirmAccept && !confirmAccept._wired) {
   confirmAccept._wired = true;
-  confirmAccept.addEventListener('click', () => {
-    if (typeof confirmCallback === 'function') {
-      const cb = confirmCallback;
-      confirmCallback = null;
-      cb();
-    }
-    closeConfirm();
-  });
+
+  confirmAccept.addEventListener(
+    'click',
+    guardAsync(async () => {
+      if (typeof confirmCallback === 'function') {
+        const cb = confirmCallback;
+        confirmCallback = null;
+        await cb();
+      }
+      closeConfirm();
+    })
+  );
 }

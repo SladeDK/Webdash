@@ -21,6 +21,10 @@
 // This file contains all destructive and high-impact operations.
 //
 
+
+// TODO: validateAppearance does not consistently return warnings for invalid values.
+// Warning toasts may not fire as expected. Investigate after system stabilization.
+
 // ======================================================================
 // Import Utilities
 // ======================================================================
@@ -83,8 +87,8 @@ function registerImportUI(context) {
 // ======================================================================
 
 function buildExportFilename() {
-  const rawName = 
-		userPreferences.appearance.identity.name || 'Dashboard';
+  const rawName =
+    userPreferences?.appearance?.identity?.name || 'Dashboard';
 
   // Normalize for filesystem safety
   const dashboardName = rawName
@@ -105,9 +109,15 @@ async function exportSystem() {
     const originalActiveId = activeDashboardId;
 
     for (const { id } of availableDashboards) {
-      await DashboardService.setActiveDashboardId(id);
+      let state;
 
-      const state = await DashboardService.load();
+      try {
+        state = await DashboardService.loadDashboardById(id);
+      } catch (err) {
+        console.warn('[WebDash] Failed to load dashboard during export', id, err);
+        continue;
+      }
+
       if (!state) continue;
 
       const dashboardMeta = availableDashboards.find(d => d.id === state.id);
@@ -571,13 +581,17 @@ function openImportSystemModal(payload) {
   // Sync preference checkbox with current mode
   syncImportPreferenceState(overlay);
 
-  overlay
-  .querySelectorAll('input[name="import-mode"]')
-  .forEach(radio => {
-    radio.addEventListener('change', () =>
-      syncImportPreferenceState(overlay)
-    );
-  });
+  if (!overlay._importModeWired) {
+    overlay._importModeWired = true;
+
+    overlay
+      .querySelectorAll('input[name="import-mode"]')
+      .forEach(radio => {
+        radio.addEventListener('change', () =>
+          syncImportPreferenceState(overlay)
+        );
+      });
+  }
 
 	pushModal(overlay, closeImportSystemModal);
 

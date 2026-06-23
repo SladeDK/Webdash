@@ -1,4 +1,14 @@
 // =====================================
+// Helper Function
+// =====================================
+
+function normalizeItemOrder(items) {
+  items.forEach((item, index) => {
+    item.order = index;
+  });
+}
+
+// =====================================
 // Create empty button
 // =====================================
 function createEmptyButton(category) {
@@ -22,9 +32,7 @@ async function addButtonToCategory(categoryId) {
   category.items.push(newButton);
 
   // normalize order
-  category.items.forEach((item, index) => {
-    item.order = index;
-  });
+  normalizeItemOrder(category.items);
 
   await commitDashboardChange('addItem'); 
 }
@@ -35,40 +43,31 @@ async function addButtonToCategory(categoryId) {
 async function deleteButton(itemId) {
   for (const category of pageCategories) {
     const index = category.items.findIndex(item => item.id === itemId);
-    if (index !== -1) {
-      const item = category.items[index];
+    if (index === -1) continue;
 
-      async function performDelete() {
-      const latestIndex = category.items.findIndex(
-        i => i.id === itemId
-      );
+    const item = category.items[index];
 
+    const performDelete = async () => {
+      const latestIndex = category.items.findIndex(i => i.id === itemId);
       if (latestIndex === -1) return;
 
       category.items.splice(latestIndex, 1);
-
-      // Re-normalize order after deletion
-      category.items.forEach((item, index) => {
-        item.order = index;
-      });
+      normalizeItemOrder(category.items);
 
       await commitDashboardChange('deleteItem');
-    }
+    };
 
     if (userPreferences.behavior.confirmDeleteButtons) {
       openConfirm({
         title: 'Delete button',
         message: `Delete button "${item.label}"?\nThis action cannot be undone.`,
-        onConfirm: async () => {
-          await performDelete();
-        }
+        onConfirm: performDelete
       });
     } else {
       await performDelete();
     }
 
-      return;
-    }
+    return;
   }
 }
 
@@ -231,15 +230,13 @@ function initializeButtonEditorBindings() {
         );
         if (!category) return;
 
-        category.items.push({
-          id: generateId('item'),
-          label,
-          url: normalizedUrl
-        });
+        const newItem = createEmptyButton(category);
+        newItem.label = label;
+        newItem.url = normalizedUrl;
 
-        category.items.forEach((item, index) => {
-          item.order = index;
-        });
+        category.items.push(newItem);
+
+        normalizeItemOrder(category.items);
 
         await commitDashboardChange('createItem');
       } else {

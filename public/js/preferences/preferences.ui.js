@@ -82,22 +82,6 @@ const debugModeCheckbox = document.getElementById('pref-debug-mode');
 // UI Utilities
 // ======================================================================
 
-// Prevents double-clicking async actions (e.g. buttons)
-function guardAsync(fn) {
-  let running = false;
-
-  return async (...args) => {
-    if (running) return;
-    running = true;
-
-    try {
-      await fn(...args);
-    } finally {
-      running = false;
-    }
-  };
-}
-
 // ======================================================================
 // Register Import UI Context (Dependency Injection)
 // ======================================================================
@@ -533,7 +517,8 @@ if (identityNameInput && !identityNameInput._wiredBlur) {
   });
 }
 
-if (identityIconWrapper && identityIconInput) {
+if (identityIconWrapper && identityIconInput && !identityIconWrapper._wired) {
+  identityIconWrapper._wired = true;
   identityIconWrapper.addEventListener('click', () => {
     identityIconInput.click();
   });

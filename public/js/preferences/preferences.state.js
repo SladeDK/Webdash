@@ -277,11 +277,14 @@ function resolveSystemTheme() {
 function setActiveTheme(theme) {
   const root = document.documentElement;
 
-  const resolvedTheme = theme === 'system'
-    ? resolveSystemTheme()
-    : theme;
+  const resolvedTheme =
+    theme === 'system'
+      ? resolveSystemTheme()
+      : theme;
 
-  const currentTheme = THEMES.find(t =>
+  const themes = window.THEMES || [];
+
+  const currentTheme = themes.find(t =>
     root.classList.contains(t.id)
   )?.id;
 
@@ -313,9 +316,11 @@ function changeTheme(theme) {
 function setActiveBackground(bg) {
   const root = document.documentElement;
 
-  const currentBg = VALID_BACKGROUNDS.find(b =>
-    root.classList.contains(b)
-  );
+  const backgrounds = window.BACKGROUNDS || [];
+
+  const currentBg = backgrounds.find(b =>
+    root.classList.contains(b.id)
+  )?.id;
 
   if (currentBg === bg) return;
 

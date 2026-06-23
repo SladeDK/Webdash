@@ -1,4 +1,14 @@
 // =====================================
+// Helper Functions
+// =====================================
+
+function normalizeCategoryOrder() {
+  pageCategories.forEach((c, i) => {
+    c.order = i;
+  });
+}
+
+// =====================================
 // Create empty category
 // =====================================
 
@@ -7,6 +17,7 @@ function createEmptyCategory(categories) {
     id: generateId('category'),
     title: 'New Category',
     order: categories.length,
+    visible: true,
     items: []
   };
 }
@@ -16,7 +27,7 @@ function createEmptyCategory(categories) {
 // =====================================
 
 async function addCategory() {
-  const newCategory = createEmptyCategory(pageCategories);
+  const newCategory = createEmptyCategory(pageCategories || []);
   pageCategories.push(newCategory);
 
   await commitDashboardChange('addCategory');
@@ -37,9 +48,7 @@ async function deleteCategory(categoryId) {
       if (index === -1) return;
 
       pageCategories.splice(index, 1);
-      pageCategories.forEach((c, i) => {
-        c.order = i;
-      });
+      normalizeCategoryOrder();
       await commitDashboardChange('deleteCategory');
     }
   });
@@ -68,7 +77,7 @@ async function toggleCategoryVisibility(categoryId) {
   const category = pageCategories.find(c => c.id === categoryId);
   if (!category) return;
 
-  category.visible = category.visible === false ? true : false;
+  category.visible = !category.visible;
   await commitDashboardChange('toggleCategoryVisibility');
 }
 
@@ -83,8 +92,6 @@ async function reorderCategories(sourceId, targetId) {
 
   const [moved] = pageCategories.splice(sourceIndex, 1);
   pageCategories.splice(targetIndex, 0, moved);
-  pageCategories.forEach((c, i) => {
-    c.order = i;
-  });
+  normalizeCategoryOrder();
   await commitDashboardChange('reorderCategories');
 }

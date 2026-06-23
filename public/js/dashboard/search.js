@@ -2,26 +2,27 @@
 // Search functionality for buttons / items
 // ==============================================
 
-// Quick filter / search
 // - case-insensitive
-// - starts-with by default
-// - contains match when query starts with '*'
+// - includes match by default
+// - "*" prefix optional (kept for flexibility)
+
 const searchInput = document.getElementById('service-search');
-const categories = document.querySelectorAll('.category');
 
 if (searchInput) {
   searchInput.addEventListener('input', () => {
     let query = searchInput.value.toLowerCase().trim();
-    const useWildcard = query.startsWith('*');
 
+    const useWildcard = query.startsWith('*');
     if (useWildcard) {
       query = query.slice(1);
     }
 
-    document.querySelectorAll('.category').forEach(category => {
+    const categories = document.querySelectorAll('.category');
+
+    categories.forEach(category => {
       const buttons = category.querySelectorAll('.buttons a');
 
-      // If search is cleared, reset everything and show category
+      // Reset
       if (query === '') {
         buttons.forEach(button => {
           button.style.display = '';
@@ -30,20 +31,28 @@ if (searchInput) {
         return;
       }
 
-      // Active search behavior
       let hasVisibleButtons = false;
 
       buttons.forEach(button => {
-        const text = button.textContent.toLowerCase().trim();
+        // Cache search text ONCE per element
+        if (!button.dataset.searchText) {
+          button.dataset.searchText =
+            button.textContent.toLowerCase().trim();
+        }
+
+        const text = button.dataset.searchText;
+
         const matches = useWildcard
           ? text.includes(query)
-          : text.startsWith(query);
+          : text.includes(query); // improved UX
 
         button.style.display = matches ? '' : 'none';
-        if (matches) hasVisibleButtons = true;
+
+        if (matches) {
+          hasVisibleButtons = true;
+        }
       });
 
-      // Hide category only when searching and no matches
       category.style.display = hasVisibleButtons ? '' : 'none';
     });
   });

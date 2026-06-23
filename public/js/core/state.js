@@ -130,9 +130,11 @@
 // =====================================================
 
 const __DEV__ =
-  typeof window !== 'undefined'
-    ? window.location.hostname === 'localhost'
-    : true;
+  typeof window !== 'undefined' &&
+  (
+		window.location.hostname === 'localhost' ||
+		window.location.hostname === '127.0.0.1'
+	);
 
 // ============================
 // Global application state
@@ -152,7 +154,7 @@ let dashboardState = null;
 let pageCategories = null;
 
 // Preferences / behavior state
-let autoCloseDropdowns;
+let autoCloseDropdowns = true;
 
 // Dashboard identity & selection
 let activeDashboardId = null;
