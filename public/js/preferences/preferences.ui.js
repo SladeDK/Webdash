@@ -77,6 +77,7 @@ const autoCloseCheckbox = document.getElementById('pref-dropdown-autoclose');
 const enableAnimationsCheckbox = document.getElementById('pref-enable-animations');
 const storeRecentsCheckbox = document.getElementById('pref-store-recents');
 const debugModeCheckbox = document.getElementById('pref-debug-mode');
+const betaUICheckbox = document.getElementById('beta-ui-toggle');
 
 // ======================================================================
 // UI Utilities
@@ -174,7 +175,8 @@ async function openPreferences(panelNameOrEvent = null) {
   }
 
   // Ensure all settings reflect current preferences
-  renderBehaviorToggles();
+  renderBehaviorToggles('behavior');
+  renderBehaviorToggles('advanced');
   wireSyncAppearanceBehavior();
 }
 
@@ -249,17 +251,22 @@ navItems?.forEach(button => {
 // BEHAVIOR PREFERENCES UI
 // ======================================================================
 
-function renderBehaviorToggles() {
-  const container = document.getElementById('behavior-container');
+function renderBehaviorToggles(panel = 'behavior') {
+  const containerId =
+    panel === 'advanced'
+      ? 'advanced-container'
+      : 'behavior-container';
+
+  const container = document.getElementById(containerId);
   if (!container) return;
 
   container.innerHTML = '';
 
   const groups = {};
 
-  // Group toggles using new layout metadata
+  // Collect toggles for this panel
   (window.TOGGLE_DEFINITIONS || [])
-    .filter(toggle => toggle.panel === 'behavior')
+    .filter(toggle => toggle.panel === panel)
     .forEach(toggle => {
       const groupName = toggle.group || 'Other';
 
@@ -270,19 +277,24 @@ function renderBehaviorToggles() {
       groups[groupName].push(toggle);
     });
 
-  // Desired order (matches your original UI)
-  const groupOrder = [
+  // Preserve your existing order for behavior panel
+  const defaultGroupOrder = [
     'Appearance',
     'Buttons',
     'Dropdowns',
     'Accessibility'
   ];
 
+  // For advanced (or anything else), use dynamic order
+  const groupOrder =
+    panel === 'behavior'
+      ? defaultGroupOrder
+      : Object.keys(groups);
+
   groupOrder.forEach(groupName => {
     const toggles = groups[groupName];
     if (!toggles) return;
 
-    // Sort toggles within the group
     toggles.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     const fieldset = document.createElement('fieldset');
@@ -337,42 +349,6 @@ if (recentsLimitInput && !recentsLimitInput._wired) {
   });
 }
 
-if (autoCloseCheckbox && !autoCloseCheckbox._wired) {
-  autoCloseCheckbox._wired = true;
-
-  autoCloseCheckbox.addEventListener('change', async () => {
-    const toggle = getToggleByKey('autoCloseDropdowns');
-    await toggle?.set(autoCloseCheckbox.checked);
-  });
-}
-
-if (openLinksCheckbox && !openLinksCheckbox._wired) {
-  openLinksCheckbox._wired = true;
-
-  openLinksCheckbox.addEventListener('change', async () => {
-    const toggle = getToggleByKey('openLinksInNewTab');
-    await toggle?.set(openLinksCheckbox.checked);
-  });
-}
-
-if (confirmDeleteButtonsCheckbox && !confirmDeleteButtonsCheckbox._wired) {
-  confirmDeleteButtonsCheckbox._wired = true;
-
-  confirmDeleteButtonsCheckbox.addEventListener('change', async () => {
-    const toggle = getToggleByKey('confirmDeleteButtons');
-    await toggle?.set(confirmDeleteButtonsCheckbox.checked);
-  });
-}
-
-if (trackRecentCheckbox && !trackRecentCheckbox._wired) {
-  trackRecentCheckbox._wired = true;
-
-  trackRecentCheckbox.addEventListener('change', async () => {
-    const toggle = getToggleByKey('trackRecents');
-    await toggle?.set(trackRecentCheckbox.checked);
-  });
-}
-
 function wireSyncAppearanceBehavior() {
   if (!syncAppearanceCheckbox || syncAppearanceCheckbox._wired) return;
 
@@ -381,15 +357,6 @@ function wireSyncAppearanceBehavior() {
   syncAppearanceCheckbox.addEventListener('change', async () => {
     const toggle = getToggleByKey('syncDashboardAppearance');
     await toggle?.set(syncAppearanceCheckbox.checked);
-  });
-}
-
-if (enableAnimationsCheckbox && !enableAnimationsCheckbox._wired) {
-  enableAnimationsCheckbox._wired = true;
-
-  enableAnimationsCheckbox.addEventListener('change', async () => {
-    const toggle = getToggleByKey('enableAnimations');
-    await toggle?.set(enableAnimationsCheckbox.checked);
   });
 }
 
@@ -403,24 +370,6 @@ function applyAnimationPreference() {
   );
 }
 
-if (storeRecentsCheckbox && !storeRecentsCheckbox._wired) {
-  storeRecentsCheckbox._wired = true;
-
-  storeRecentsCheckbox.addEventListener('change', async () => {
-    const toggle = getToggleByKey('storeRecentsAcrossReloads');
-    await toggle?.set(storeRecentsCheckbox.checked);
-  });
-}
-
-if (debugModeCheckbox && !debugModeCheckbox._wired) {
-  debugModeCheckbox._wired = true;
-
-  debugModeCheckbox.addEventListener('change', async () => {
-    const toggle = getToggleByKey('debugMode');
-    await toggle?.set(debugModeCheckbox.checked);
-  });
-}
-
 function applyDebugMode() {
   const enabled =
     userPreferences?.behavior?.debugMode === true;
@@ -429,6 +378,20 @@ function applyDebugMode() {
     'debug-mode',
     enabled
   );
+}
+
+function applyBetaUI() {
+  const enabled =
+    userPreferences?.behavior?.betaUI === true;
+
+  const betaStyle = document.getElementById('beta-style');
+  const mainStyle = document.getElementById('main-style');
+
+  if (!betaStyle || !mainStyle) return;
+
+  // Toggle stylesheets
+  betaStyle.disabled = !enabled;
+  mainStyle.disabled = enabled;
 }
 
 // ======================================================================

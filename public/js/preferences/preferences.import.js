@@ -519,6 +519,13 @@ function normalizeImportedDashboard(d) {
     d.name ??
     'Unnamed';
 
+  const validationResult = validateAppearance({
+    appearance: {
+      theme: d.appearance?.theme,
+      background: d.appearance?.background
+    }
+  });
+
   return {
     id: d.id,
 
@@ -530,8 +537,8 @@ function normalizeImportedDashboard(d) {
     },
 
     appearance: {
-      theme: d.appearance?.theme ?? 'system',
-      background: d.appearance?.background ?? 'bg-plain'
+      theme: validationResult.prefs.appearance.theme,
+      background: validationResult.prefs.appearance.background
     },
 
     order: d.order ?? 0,
@@ -546,6 +553,7 @@ function normalizeImportedDashboard(d) {
     }))
   };
 }
+``
 
 // ======================================================================
 // IMPORT NORMALIZATION & COMPATIBILITY
@@ -741,7 +749,7 @@ function isImportSystemOpen() {
   return !!importUI?.systemOverlay && !importUI.systemOverlay.hidden;
 }
 
-function showImportSuccess(summary) {
+function showImportSuccess(summary, warnings = []) {
   const lines = [];
 
   if (summary.dashboardsCreated > 0) {
@@ -765,7 +773,7 @@ function showImportSuccess(summary) {
   });
 
 	
-  if (importWarnings?.includes('theme')) {
+  if (warnings.includes('theme')) {
     showToast({
       title: 'Import notice',
       lines: [
@@ -777,7 +785,7 @@ function showImportSuccess(summary) {
     });
   }
 
-  if (importWarnings?.includes('background')) {
+  if (warnings.includes('background')) {
     showToast({
       title: 'Import notice',
       lines: [
@@ -788,7 +796,7 @@ function showImportSuccess(summary) {
       duration: 5000
     });
   }
-
+  
   // Force immediate UI sync
 
   // Apply global preferences
@@ -820,8 +828,6 @@ function showImportSuccess(summary) {
 
   // Re-hydrate dropdown components after DOM replacement
   initializeDropdowns();
-
-	importWarnings = [];
 }
 
 // ======================================================================

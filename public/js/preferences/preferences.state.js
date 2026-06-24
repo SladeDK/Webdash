@@ -34,46 +34,12 @@ const DEFAULT_BEHAVIOR = {
   enableAnimations: true,
   storeRecentsAcrossReloads: true,
   debugMode: false,
+  betaUI: false,
 };
 
 // ======================================================================
 // PREFERENCES STATE & PERSISTENCE
 // ======================================================================
-
-function syncAutoCloseUI() {
-  if (!autoCloseCheckbox) return;
-
-  autoCloseCheckbox.checked =
-    getToggleByKey('autoCloseDropdowns')?.get();
-}
-
-function syncOpenLinksUI() {
-  if (!openLinksCheckbox) return;
-
-  openLinksCheckbox.checked =
-    getToggleByKey('openLinksInNewTab')?.get();
-}
-
-function syncTrackRecentUI() {
-  if (!trackRecentCheckbox) return;
-
-  trackRecentCheckbox.checked =
-    getToggleByKey('trackRecents')?.get();
-}
-
-function syncConfirmDeleteButtonsUI() {
-  if (!confirmDeleteButtonsCheckbox) return;
-
-  confirmDeleteButtonsCheckbox.checked =
-    getToggleByKey('confirmDeleteButtons')?.get();
-}
-
-function syncDashboardAppearanceUI() {
-  if (!syncAppearanceCheckbox) return;
-
-  syncAppearanceCheckbox.checked =
-    getToggleByKey('syncDashboardAppearance')?.get();
-}
 
 function syncDashboardIdentityUI() {
   if (!syncIdentityCheckbox) return;
@@ -82,37 +48,8 @@ function syncDashboardIdentityUI() {
     userPreferences?.appearance?.identity?.syncWithDashboard !== false;
 }
 
-function syncAnimationsUI() {
-  if (!enableAnimationsCheckbox) return;
-
-  enableAnimationsCheckbox.checked =
-    getToggleByKey('enableAnimations')?.get();
-}
-
-function syncStoreRecentsUI() {
-  if (!storeRecentsCheckbox) return;
-
-  storeRecentsCheckbox.checked =
-    getToggleByKey('storeRecentsAcrossReloads')?.get();
-}
-
-function syncDebugModeUI() {
-  if (!debugModeCheckbox) return;
-
-  debugModeCheckbox.checked =
-    getToggleByKey('debugMode')?.get();
-}
-
 function syncBehaviorUI() {
-  syncAutoCloseUI();
-  syncOpenLinksUI();
-  syncTrackRecentUI();
-  syncConfirmDeleteButtonsUI();
-  syncDashboardAppearanceUI();
   syncDashboardIdentityUI();
-  syncAnimationsUI();
-  syncStoreRecentsUI();
-  syncDebugModeUI();
 
   if (recentsLimitInput) {
     recentsLimitInput.value =

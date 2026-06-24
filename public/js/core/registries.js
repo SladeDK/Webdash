@@ -190,6 +190,42 @@ window.TOGGLE_DEFINITIONS = [
       applyAnimationPreference();
     }
   },
+  
+  {
+    key: 'syncDashboardAppearance',
+    label: 'Synchronize theme and background across dashboards',
+    panel: 'behavior',
+
+    group: 'Appearance',
+    order: 1,
+
+    get: () =>
+      userPreferences?.behavior?.syncDashboardAppearance !== false,
+
+    set: async (value) => {
+      userPreferences.behavior.syncDashboardAppearance = value;
+
+      await PreferencesService.save(userPreferences);
+
+      if (value && dashboardState) {
+        const currentTheme =
+        dashboardState?.appearance?.theme ??
+        userPreferences.appearance.theme;
+        
+        const currentBackground =
+        dashboardState?.appearance?.background ??
+        userPreferences.appearance.background;
+        
+        userPreferences.appearance.theme = currentTheme;
+        userPreferences.appearance.background = currentBackground;
+        
+        await PreferencesService.save(userPreferences);
+        await syncAppearanceToAllDashboards();
+      }
+      
+      applyDashboardAppearance();
+    }
+  },
 
   {
     key: 'debugMode',
@@ -215,38 +251,22 @@ window.TOGGLE_DEFINITIONS = [
   },
 
   {
-    key: 'syncDashboardAppearance',
-    label: 'Synchronize theme and background across dashboards',
-    panel: 'behavior',
+    key: 'betaUI',
+    label: 'Use Beta UI',
+    panel: 'advanced',
 
-    group: 'Appearance',
-    order: 1,
+    group: 'Experimental',
+    order: 2,
 
     get: () =>
-      userPreferences?.behavior?.syncDashboardAppearance !== false,
+      userPreferences?.behavior?.betaUI === true,
 
     set: async (value) => {
-      userPreferences.behavior.syncDashboardAppearance = value;
+      userPreferences.behavior.betaUI = value;
 
       await PreferencesService.save(userPreferences);
 
-      if (value && dashboardState) {
-        const currentTheme =
-          dashboardState?.appearance?.theme ??
-          userPreferences.appearance.theme;
-
-        const currentBackground =
-          dashboardState?.appearance?.background ??
-          userPreferences.appearance.background;
-
-        userPreferences.appearance.theme = currentTheme;
-        userPreferences.appearance.background = currentBackground;
-
-        await PreferencesService.save(userPreferences);
-        await syncAppearanceToAllDashboards();
-      }
-
-      applyDashboardAppearance();
+      applyBetaUI();
     }
-  },
+  }
 ];

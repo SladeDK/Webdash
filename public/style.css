@@ -322,7 +322,7 @@ html.theme-glass {
   --toast-text: var(--text-main);
   --toast-muted: var(--text-muted);
   --toast-progress: var(--accent);
-    --toast-success: #4ade80;
+  --toast-success: #4ade80;
   --toast-error: #f87171;
   --toast-shadow: 0 12px 30px rgba(0,0,0,0.6);
 }

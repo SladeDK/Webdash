@@ -421,6 +421,7 @@ async function initApp() {
   applyDashboardAppearance();
   applyAnimationPreference();
   applyDebugMode();
+  applyBetaUI();
 
   // Toasts (independent)
   if (themeInvalid) {
@@ -601,11 +602,15 @@ async function applySystemState({
   // ---------------------------
   // Apply preferences (if provided)
   // ---------------------------
+  let warnings = [];
+
   if (preferences) {
-    // Normalize FIRST using raw imported data
-    const { prefs, warnings } = normalizeImportedPreferences(
+    const result = normalizeImportedPreferences(
       structuredClone(preferences)
     );
+
+    const prefs = result.prefs;
+    warnings = result.warnings ?? [];
 
     importWarnings = warnings;
 
@@ -655,6 +660,8 @@ async function applySystemState({
   // Transition hook (future)
   // ---------------------------
   // e.g. logSystemTransition(type, ...)
+
+  return warnings;
 }
 
 async function syncAppearanceToAllDashboards() {
@@ -1173,7 +1180,7 @@ async function mergeSystemImport(payload, replacePreferences) {
   }));
 
   // Apply unified system transition
-  await applySystemState({
+  const importWarnings = await applySystemState({
     type: SystemTransitionType.IMPORT_MERGE,
     dashboards,
     activeDashboardId: payload.meta.activeDashboardId,
@@ -1181,7 +1188,7 @@ async function mergeSystemImport(payload, replacePreferences) {
     preferences: replacePreferences ? payload.preferences : null
   });
 
-  showImportSuccess(importSummary);
+  showImportSuccess(importSummary, importWarnings);
 }
 
 async function overwriteSystemImport(payload, replacePreferences) {
@@ -1222,7 +1229,7 @@ async function overwriteSystemImport(payload, replacePreferences) {
     });
   }
 
-  await applySystemState({
+  const importWarnings = await applySystemState({
     type: SystemTransitionType.IMPORT_OVERWRITE,
     dashboards: payload.dashboards.map(d => ({
       id: d.id,
@@ -1237,6 +1244,6 @@ async function overwriteSystemImport(payload, replacePreferences) {
     dashboardsCreated: payload.dashboards.length,
     dashboardsMerged: 0,
     preferencesReplaced: replacePreferences
-  });
+  }, importWarnings);
 }
 

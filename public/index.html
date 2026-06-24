@@ -30,7 +30,8 @@
       })();
     </script>
 
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css" id="main-style"/>
+    <link rel="stylesheet" href="beta.css" id="beta-style" disabled>
 
     <script src="https://kit.fontawesome.com/782d4dd7ab.js" crossorigin="anonymous"></script>
     <script src="js/core/state.js" defer></script>
@@ -481,18 +482,9 @@
             <div class="panel" id="panel-advanced">
               <h3>Advanced</h3>
               <p>Advanced and developer-focused options.</p>
-              <fieldset class="setting-group">
-                <legend>Developer Tools:</legend>
 
-                <label class="setting-row" for="pref-debug-mode">
-                  <span>Enable debug mode</span>
-                  <span class="toggle">
-                    <input type="checkbox" id="pref-debug-mode">
-                    <span class="toggle-track"></span>
-                  </span>
-                </label>
-
-              </fieldset>
+              <!-- Dynamic toggles will be injected here -->
+              <div id="advanced-container"></div>
             </div>
           </section>
         </div>
