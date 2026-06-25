@@ -60,7 +60,8 @@ window.BACKGROUNDS = [
   { id: 'bg-line-curve', label: 'Line Curve', previewClass: 'bg-preview-line-curve' },
   { id: 'bg-hex', label: 'Hex Pattern', previewClass: 'bg-preview-hex' },
   { id: 'bg-streak', label: 'Streak', previewClass: 'bg-preview-streak' },
-  { id: 'bg-circuit', label: 'Circuit Board', previewClass: 'bg-preview-circuit' }
+  { id: 'bg-circuit', label: 'Circuit Board', previewClass: 'bg-preview-circuit' },
+  { id: 'bg-stars', label: 'Stars', previewClass: 'bg-preview-stars' },
 ];
 
 // =====================================================

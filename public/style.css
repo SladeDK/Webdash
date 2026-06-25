@@ -1897,6 +1897,25 @@ html.theme-light .bg-preview-dotted {
     );
 }
 
+.bg-preview-stars {
+  background-color: var(--bg-main);
+  background-image:
+    radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--accent) 18%, transparent) 1px,
+      transparent 0
+    );
+  background-size: 6px 6px;
+}
+
+html.theme-light .bg-preview-stars {
+  background-image:
+    radial-gradient(
+      circle at 1px 1px,
+      rgba(0, 0, 0, 0.18)
+    );
+}
+
 .bg-preview-webbed {
   background-color: var(--bg-main);
   background-image:
@@ -2347,6 +2366,32 @@ html.bg-dotted::before {
 html.bg-dotted::before {
   background-color: var(--bg-surface);
   opacity: 0.35;
+}
+
+html.bg-stars::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+
+  background: var(--accent-hover);
+
+  -webkit-mask-image: url("/assets/backgrounds/bg-stars.svg");
+  mask-image: url("/assets/backgrounds/bg-stars.svg");
+
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+
+  -webkit-mask-size: fit;
+  mask-size: fit;
+
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+html.theme-light.bg-stars::before {
+	opacity: 0.75;
+	/* visibility restored */
 }
 
 /* Webbed */
