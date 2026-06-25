@@ -3824,3 +3824,11 @@ body.dashboard-loading .dashboard-item {
 /* ==================================================== */
 /* ANIMATION OVERRIDE (Should always be the last lines) */
 /* ==================================================== */
+
+/* Instant switching override (theme/background) */
+.no-transitions *,
+.no-transitions *::before,
+.no-transitions *::after {
+  transition: none !important;
+  animation: none !important;
+}

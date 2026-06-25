@@ -218,10 +218,9 @@ function setActiveTheme(theme) {
     theme === 'system'
       ? resolveSystemTheme()
       : theme;
-  
-  if (root.classList.contains(resolvedTheme)) {
-    return;
-  }
+
+  // Skip if already applied
+  if (root.classList.contains(resolvedTheme)) return;
 
   const themes = window.THEMES || [];
 
@@ -229,27 +228,32 @@ function setActiveTheme(theme) {
     root.classList.contains(t.id)
   )?.id;
 
-  if (currentTheme === resolvedTheme) return;
+  // Disable transitions instantly
+  root.classList.add('no-transitions');
 
-  root.classList.add('theme-switching');
-
+  // Swap classes immediately
   if (currentTheme) {
     root.classList.remove(currentTheme);
   }
 
   root.classList.add(resolvedTheme);
 
-  requestAnimationFrame(() => {
-    root.classList.remove('theme-switching');
-  });
+  // Force browser to apply immediately (important)
+  root.offsetHeight;
+
+  // Re-enable transitions
+  root.classList.remove('no-transitions');
 }
 
 function changeTheme(theme) {
-  // Apply visually
-  setActiveTheme(theme);
+  document.body.classList.add('is-switching');
 
-  // Lightweight UI update (NO re-render)
+  setActiveTheme(theme);
   updateThemeSelectionUI(theme);
+
+  requestAnimationFrame(() => {
+    document.body.classList.remove('is-switching');
+  });
 
   syncThemeRadios?.();
 }
@@ -265,11 +269,20 @@ function setActiveBackground(bg) {
 
   if (currentBg === bg) return;
 
+  // Disable transitions
+  root.classList.add('no-transitions');
+
   if (currentBg) {
-    root.classList.replace(currentBg, bg);
-  } else {
-    root.classList.add(bg);
+    root.classList.remove(currentBg);
   }
+
+  root.classList.add(bg);
+
+  // Force repaint
+  root.offsetHeight;
+
+  // Re-enable transitions
+  root.classList.remove('no-transitions');
 }
 
 function changeBackground(bg) {
