@@ -468,9 +468,6 @@ async function initApp() {
 
   setLifecyclePhase(LifecyclePhase.READY);
 
-  document.body.classList.remove('app-loading');
-  document.body.classList.add('app-ready');
-
   document.body.classList.add('categories-initialized');
 
   await rebuildGlobalItemIndex();
@@ -485,6 +482,16 @@ async function initApp() {
   initializeDropdowns();
   initializeDashboardUIBindings();
   initializeButtonEditorBindings();
+
+  requestAnimationFrame(() => {
+    const root = document.documentElement;
+
+    root.style.visibility = 'visible';
+    root.classList.remove('preload');
+
+    document.body.classList.remove('app-loading');
+    document.body.classList.add('app-ready');
+  });
 }
 
 // =====================================================

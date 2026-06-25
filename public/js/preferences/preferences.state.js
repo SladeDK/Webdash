@@ -218,6 +218,10 @@ function setActiveTheme(theme) {
     theme === 'system'
       ? resolveSystemTheme()
       : theme;
+  
+  if (root.classList.contains(resolvedTheme)) {
+    return;
+  }
 
   const themes = window.THEMES || [];
 

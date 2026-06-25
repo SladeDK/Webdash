@@ -6,7 +6,14 @@
     <title>WebDash</title>
 
     <link rel="icon" href="assets/webdash-logo.png" />
-    
+
+    <!-- PRELOAD + HIDE BEFORE FIRST PAINT -->
+    <script>
+      document.documentElement.classList.add('preload');
+      document.documentElement.style.visibility = 'hidden';
+    </script>
+
+    <!-- EARLY THEME/BACKGROUND CACHE -->
     <script>
       (function () {
         try {
@@ -14,26 +21,35 @@
           if (!stored) return;
 
           const data = JSON.parse(stored);
-
           const root = document.documentElement;
 
-          if (data.theme) {
-            root.classList.add(data.theme);
-          }
-
-          if (data.background) {
-            root.classList.add(data.background);
-          }
+          if (data.theme) root.classList.add(data.theme);
+          if (data.background) root.classList.add(data.background);
         } catch (e) {
           console.warn('[WebDash] Early UI load failed:', e);
         }
       })();
     </script>
 
+    <!-- DISABLE TRANSITIONS DURING LOAD -->
+    <style>
+      html.preload * {
+        transition: none !important;
+        animation: none !important;
+      }
+    </style>
+
+    <!-- CSS -->
     <link rel="stylesheet" href="style.css" id="main-style"/>
     <link rel="stylesheet" href="beta.css" id="beta-style" disabled>
 
+    <!-- PRELOAD FONTAWESOME (reduces icon flicker) -->
+    <link rel="preload" as="script" href="https://kit.fontawesome.com/782d4dd7ab.js" crossorigin="anonymous">
+
+    <!-- FONTAWESOME -->
     <script src="https://kit.fontawesome.com/782d4dd7ab.js" crossorigin="anonymous"></script>
+
+    <!-- CORE SYSTEM -->
     <script src="js/core/state.js" defer></script>
     <script src="js/core/utils.js" defer></script>
     <script src="js/core/services.js" defer></script>
@@ -41,25 +57,33 @@
     <script src="js/core/defaults.js" defer></script>
     <script src="js/core/validation.js" defer></script>
     <script src="js/core/init.js" defer></script>
-    
+
+    <!-- UI + INTERACTIONS -->
     <script src="js/ui/modals.js" defer></script>
     <script src="js/interactions/command-palette.js" defer></script>
     <script src="js/interactions/keyboard.js" defer></script>
+
+    <!-- PREFERENCES -->
     <script src="js/preferences/preferences.state.js" defer></script>
     <script src="js/preferences/preferences.import.js" defer></script>
     <script src="js/preferences/preferences.ui.js" defer></script>
     <script src="js/preferences/preferences.lifecycle.js" defer></script>
+
+    <!-- UI HELPERS -->
     <script src="js/ui/dropdowns.js" defer></script>
     <script src="js/ui/toasts.js" defer></script>
 
+    <!-- DASHBOARD -->
     <script src="js/dashboard/dashboards.js" defer></script>
     <script src="js/dashboard/categories.js" defer></script>
     <script src="js/dashboard/search.js" defer></script>
     <script src="js/dashboard/items.js" defer></script>
     <script src="js/dashboard/layout-editor.js" defer></script>
 
-    <script src="js/main.js" defer></script>  
-    
+    <!-- ENTRY -->
+    <script src="js/main.js" defer></script>
+
+    <!-- DEV -->
     <script src="js/dev/dev.js" defer></script>
   </head>
 

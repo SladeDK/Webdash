@@ -3201,8 +3201,14 @@ html:not(.identity-ready) .header-center {
 }
 
 body.app-loading {
+  visibility: hidden;
   opacity: 0;
   filter: blur(6px);
+}
+
+html.preload * {
+  transition: none !important;
+  animation: none !important;
 }
 
 body.app-ready {
