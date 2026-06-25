@@ -39,6 +39,7 @@ Open in your browser:
 ```
 http://localhost:3000
 ```
+To change the port simply edit the .env file.
 
 All data is stored locally and persists across restarts.
 
