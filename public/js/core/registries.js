@@ -57,10 +57,9 @@ window.BACKGROUNDS = [
   { id: 'bg-glass', label: 'Glass Atmosphere', previewClass: 'bg-preview-glass' },
   { id: 'bg-dotted', label: 'Dotted Pattern', previewClass: 'bg-preview-dotted' },
   { id: 'bg-webbed', label: 'Webbed Pattern', previewClass: 'bg-preview-webbed' },
-  { id: 'bg-triangle-gradient', label: 'Triangle Gradient', previewClass: 'bg-preview-triangle-gradient' },
-  { id: 'bg-triangle-subtle', label: 'Triangle Subtle', previewClass: 'bg-preview-triangle-subtle' },
+  { id: 'bg-line-curve', label: 'Line Curve', previewClass: 'bg-preview-line-curve' },
   { id: 'bg-hex', label: 'Hex Pattern', previewClass: 'bg-preview-hex' },
-  { id: 'bg-topo', label: 'Topographical', previewClass: 'bg-preview-topo' },
+  { id: 'bg-streak', label: 'Streak', previewClass: 'bg-preview-streak' },
   { id: 'bg-circuit', label: 'Circuit Board', previewClass: 'bg-preview-circuit' }
 ];
 
