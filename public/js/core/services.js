@@ -2,17 +2,28 @@
 // Backend / persistence services
 // ============================
 
+function getActiveUser() {
+  const url = new URL(window.location.href);
+  return url.searchParams.get('user') || 'default';
+}
+
+function buildUrl(path) {
+  const user = getActiveUser();
+  const separator = path.includes('?') ? '&' : '?';
+  return `${path}${separator}user=${user}`;
+}
+
 const DashboardService = {
 	
   async load() {
-    const res = await fetch('/api/dashboard');
+    const res = await fetch(buildUrl('/api/dashboard'));
     if (!res.ok) return null;
     const text = await res.text();
     return text ? JSON.parse(text) : null;
   },
 
   async save(dashboardState) {
-    await fetch('/api/dashboard', {
+    await fetch(buildUrl('/api/dashboard'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dashboardState)
@@ -20,20 +31,20 @@ const DashboardService = {
   },
 
   async listDashboards() {
-    const res = await fetch('/api/dashboards');
+    const res = await fetch(buildUrl('/api/dashboards'));
     if (!res.ok) return [];
     return await res.json();
   },
 
   async getActiveDashboardId() {
-    const res = await fetch('/api/dashboards/active');
+    const res = await fetch(buildUrl('/api/dashboards/active'));
     if (!res.ok) return null;
     const data = await res.json();
     return data.activeDashboardId;
   },
 
   async setActiveDashboardId(dashboardId) {
-    await fetch('/api/dashboards/active', {
+    await fetch(buildUrl('/api/dashboards/active'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dashboardId })
@@ -41,7 +52,7 @@ const DashboardService = {
   },
 
   async createDashboard({ id, name }) {
-    await fetch('/api/dashboards', {
+    await fetch(buildUrl('/api/dashboards'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -55,14 +66,14 @@ const DashboardService = {
   },
 
   async getDefaultDashboardId() {
-    const res = await fetch('/api/dashboards/default');
+    const res = await fetch(buildUrl('/api/dashboards/default'));
     if (!res.ok) return null;
     const data = await res.json();
     return data.defaultDashboardId;
   },
 
   async setDefaultDashboardId(dashboardId) {
-    await fetch('/api/dashboards/default', {
+    await fetch(buildUrl('/api/dashboards/default'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dashboardId })
@@ -70,25 +81,65 @@ const DashboardService = {
   },
 
   async loadDashboardById(dashboardId) {
-    const res = await fetch(`/api/dashboards/${dashboardId}`);
-
+    const res = await fetch(buildUrl(`/api/dashboards/${dashboardId}`));
     if (!res.ok) return null;
-
     return await res.json();
   },
 
   async loadAllDashboards() {
-    const res = await fetch('/api/dashboards/full');
+    const res = await fetch(buildUrl('/api/dashboards/full'));
     if (!res.ok) return {};
-
     const data = await res.json();
     return data.dashboards || {};
+  },
+};
+
+const UserService = {
+  async listUsers() {
+    const res = await fetch('/api/users');
+    if (!res.ok) return [];
+    return await res.json();
+  },
+
+  async createUser(user) {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user })
+    });
+
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
+  },
+  
+  async renameUser(oldUser, newName) {
+    const res = await fetch(`/api/users/${oldUser}/rename`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newName })
+    });
+
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
+  },
+
+  async deleteUser(user) {
+    const res = await fetch(`/api/users/${user}`, {
+      method: 'DELETE'
+    });
+
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
   }
 };
 
+
 const PreferencesService = {
   async load() {
-    const res = await fetch('/api/preferences');
+    const res = await fetch(buildUrl('/api/preferences'));
 
     if (!res.ok) return null;
 
@@ -105,7 +156,7 @@ const PreferencesService = {
       })
     );
 
-    await fetch('/api/preferences', {
+    await fetch(buildUrl('/api/preferences'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(prefs)

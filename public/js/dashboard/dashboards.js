@@ -156,7 +156,7 @@ async function processDashboardReorderQueue() {
   pendingDashboardReorder = null;
 
   try {
-    await fetch('/api/dashboards/reorder', {
+    await fetch(buildUrl('/api/dashboards/reorder'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -336,7 +336,7 @@ async function deleteDashboard(dashboardId, autoSwitch = true) {
     await transitionToDashboard(nextActiveId, 'deleteDashboard');
   }
 
-  const res = await fetch(`/api/dashboards/${dashboardId}`, {
+  const res = await fetch(buildUrl(`/api/dashboards/${dashboardId}`), {
     method: 'DELETE'
   });
 
@@ -400,7 +400,7 @@ async function renameDashboardDisplayName(dashboardId, newName) {
     return;
   }
 
-  const res = await fetch(`/api/dashboards/${dashboardId}/rename`, {
+  const res = await fetch(buildUrl(`/api/dashboards/${dashboardId}/rename`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: trimmed })

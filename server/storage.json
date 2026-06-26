@@ -1,7 +1,7 @@
 {
   "dashboards": {
-    "dashboard-1779963276103": {
-      "id": "dashboard-1779963276103",
+    "dashboard-1782475060188": {
+      "id": "dashboard-1782475060188",
       "name": "WebDash",
       "identity": {
         "name": "WebDash",
@@ -18,15 +18,13 @@
               "id": "btn-docs",
               "label": "WebDash Github",
               "url": "https://github.com/SladeDK/Webdash",
-              "order": 0,
-              "visible": true
+              "order": 0
             },
             {
               "id": "btn-settings",
               "label": "Google",
               "url": "https://google.com",
-              "order": 1,
-              "visible": true
+              "order": 1
             }
           ]
         }
@@ -34,8 +32,8 @@
       "order": 0
     }
   },
-  "activeDashboardId": "dashboard-1779963276103",
-  "defaultDashboardId": "dashboard-1779963276103",
+  "activeDashboardId": "dashboard-1782475060188",
+  "defaultDashboardId": "dashboard-1782475060188",
   "preferences": {
     "appearance": {
       "theme": "system",
@@ -45,9 +43,18 @@
       }
     },
     "behavior": {
-      "autoCloseDropdowns": true,
+      "favorites": [],
+      "recents": [],
+      "recentsLimit": 5,
+      "trackRecents": true,
+      "confirmDeleteButtons": true,
       "openLinksInNewTab": true,
-      "syncDashboardAppearance": true
+      "autoCloseDropdowns": true,
+      "syncDashboardAppearance": true,
+      "enableAnimations": true,
+      "storeRecentsAcrossReloads": true,
+      "debugMode": false,
+      "betaUI": false
     }
   }
 }

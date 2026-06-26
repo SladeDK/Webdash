@@ -2222,6 +2222,52 @@ html.theme-light .bg-preview-circuit {
 	z-index: 1200;
 }
 
+#create-user-overlay .modal-container {
+	max-width: 480px;
+	height: auto;
+}
+
+#create-user-overlay {
+	z-index: 1100;
+}
+
+#create-user-form {
+	width: 300px;
+}
+
+#create-user-input {
+	width: 300px;
+}
+
+#create-user-overlay .modal-actions {
+	justify-content: flex-start;
+	border-top: none;
+	padding-top: 12px;
+}
+
+#edit-user-overlay .modal-container {
+	max-width: 480px;
+	height: auto;
+}
+
+#edit-user-overlay {
+	z-index: 1100;
+}
+
+#edit-user-form {
+	width: 300px;
+}
+
+#edit-user-input {
+	width: 300px;
+}
+
+#edit-user-overlay .modal-actions {
+	justify-content: flex-start;
+	border-top: none;
+	padding-top: 12px;
+}
+
 #button-editor-overlay .modal-container {
 	max-width: 480px;
 	height: auto;
@@ -2248,6 +2294,11 @@ html.theme-light .bg-preview-circuit {
 	border-top: none;
 	padding-top: 12px;
 }
+
+#create-user-button {
+  margin-top: 0.5rem;
+}
+
 
 /* ============================================================
 	22. DATA MANAGEMENT

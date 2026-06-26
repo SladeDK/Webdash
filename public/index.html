@@ -57,6 +57,7 @@
     <script src="js/core/defaults.js" defer></script>
     <script src="js/core/validation.js" defer></script>
     <script src="js/core/init.js" defer></script>
+    <script src="js/core/users.js" defer></script>
 
     <!-- UI + INTERACTIONS -->
     <script src="js/ui/modals.js" defer></script>
@@ -184,6 +185,10 @@
             <div class="nav-group">
               <div class="nav-group-title">Personalization</div>
 
+              <button class="nav-item" type="button" data-panel="user">
+                User Central
+              </button>
+
               <button class="nav-item active" type="button" data-panel="appearance">
                 Appearance
               </button>
@@ -229,6 +234,45 @@
 
           <!-- Right content -->
           <section class="modal-content">
+
+            <div class="panel" id="panel-user">
+              <h3>User Central</h3>
+              <p>Manage users: switch, create and rename users.</p>
+
+              <fieldset class="setting-group">
+                <legend>Users</legend>
+
+                <div class="setting-row user-row">
+                  <div class="user-info">
+                    <span>Current user:</span>
+                    <strong id="current-user-label"></strong>
+                  </div>
+
+                  <div class="user-actions">
+                    <button class="icon-button edit-user-btn" title="Edit user">
+                      <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+
+                    <button class="icon-button delete-user-btn" title="Delete user">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="setting-row" style="margin-top:10px;">
+                  <label>User selection:</label>
+                  <select id="user-select"></select>
+                </div>
+
+                <div class="layout-header">
+                  <button class="layout-action-btn"  id="create-user-button" onclick="openCreateUserModal()">
+                    <span class="action-icon"><i class="fa-solid fa-plus"></i></span>
+                    <span>Create user</span>
+                  </button>
+                </div>
+              </fieldset>
+            </div>
+
             <div class="panel active" id="panel-appearance">
               <h3>Appearance</h3>
                 <p>Here you can change the dashboard's / system's theme, appearance, and identity.</p>
@@ -840,6 +884,107 @@
 
         <div id="command-results"></div>
 
+      </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div
+      id="create-user-overlay"
+      class="modal-overlay"
+      hidden
+      aria-hidden="true"
+    >
+      <div
+        class="modal modal-container"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-user-title"
+      >
+        <header class="modal-header">
+          <h2 id="create-user-title">Create User</h2>
+          <button
+            class="modal-close"
+            type="button"
+            aria-label="Close create user"
+            id="create-user-close"
+          >
+            ✕
+          </button>
+        </header>
+
+        <div class="modal-body">
+          <form id="create-user-form" novalidate>
+
+            <!-- FIELD -->
+            <div class="form-group">
+              <label for="create-user-input">Username:</label>
+
+              <input
+                type="text"
+                id="create-user-input"
+                autocomplete="off"
+                required
+              />
+
+              <span id="create-user-error" class="form-error">
+                Invalid username
+              </span>
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="modal-actions">
+              <button type="button" class="secondary-btn" id="create-user-cancel">
+                Cancel
+              </button>
+
+              <button type="submit" class="primary-btn">
+                Create
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="edit-user-overlay" class="modal-overlay" hidden>
+      <div class="modal modal-container">
+        <header class="modal-header">
+          <h2>Edit User</h2>
+          <button class="modal-close">✕</button>
+        </header>
+
+        <div class="modal-body">
+          <form id="edit-user-form">
+
+            <div class="form-group">
+              <label>Username:</label>
+              <input 
+                type="text" 
+                id="edit-user-name"
+                autocomplete="username"
+              >
+            </div>
+
+            <!-- future -->
+            <div class="form-group">
+              <label>Password:</label>
+              <input 
+                type="password" 
+                disabled 
+                placeholder="Coming soon"
+                autocomplete="current-password"
+              >
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="secondary-btn">Cancel</button>
+              <button type="submit" class="primary-btn">Save</button>
+            </div>
+
+          </form>
+        </div>
       </div>
     </div>
   </body>

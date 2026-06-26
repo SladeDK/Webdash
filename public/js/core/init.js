@@ -478,6 +478,10 @@ async function initApp() {
   renderThemeDropdown();
   renderThemeGrid();
   renderBackgroundGrid();
+  initUserDropdown();
+  initCreateUserModal();
+  initEditUserModal();
+  initUserActions();
 
   initializeDropdowns();
   initializeDashboardUIBindings();
@@ -595,7 +599,7 @@ async function applySystemState({
   );
 
   // Persist normalized order to backend
-  await fetch('/api/dashboards/reorder', {
+  await fetch(buildUrl('/api/dashboards/reorder'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(
@@ -753,7 +757,7 @@ try {
 
     // Clear all dashboards on backend
     for (const { id } of availableDashboards) {
-      await fetch(`/api/dashboards/${id}`, { method: 'DELETE' });
+      await fetch(buildUrl(`/api/dashboards/${id}`), { method: 'DELETE' });
     }
 
     // Reset in-memory dashboard metadata
@@ -1203,7 +1207,7 @@ async function overwriteSystemImport(payload, replacePreferences) {
   // Delete ALL existing dashboards
   // ----------------------------------------
   for (const { id } of availableDashboards) {
-    await fetch(`/api/dashboards/${id}`, { method: 'DELETE' });
+    await fetch(buildUrl(`/api/dashboards/${id}`), { method: 'DELETE' });
   }
 
   availableDashboards = [];

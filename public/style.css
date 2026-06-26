@@ -1212,6 +1212,80 @@ html.theme-glass .modal {
   transform: translateY(0) scale(1);
 }
 
+/* Smaller modal for user creation */
+#create-user-overlay .modal-container {
+  max-width: 520px;
+  max-height: 400px;
+  padding: 1rem;
+}
+
+#create-user-overlay .modal-header h2 {
+  font-size: 1.1rem;
+}
+
+#create-user-overlay .modal-body {
+  padding-top: 1rem;
+}
+
+/* user creation should float above Preferences modal */
+#create-user-overlay {
+  z-index: 1100;
+}
+
+#create-user-form {
+  width: 300px;
+}
+
+#create-user-overlay form {
+  display: flex;
+  flex-direction: column;
+}
+
+#create-user-overlay .modal-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+/* Smaller modal for user editor */
+#edit-user-overlay .modal-container {
+  max-width: 520px;
+  max-height: 400px;
+  padding: 1rem;
+}
+
+#edit-user-overlay .modal-header h2 {
+  font-size: 1.1rem;
+}
+
+#edit-user-overlay .modal-body {
+  padding-top: 1rem;
+}
+
+/* user editor should float above Preferences modal */
+#edit-user-overlay {
+  z-index: 1100;
+}
+
+#edit-user-form {
+  width: 300px;
+}
+
+#edit-user-overlay form {
+  display: flex;
+  flex-direction: column;
+}
+
+#edit-user-overlay .modal-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
 /* Smaller modal for button editor */
 #button-editor-overlay .modal-container {
   max-width: 520px;
@@ -2634,6 +2708,28 @@ html.bg-switching::after {
   gap: 0.25rem;
 }
 
+.user-row {
+  display: flex;
+  align-items: center;
+}
+
+.user-info {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* This is the magic */
+.user-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.delete-user-btn:hover {
+  color: var(--danger, #d33);
+}
+
 /* Dashboard Layout editor (Phase C.0) */
 
 .layout-editor {
@@ -2694,6 +2790,10 @@ html.bg-switching::after {
 .layout-action-btn .action-icon {
   font-size: 1.05em;
   line-height: 1;
+}
+
+#create-user-button {
+  margin-top: 0.5rem;
 }
 
 /* Inline category rename input */
