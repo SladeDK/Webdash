@@ -979,6 +979,34 @@ html.identity-ready .header-center {
 	opacity: 0.6;
 }
 
+.button-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.item-favicon {
+  width: 16px;
+  height: 16px;
+
+  object-fit: contain;
+  flex-shrink: 0;
+
+  background: none;
+  padding: 0;
+
+  image-rendering: auto;
+  transform: translateZ(0);
+
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+}
+
+/* Slight emphasis on hover */
+.buttons a:hover .item-favicon,
+.qa-button:hover .item-favicon {
+  opacity: 1;
+}
+
 /* ============================================================
 	11. QUICK ACCESS
 	============================================================ */

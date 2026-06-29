@@ -268,5 +268,24 @@ window.TOGGLE_DEFINITIONS = [
 
       applyBetaUI();
     }
-  }
+  },
+  {
+    key: 'showFavicons',
+    label: 'Show icons on buttons',
+    panel: 'behavior',
+
+    group: 'Buttons',
+    order: 5,
+
+    get: () =>
+      userPreferences?.behavior?.showFavicons !== false,
+
+    set: (value) => {
+      userPreferences.behavior.showFavicons = value;
+
+      PreferencesService.save(userPreferences);
+
+      renderCategories(pageCategories);
+    }
+  },
 ];

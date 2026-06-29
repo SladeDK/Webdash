@@ -214,6 +214,43 @@ function renderQuickAccess(container) {
   container.appendChild(section);
 }
 
+function createFavicon(item, container) {
+  
+  // Respect display favicon toggle
+  if (userPreferences?.behavior?.showFavicons === false) return;
+
+  const faviconUrl = getFaviconUrl(item.url);
+  if (!faviconUrl) return;
+
+  const img = new Image();
+  img.width = 16;
+  img.height = 16;
+
+  img.onload = () => {
+    // DETECT INVALID / FALLBACK ICONS
+
+    // Many fallback icons are low-detail or weird aspect
+    // Detect "generic globe" or fallback icons
+    if (
+      img.naturalWidth < 24 &&
+      img.naturalHeight < 24 &&
+      faviconUrl.includes('google.com')
+    ) {
+      console.warn(`Ignored low-quality favicon for "${item.label}" (${item.url})`);
+      return;
+    }
+
+    img.className = 'item-favicon';
+    container.prepend(img);
+  };
+
+  img.onerror = () => {
+    console.warn(`Couldn't fetch favicon for "${item.label}" (${item.url})`);
+  };
+
+  img.src = faviconUrl;
+}
+
 function createQARow(icon, items) {
   const row = document.createElement('div');
   row.className = 'qa-row';
@@ -228,8 +265,22 @@ function createQARow(icon, items) {
   items.forEach(item => {
     const link = document.createElement('a');
     link.href = item.url;
-    link.textContent = item.label;
     link.className = 'qa-button';
+
+    const content = document.createElement('span');
+    content.className = 'button-content';
+
+    const faviconUrl = getFaviconUrl(item.url);
+
+    if (faviconUrl) {
+      createFavicon(item, content);
+    }
+
+    const label = document.createElement('span');
+    label.textContent = item.label;
+
+    content.appendChild(label);
+    link.appendChild(content);
 
     if (userPreferences?.behavior?.debugMode) {
       const debug = document.createElement('span');
@@ -310,7 +361,27 @@ function renderCategories(categories) {
       category.items.forEach(item => {
         const link = document.createElement('a');
         link.href = item.url;
-        link.textContent = item.label;
+        link.className = 'dashboard-button';
+
+        // Create wrapper (for flex layout)
+        const content = document.createElement('span');
+        content.className = 'button-content';
+
+        // Favicon
+        const faviconUrl = getFaviconUrl(item.url);
+
+        if (faviconUrl) {
+          createFavicon(item, content);
+        }
+
+        // Label
+        const label = document.createElement('span');
+        label.textContent = item.label;
+
+        content.appendChild(label);
+
+        // Append everything
+        link.appendChild(content);
 
         if (userPreferences?.behavior?.debugMode) {
           const debug = document.createElement('span');

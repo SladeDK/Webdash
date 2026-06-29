@@ -35,6 +35,7 @@ const DEFAULT_BEHAVIOR = {
   storeRecentsAcrossReloads: true,
   debugMode: false,
   betaUI: false,
+  showFavicons: true,
 };
 
 // ======================================================================

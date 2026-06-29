@@ -1,36 +1,4 @@
 
-/* ===================================================== */
-/* 1. CSS Variables / Design Tokens */
-/* ===================================================== */
-
-/* ===================================================== */
-/* 2. Base / Reset / Global Defaults */
-/* ===================================================== */
-
-/* ===================================================== */
-/* 3. Layout & Page Structure */
-/* ===================================================== */
-
-/* ===================================================== */
-/* 4. Typography */
-/* ===================================================== */
-
-/* ===================================================== */
-/* 5. Core UI Components */
-/* ===================================================== */
-
-/* ===================================================== */
-/* 6. Editor & Dashboard Components */
-/* ===================================================== */
-
-/* ===================================================== */
-/* 7. Component States & Modifiers */
-/* ===================================================== */
-
-/* ===================================================== */
-/* 8. Utilities */
-/* ===================================================== */
-
 html {
   min-height: 100%;
   background-color: var(--bg-main);
@@ -634,6 +602,44 @@ h1, h2 {
     var(--accent)
   );
   filter: brightness(1.05);
+}
+
+/* =====================================
+   Button content (icon + text layout)
+   ===================================== */
+
+.button-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* =====================================
+   Favicon styling
+   ===================================== */
+
+.item-favicon {
+  width: 16px;
+  height: 16px;
+
+  object-fit: contain;
+  flex-shrink: 0;
+
+  /* REMOVE fake background completely */
+  background: none;
+  padding: 0;
+
+  image-rendering: auto;
+  transform: translateZ(0);
+
+  /* Better visibility */
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+}
+
+/* Slight emphasis on hover */
+.buttons a:hover .item-favicon,
+.qa-button:hover .item-favicon {
+  opacity: 1;
 }
 
 /* Micro polish: dropdown visual clarity */
@@ -2433,13 +2439,8 @@ html.bg-dotted::before {
   background-attachment: scroll;
   background-size: cover;
   filter: none;
-  opacity: 0.25;
-  background-repeat: repeat;
-}
-
-html.bg-dotted::before {
-  background-color: var(--bg-surface);
   opacity: 0.35;
+  background-repeat: repeat;
 }
 
 html.bg-stars::before {
