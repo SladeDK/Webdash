@@ -1,24 +1,57 @@
 # WebDash v0.24.0
 
-A self-hosted, configurable dashboard for organizing services, links, and systems in one place.
+A self-hosted, configurable dashboard for organizing services, links, and systems in one place.  
 
-WebDash is designed to be simple, flexible, and fully under your control. It runs locally with no external dependencies and works equally well on personal machines, home labs, NAS devices, and small VPS setups.
+WebDash is designed to be simple, flexible, and fully under your control while still providing a polished, modern user experience. It runs locally with no external dependencies and works equally well on personal machines, homelabs, NAS devices, and VPS setups.
+
+The system is built around a modular preferences and layout architecture, allowing users to customize behavior, appearance, and structure without complexity.
 
 ---
 
 ## Features
 
-- Multiple dashboards with independent layouts
-- Custom categories and buttons
-- Drag-and-drop layout editor
+- Multiple dashboards with independent layouts and appearance
+- Custom categories and service buttons
+- Drag-and-drop layout editor for categories and buttons
+- Global and per-dashboard appearance system (themes & backgrounds)
+- Quick Access system with favorites and recents
+- Advanced behavior settings and user preferences
+- Data-driven toggle system for configurable features
 - Import and export of full system backups
-- Theme and background system
-- Quick access (favorites & recents)
+- Identity system (custom name and icon per dashboard)
+- Optional Beta UI (next-generation design system)
 - Fully self-hosted (no cloud dependencies)
 - Lightweight and framework-free
 
 ---
 
+### Customization
+
+WebDash includes a flexible customization system:
+
+- Theme system with multiple built-in themes
+- Background system with multiple visual styles
+- Per-dashboard or synchronized appearance
+- Adjustable behavior settings via toggle system
+- Quick Access configuration (favorites and recents)
+- Identity customization (dashboard name and icon)
+
+All preferences are stored locally and applied instantly.
+
+---
+
+### Preferences System
+
+WebDash uses a data-driven preferences system that controls user behavior and application features.
+
+- Centralized preference state
+- Configurable feature toggles
+- Instant UI updates on change
+- Persistent across sessions
+
+This system allows new features to be added without tightly coupling logic to the UI, keeping the codebase scalable and maintainable.
+
+---
 ## Quick Start (Docker – Recommended)
 
 ### Prerequisites
@@ -106,7 +139,8 @@ Once running, WebDash does not require internet access.
 - Node.js
 - Docker (optional)
 
-No frameworks. No databases. No cloud services.
+No frameworks. No databases. No cloud services.  
+Designed for simplicity while maintaining a structured and scalable architecture.
 
 ---
 
@@ -147,9 +181,9 @@ v0.19.0
 
 ## Project Status
 
-WebDash is stable and actively evolving.
+WebDash is stable and actively evolving.  
+The focus of development is on improving usability, performance, and extensibility while keeping the system lightweight and dependency-free.
 
-New features, improvements, and refinements are continuously being developed.  
 Bug reports and feature suggestions are welcome via GitHub Issues.
 
 ---
