@@ -234,6 +234,18 @@ function normalizeDashboardOrder(dashboards, originalLocal = []) {
 // Application bootstrap
 // =====================================================
 
+(function ensureUserInUrl() {
+  const url = new URL(window.location.href);
+
+  if (!url.searchParams.get('user')) {
+    const storedUser = localStorage.getItem('webdash-last-user') || 'default';
+
+    url.searchParams.set('user', storedUser);
+
+    window.location.replace(url.toString());
+  }
+})();
+
 async function initApp() {
   // Early cache read (for instant data availability — NO rendering here)
   try {

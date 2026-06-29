@@ -4,7 +4,22 @@
 
 function getActiveUser() {
   const url = new URL(window.location.href);
-  return url.searchParams.get('user') || 'default';
+
+  const paramUser = url.searchParams.get('user');
+  const storedUser = localStorage.getItem('webdash-last-user');
+
+  // URL always wins
+  if (paramUser) {
+    localStorage.setItem('webdash-last-user', paramUser);
+    return paramUser;
+  }
+
+  // fallback to last used user
+  if (storedUser) {
+    return storedUser;
+  }
+
+  return 'default';
 }
 
 function buildUrl(path) {
