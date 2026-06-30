@@ -425,7 +425,10 @@ async function renameDashboardDisplayName(dashboardId, newName) {
   if (dashboardState && dashboardState.id === dashboardId) {
     dashboardState.name = trimmed;
 
-    if (dashboardState.identity) {
+    if (
+      dashboardState.identity &&
+      userPreferences?.appearance?.identity?.syncWithDashboard !== false
+    ) {
       dashboardState.identity.name = trimmed;
     }
   }
@@ -1036,7 +1039,7 @@ async function finalizeActiveDashboardChange() {
   }
 
   // Apply sync logic ONLY when enabled
-  if (userPreferences.appearance.identity.syncWithDashboard) {
+  if (userPreferences?.appearance?.identity?.syncWithDashboard !== false) {
     dashboardState.identity.name = dashboardState.name;
     await DashboardService.save(dashboardState);
   }

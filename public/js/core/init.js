@@ -424,6 +424,8 @@ async function initApp() {
   wireSyncIdentityBehavior();
 
   ensureIdentityDefaults();
+  syncBehaviorUI();
+
   applyIdentityToUI();
 
   syncIdentityInputState();

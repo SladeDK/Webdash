@@ -178,6 +178,7 @@ async function openPreferences(panelNameOrEvent = null) {
   renderBehaviorToggles('behavior');
   renderBehaviorToggles('advanced');
   wireSyncAppearanceBehavior();
+  wireSyncIdentityBehavior();
 }
 
 // ---------- Close modal ----------
