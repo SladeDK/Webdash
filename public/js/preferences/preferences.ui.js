@@ -136,12 +136,12 @@ async function openPreferences(panelNameOrEvent = null) {
   if (resetSystemBtn && !resetSystemBtn._wired) {
     resetSystemBtn.addEventListener('click', () => {
       openConfirm({
-        title: 'Reset system',
+        title: 'Reset Current User',
         message:
           'This will delete ALL dashboards and ALL preferences and restore WebDash to its original default state.\n\n' +
           'This includes layouts, buttons, categories, identities, themes, and settings.\n\n' +
           'This action cannot be undone.',
-        confirmLabel: 'Reset system',
+        confirmLabel: 'Reset Current User',
         onConfirm: async () => {
           await resetSystem();
           closePreferences();
@@ -867,7 +867,7 @@ const safeResetDashboard = guardAsync(async () => {
 if (resetDashboardBtn) {
   resetDashboardBtn.addEventListener('click', () => {
     openConfirm({
-      title: 'Reset dashboard',
+      title: 'Reset Active dashboard',
       message:
         `This will reset the dashboard "${dashboardState?.name ?? 'Dashboard'}" back to the default dashboard layout.\n\nAll categories, buttons, and the dashboard identity will be restored to their original defaults.\n\nThis action cannot be undone.`,
       confirmLabel: 'Reset',

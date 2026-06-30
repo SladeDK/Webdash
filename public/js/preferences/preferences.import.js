@@ -123,9 +123,8 @@ async function exportSystem() {
       const dashboardMeta = availableDashboards.find(d => d.id === state.id);
 
       const name =
-        state.identity?.name ??
-        dashboardMeta?.name ??
-        state.name ??
+        state.name ||
+        dashboardMeta?.name ||
         'Unnamed';
 
       const categories = (state.categories ?? []).map(cat => ({
@@ -143,7 +142,7 @@ async function exportSystem() {
         order: state.order ?? 0,
 
         identity: {
-          name,
+          name: state.identity?.name ?? state.name ?? 'Unnamed',
           icon: state.identity?.icon ?? null
         },
 
@@ -515,7 +514,6 @@ function renderImportPreview(plan) {
 
 function normalizeImportedDashboard(d) {
   const name =
-    d.identity?.name ??
     d.name ??
     'Unnamed';
 
@@ -532,7 +530,7 @@ function normalizeImportedDashboard(d) {
     name,
 
     identity: {
-      name,
+      name: d.identity?.name ?? d.name ?? 'Unnamed',
       icon: d.identity?.icon ?? null
     },
 

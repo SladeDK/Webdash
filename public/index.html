@@ -473,7 +473,7 @@
 
             <div class="panel" id="panel-data">
               <h3>Data Management</h3>
-              <p>Here you can reset single dashboard or the entire system, and export or import system backups.</p>
+              <p>Here you can reset the current user's active dashboard or all of the current user's data, and export or import system backups.</p>
 
               <fieldset class="setting-group">
                 <legend>Import / Export:</legend>
@@ -489,7 +489,7 @@
                       class="secondary-btn"
                       id="export-dashboard-btn"
                     >
-                      Export system backup
+                      Export User Backup
                     </button>
 
                     <button
@@ -497,7 +497,7 @@
                       class="secondary-btn"
                       id="import-dashboard-btn"
                     >
-                      Import system backup
+                      Import User Backup
                     </button>
 
                     <input
@@ -510,10 +510,10 @@
                 </div>
               </fieldset>
               <fieldset class="setting-group">
-                <legend>Reset Dashboard:</legend>
+                <legend>Reset Active Dashboard:</legend>
 
                 <p class="setting-description">
-                  Restore the dashboard to the default state, and will remove all custom settings and layout changes.
+                  Restore the active dashboard to the default state, and will remove all custom settings and layout changes.
                 </p>
 
                 <div class="setting-actions">
@@ -523,15 +523,15 @@
                     id="reset-dashboard-btn"
                   >
                     <i class="fa-solid fa-triangle-exclamation"></i>
-                    Reset dashboard
+                    Reset Active Dashboard
                   </button>
                 </div>
               </fieldset>
               <fieldset class="setting-group">
-                <legend>Reset System:</legend>
+                <legend>Reset User:</legend>
 
                 <p class="setting-description">
-                  This will reset the entire system to the default state, and will remove all custom dashboards and settings.
+                  This will reset the all of the current user's data to the default state, and will remove all custom dashboards and settings.
                 </p>
 
                 <div class="setting-actions">
@@ -541,7 +541,7 @@
                     id="reset-system-btn"
                   >
                     <i class="fa-solid fa-triangle-exclamation"></i>
-                    Reset System
+                    Reset Current User
                   </button>
                 </div>
               </fieldset>
