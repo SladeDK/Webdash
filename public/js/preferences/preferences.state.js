@@ -34,7 +34,7 @@ const DEFAULT_BEHAVIOR = {
   enableAnimations: true,
   storeRecentsAcrossReloads: true,
   debugMode: false,
-  betaUI: false,
+  classicUI: false,
   showFavicons: true,
 };
 

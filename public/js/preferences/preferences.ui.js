@@ -77,7 +77,7 @@ const autoCloseCheckbox = document.getElementById('pref-dropdown-autoclose');
 const enableAnimationsCheckbox = document.getElementById('pref-enable-animations');
 const storeRecentsCheckbox = document.getElementById('pref-store-recents');
 const debugModeCheckbox = document.getElementById('pref-debug-mode');
-const betaUICheckbox = document.getElementById('beta-ui-toggle');
+const classicUICheckbox = document.getElementById('classic-ui-toggle');
 
 // ======================================================================
 // UI Utilities
@@ -380,17 +380,17 @@ function applyDebugMode() {
   );
 }
 
-function applyBetaUI() {
+function applyClassicUI() {
   const enabled =
-    userPreferences?.behavior?.betaUI === true;
+    userPreferences?.behavior?.classicUI === true;
 
-  const betaStyle = document.getElementById('beta-style');
+  const classicStyle = document.getElementById('classic-style');
   const mainStyle = document.getElementById('main-style');
 
-  if (!betaStyle || !mainStyle) return;
+  if (!classicStyle || !mainStyle) return;
 
   // Toggle stylesheets
-  betaStyle.disabled = !enabled;
+  classicStyle.disabled = !enabled;
   mainStyle.disabled = enabled;
 }
 

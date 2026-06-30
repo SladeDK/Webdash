@@ -1,4 +1,4 @@
-# WebDash v0.24.0
+# WebDash v0.25.0
 
 A self-hosted, configurable dashboard for organizing services, links, and systems in one place.  
 
@@ -19,7 +19,6 @@ The system is built around a modular preferences and layout architecture, allowi
 - Data-driven toggle system for configurable features
 - Import and export of full system backups
 - Identity system (custom name and icon per dashboard)
-- Optional Beta UI (next-generation design system)
 - Fully self-hosted (no cloud dependencies)
 - Lightweight and framework-free
 

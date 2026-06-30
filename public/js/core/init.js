@@ -433,7 +433,7 @@ async function initApp() {
   applyDashboardAppearance();
   applyAnimationPreference();
   applyDebugMode();
-  applyBetaUI();
+  applyClassicUI();
 
   // Toasts (independent)
   if (themeInvalid) {

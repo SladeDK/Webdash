@@ -251,22 +251,22 @@ window.TOGGLE_DEFINITIONS = [
   },
 
   {
-    key: 'betaUI',
-    label: 'Use Beta UI',
-    panel: 'advanced',
+    key: 'classicUI',
+    label: 'Use Classic UI',
+    panel: 'behavior',
 
-    group: 'Experimental',
+    group: 'Accessibility',
     order: 2,
 
     get: () =>
-      userPreferences?.behavior?.betaUI === true,
+      userPreferences?.behavior?.classicUI === true,
 
     set: async (value) => {
-      userPreferences.behavior.betaUI = value;
+      userPreferences.behavior.classicUI = value;
 
       await PreferencesService.save(userPreferences);
 
-      applyBetaUI();
+      applyClassicUI();
     }
   },
   {
