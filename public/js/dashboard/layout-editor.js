@@ -215,40 +215,39 @@ function renderQuickAccess(container) {
 }
 
 function createFavicon(item, container) {
-  
+
   // Respect display favicon toggle
   if (userPreferences?.behavior?.showFavicons === false) return;
 
-  const faviconUrl = getFaviconUrl(item.url);
-  if (!faviconUrl) return;
+  const candidates = getFaviconCandidates(item.url);
+
+  if (!candidates.length) return;
 
   const img = new Image();
   img.width = 16;
   img.height = 16;
+  img.className = 'item-favicon';
+
+  let currentIndex = 0;
 
   img.onload = () => {
-    // DETECT INVALID / FALLBACK ICONS
-
-    // Many fallback icons are low-detail or weird aspect
-    // Detect "generic globe" or fallback icons
-    if (
-      img.naturalWidth < 24 &&
-      img.naturalHeight < 24 &&
-      faviconUrl.includes('google.com')
-    ) {
-      console.warn(`Ignored low-quality favicon for "${item.label}" (${item.url})`);
-      return;
-    }
-
-    img.className = 'item-favicon';
     container.prepend(img);
   };
 
   img.onerror = () => {
-    console.warn(`Couldn't fetch favicon for "${item.label}" (${item.url})`);
+    currentIndex++;
+
+    if (currentIndex >= candidates.length) {
+      console.warn(
+        `Couldn't fetch favicon for "${item.label}" (${item.url})`
+      );
+      return;
+    }
+
+    img.src = candidates[currentIndex];
   };
 
-  img.src = faviconUrl;
+  img.src = candidates[0];
 }
 
 function createQARow(icon, items) {
@@ -270,11 +269,7 @@ function createQARow(icon, items) {
     const content = document.createElement('span');
     content.className = 'button-content';
 
-    const faviconUrl = getFaviconUrl(item.url);
-
-    if (faviconUrl) {
-      createFavicon(item, content);
-    }
+    createFavicon(item, content);
 
     const label = document.createElement('span');
     label.textContent = item.label;
@@ -368,11 +363,7 @@ function renderCategories(categories) {
         content.className = 'button-content';
 
         // Favicon
-        const faviconUrl = getFaviconUrl(item.url);
-
-        if (faviconUrl) {
-          createFavicon(item, content);
-        }
+        createFavicon(item, content);
 
         // Label
         const label = document.createElement('span');

@@ -1,4 +1,4 @@
-# WebDash v0.25.2
+# WebDash v0.25.3
 
 A self-hosted, configurable dashboard for organizing services, links, and systems in one place.  
 

@@ -7,15 +7,18 @@ function generateId(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2)}-${Date.now()}`;
 }
 
-function getFaviconUrl(url) {
+function getFaviconCandidates(url) {
   try {
     const u = new URL(url);
 
-    return `
-      https://icons.duckduckgo.com/ip3/${u.hostname}.ico
-    `.trim();
+    return [
+      `${u.origin}/favicon.ico`,
+      `${u.origin}/favicon.png`,
+      `${u.origin}/apple-touch-icon.png`,
+      `https://icons.duckduckgo.com/ip3/${u.hostname}.ico`
+    ];
 
   } catch {
-    return null;
+    return [];
   }
 }
