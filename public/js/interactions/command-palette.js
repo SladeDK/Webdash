@@ -121,7 +121,7 @@ function getToggleCommands() {
     return {
       id: `toggle-${toggle.key}`,
       label: toggle.label,
-      category: `Toggle • ${toggle.category}`,
+      category: `Toggle • ${toggle.group ?? 'Other'}`,
       active: value,
 
       run: () => {
@@ -236,6 +236,14 @@ function getCommands() {
 
 	const baseCommands = [
 		{
+			id: 'export-backup',
+			label: 'Export User Backup',
+			category: 'Actions',
+			run: async () => {
+				await safeExportSystem();
+			}
+		},
+		{
 			id: 'reset-dashboard',
 			label: 'Reset Current Dashboard',
 			category: 'Danger',
@@ -292,9 +300,22 @@ async function openCommandPalette() {
 
   selectedIndex = 0;
 
-  // Only load once per session
+  // Refresh on every open so results reflect recent edits.
+  // Show the palette immediately with the previous data (if any),
+  // then re-render once fresh data arrives.
+  const refresh = loadAllDashboardStates().then(states => {
+    allDashboardStates = states;
+  });
+
   if (!allDashboardStates.length) {
-    allDashboardStates = await loadAllDashboardStates();
+    await refresh;
+  } else {
+    refresh.then(() => {
+      const inputEl = document.getElementById('command-input');
+      if (!palette.hidden) {
+        renderCommandResults(inputEl?.value ?? '');
+      }
+    });
   }
 
   palette.hidden = false;
@@ -354,7 +375,7 @@ function fuzzyMatch(query, text) {
 }
 
 function highlightMatch(text, query) {
-  if (!query) return text;
+  if (!query) return escapeHtml(text);
 
   const lowerText = text.toLowerCase();
   const lowerQuery = query.toLowerCase();
@@ -364,10 +385,10 @@ function highlightMatch(text, query) {
 
   for (let i = 0; i < text.length; i++) {
     if (lowerText[i] === lowerQuery[qIndex]) {
-      result += `<span class="match">${text[i]}</span>`;
+      result += `<span class="match">${escapeHtml(text[i])}</span>`;
       qIndex++;
     } else {
-      result += text[i];
+      result += escapeHtml(text[i]);
     }
   }
 
@@ -492,7 +513,7 @@ function renderCommandResults(query = '', resetSelection = false) {
       <span class="${cmd.active ? 'active' : ''}">
         ${displayLabel}
       </span>
-      <span class="meta">${metaText}</span>
+      <span class="meta">${escapeHtml(metaText)}</span>
     `;
 
     if (index === selectedIndex) {

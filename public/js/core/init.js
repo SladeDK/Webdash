@@ -436,6 +436,10 @@ async function initApp() {
   applyAnimationPreference();
   applyDebugMode();
   applyClassicUI();
+  applyCompactMode();
+  applyClockWidget();
+  applyAccentColor();
+  applyCustomBackgroundImage();
 
   // Toasts (independent)
   if (themeInvalid) {
@@ -568,6 +572,7 @@ function applyDashboardAppearance() {
     if (isValidBackground(userPreferences.appearance.background)) {
       setActiveBackground(userPreferences.appearance.background);
     }
+    applyCustomBackgroundImage();
     return;
   }
 
@@ -581,6 +586,8 @@ function applyDashboardAppearance() {
   setActiveBackground(
     appearance?.background ?? userPreferences.appearance.background
   );
+
+  applyCustomBackgroundImage();
 }
 
 // =====================================================

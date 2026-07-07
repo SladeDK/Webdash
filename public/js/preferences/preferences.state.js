@@ -36,6 +36,10 @@ const DEFAULT_BEHAVIOR = {
   debugMode: false,
   classicUI: false,
   showFavicons: true,
+  showButtonDescriptions: true,
+  compactMode: false,
+  showClock: true,
+  allowCollapseCategories: true,
 };
 
 // ======================================================================
@@ -294,6 +298,81 @@ function changeBackground(bg) {
   updateBackgroundSelectionUI(bg);
 }
 
+// ======================================================================
+// CUSTOM BACKGROUND IMAGES
+// ======================================================================
+//
+// User-uploaded wallpapers (data URLs) shown via the `bg-custom`
+// background. The image LIBRARY is stored once in userPreferences —
+// never copied into dashboards, which only reference an image by id.
+// The selected id follows the usual appearance sync rules: from
+// userPreferences when synced, otherwise from the active dashboard.
+
+const MAX_CUSTOM_BACKGROUNDS = 6;
+
+function getCustomBackgroundLibrary() {
+  if (!userPreferences?.appearance) return [];
+
+  const appearance = userPreferences.appearance;
+
+  // Migrate the legacy single-image format into the library
+  if (typeof appearance.customBackground === 'string') {
+    const entry = {
+      id: generateId('bg'),
+      image: appearance.customBackground
+    };
+    appearance.customBackgrounds = [entry];
+    appearance.customBackgroundId = entry.id;
+    delete appearance.customBackground;
+  }
+
+  if (!Array.isArray(appearance.customBackgrounds)) {
+    appearance.customBackgrounds = [];
+  }
+
+  return appearance.customBackgrounds;
+}
+
+function getActiveCustomBackgroundId() {
+  const syncOn =
+    userPreferences?.behavior?.syncDashboardAppearance !== false;
+
+  if (syncOn) {
+    return userPreferences?.appearance?.customBackgroundId ?? null;
+  }
+
+  return (
+    dashboardState?.appearance?.customBackgroundId ??
+    userPreferences?.appearance?.customBackgroundId ??
+    null
+  );
+}
+
+function getActiveCustomBackground() {
+  const library = getCustomBackgroundLibrary();
+  if (!library.length) return null;
+
+  const id = getActiveCustomBackgroundId();
+
+  // Fall back to the first image when the referenced one is gone
+  const entry = library.find(b => b.id === id) ?? library[0];
+
+  return entry?.image ?? null;
+}
+
+// Sets the CSS variable the `bg-custom` layer reads. Harmless when the
+// bg-custom class isn't active, so it's safe to call on every apply.
+function applyCustomBackgroundImage() {
+  const root = document.documentElement;
+  const img = getActiveCustomBackground();
+
+  if (img && typeof img === 'string' && img.startsWith('data:')) {
+    root.style.setProperty('--custom-bg-image', `url("${img}")`);
+  } else {
+    root.style.removeProperty('--custom-bg-image');
+  }
+}
+
 
 function syncThemeRadios() {
   const isSyncOn =
@@ -353,6 +432,11 @@ function ensureBehaviorDefaults() {
       behavior[key] = structuredClone(DEFAULT_BEHAVIOR[key]);
     }
   }
+
+  // Keep the runtime dropdown flag in sync with the stored preference
+  // (previously only updated when the toggle was flipped, so a disabled
+  // setting silently reverted to auto-close after a reload)
+  autoCloseDropdowns = behavior.autoCloseDropdowns !== false;
 }
 
 async function toggleFavorite(itemId) {

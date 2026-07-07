@@ -1,4 +1,4 @@
-# WebDash v0.25.3
+# WebDash v0.27.0
 
 A self-hosted, configurable dashboard for organizing services, links, and systems in one place.  
 
@@ -110,10 +110,11 @@ cp .env.example .env
 
 ### Available Variables
 
-| Variable   | Description                     | Default      |
-|------------|--------------------------------|--------------|
-| `PORT`     | HTTP server port               | `3000`       |
-| `DATA_PATH`| Directory for persisted data   | `./data`     |
+| Variable      | Description                              | Default  |
+|---------------|------------------------------------------|----------|
+| `PORT`        | HTTP server port                         | `3000`   |
+| `DATA_PATH`   | Directory for persisted data             | `./data` |
+| `BACKUP_KEEP` | Rolling backups kept per user (0 = off)  | `10`     |
 
 ---
 
@@ -148,6 +149,54 @@ Designed for simplicity while maintaining a structured and scalable architecture
 - WebDash does **not include authentication** by default  
 - Intended for **trusted or private networks**
 - If exposed to the internet, use a **reverse proxy with authentication**
+- User names are sanitized server-side and all user-provided text is escaped before rendering
+- Data files are written atomically, so a crash mid-save cannot corrupt existing data
+
+---
+
+## What's New in 0.27.0
+
+**Data safety**
+- **Rolling backups**: the server snapshots your data before every change (last 10 kept, configurable via `BACKUP_KEEP`). Restore any snapshot from Data Management — and because restoring itself takes a backup first, it's always reversible.
+- **Undo** on button and category deletion, straight from the toast.
+
+**Productivity**
+- **Duplicate** any button, category, or dashboard with one click.
+- **Collapsible categories** (toggle) — fold sections on large dashboards; state is remembered per dashboard.
+- **Drag buttons between categories**, not just within them.
+- **Per-dashboard export/import** — share or move a single dashboard; imports are auto-detected and added as new.
+- **Smarter search** — fuzzy matching (`plx` → Plex), matches URLs, and Enter opens the top hit.
+
+**Personalization**
+- **Clock & greeting** widget (toggle).
+- **Compact mode** (toggle) for a denser layout.
+- **Custom accent color** — recolor the whole UI, with reset.
+- **Custom background image** — upload your own wallpaper.
+- **Button descriptions** (toggle) — optional subtitles on buttons.
+
+---
+
+## What's New in 0.26.0
+
+**Security & reliability**
+- Fixed a path traversal issue in the user rename/delete API
+- All user-provided text (names, labels, import files) is now HTML-escaped before rendering
+- Atomic data file writes; failed saves now return an error instead of silently succeeding
+- Malformed JSON and oversized payloads return proper error responses
+- Added `/api/health` endpoint plus Docker healthchecks
+- Graceful shutdown on SIGINT/SIGTERM (clean Docker stops)
+
+**Fixes**
+- Button URLs now accept IP addresses, `localhost`, ports, and intranet hostnames (e.g. `192.168.1.10:8080`, `nas:5000`)
+- "Automatically close dropdowns" preference is now applied after a reload
+- Command palette no longer shows stale buttons after editing dashboards
+- Command palette toggle entries show their correct group name
+
+**Improvements**
+- Press `/` to focus the service search; Escape clears it
+- Search now also matches button URLs and shows a "no results" state
+- Buttons show their URL as a tooltip
+- Command palette: added "Export User Backup" command
 
 ---
 
@@ -187,7 +236,7 @@ Bug reports and feature suggestions are welcome via GitHub Issues.
 
 ---
 
-## I Disclosure
+## AI Disclosure
 
 AI was used in the development of parts of this project.
 

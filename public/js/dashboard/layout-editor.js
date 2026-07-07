@@ -15,6 +15,53 @@ const SCROLL_ZONE  = 60;  // px from edge that triggers scrolling
 const SCROLL_SPEED = 10;  // px per frame at full speed
 
 // =====================================================
+// Category collapse state (per-dashboard, view-only)
+// =====================================================
+//
+// Collapsed categories are a VIEW preference, not content — so they're
+// kept in localStorage keyed by dashboard id rather than written into
+// the dashboard data. This avoids a server round-trip (and a backup
+// snapshot) every time a category is folded, and keeps exports clean.
+
+function collapsedStorageKey() {
+  return `webdash-collapsed-${activeDashboardId ?? 'default'}`;
+}
+
+function getCollapsedCategorySet() {
+  try {
+    const raw = localStorage.getItem(collapsedStorageKey());
+    const ids = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(ids) ? ids : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveCollapsedCategorySet(set) {
+  try {
+    localStorage.setItem(
+      collapsedStorageKey(),
+      JSON.stringify([...set])
+    );
+  } catch (e) {
+    console.warn('[WebDash] Failed to persist collapsed categories:', e);
+  }
+}
+
+function toggleCategoryCollapse(categoryId) {
+  const set = getCollapsedCategorySet();
+
+  if (set.has(categoryId)) {
+    set.delete(categoryId);
+  } else {
+    set.add(categoryId);
+  }
+
+  saveCollapsedCategorySet(set);
+  renderCategories(pageCategories);
+}
+
+// =====================================================
 // Reorder helpers / mutation helpers
 // =====================================================
 
@@ -65,6 +112,44 @@ async function reorderItemsAdvanced(categoryId, sourceItemId, targetItemId, inse
   });
 
   await commitDashboardChange('reorderItems');
+}
+
+// Move an item from one category to another. When targetItemId is null
+// (dropped on an empty category or below the last item) the item is
+// appended to the end of the target category.
+async function moveItemAcrossCategories(
+  sourceCategoryId,
+  itemId,
+  targetCategoryId,
+  targetItemId,
+  insertBefore
+) {
+  if (sourceCategoryId === targetCategoryId) return;
+
+  const source = pageCategories.find(c => c.id === sourceCategoryId);
+  const target = pageCategories.find(c => c.id === targetCategoryId);
+  if (!source || !target) return;
+
+  const sourceIndex = source.items.findIndex(i => i.id === itemId);
+  if (sourceIndex === -1) return;
+
+  const [moved] = source.items.splice(sourceIndex, 1);
+
+  let insertIndex = target.items.length;
+
+  if (targetItemId) {
+    const targetIndex = target.items.findIndex(i => i.id === targetItemId);
+    if (targetIndex !== -1) {
+      insertIndex = insertBefore ? targetIndex : targetIndex + 1;
+    }
+  }
+
+  target.items.splice(insertIndex, 0, moved);
+
+  normalizeItemOrder(source.items);
+  normalizeItemOrder(target.items);
+
+  await commitDashboardChange('moveItemAcrossCategories');
 }
 
 async function reorderCategoriesAdvanced(sourceId, targetId, insertBefore) {
@@ -265,6 +350,7 @@ function createQARow(icon, items) {
     const link = document.createElement('a');
     link.href = item.url;
     link.className = 'qa-button';
+    link.title = item.url;
 
     const content = document.createElement('span');
     content.className = 'button-content';
@@ -330,6 +416,10 @@ function renderCategories(categories) {
 
   renderQuickAccess(container);
 
+  const allowCollapse =
+    userPreferences?.behavior?.allowCollapseCategories !== false;
+  const collapsedSet = getCollapsedCategorySet();
+
   categories
     .filter(category => category.visible !== false)
     .sort((a, b) => a.order - b.order)
@@ -338,8 +428,15 @@ function renderCategories(categories) {
       categoryEl.className = 'category';
       categoryEl.dataset.categoryId = category.id;
 
+      const isCollapsed = allowCollapse && collapsedSet.has(category.id);
+      if (isCollapsed) categoryEl.classList.add('is-collapsed');
+      if (allowCollapse) categoryEl.classList.add('is-collapsible');
+
       categoryEl.innerHTML = `
-        <h2 class="category-title">${category.title}</h2>
+        <h2 class="category-title">
+          ${allowCollapse ? '<i class="fa-solid fa-chevron-down category-chevron"></i>' : ''}
+          <span class="category-title-text">${escapeHtml(category.title)}</span>
+        </h2>
         <div class="buttons"></div>
       `;
 
@@ -351,12 +448,33 @@ function renderCategories(categories) {
         categoryEl.querySelector('.category-title').appendChild(debug);
       }
 
+      if (allowCollapse) {
+        const titleEl = categoryEl.querySelector('.category-title');
+        titleEl.setAttribute('role', 'button');
+        titleEl.setAttribute('tabindex', '0');
+        titleEl.setAttribute(
+          'aria-expanded',
+          isCollapsed ? 'false' : 'true'
+        );
+
+        const toggle = () => toggleCategoryCollapse(category.id);
+
+        titleEl.addEventListener('click', toggle);
+        titleEl.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggle();
+          }
+        });
+      }
+
       const buttonsEl = categoryEl.querySelector('.buttons');
 
       category.items.forEach(item => {
         const link = document.createElement('a');
         link.href = item.url;
         link.className = 'dashboard-button';
+        link.title = item.url;
 
         // Create wrapper (for flex layout)
         const content = document.createElement('span');
@@ -365,11 +483,26 @@ function renderCategories(categories) {
         // Favicon
         createFavicon(item, content);
 
-        // Label
-        const label = document.createElement('span');
-        label.textContent = item.label;
+        // Text column (label + optional description)
+        const textWrap = document.createElement('span');
+        textWrap.className = 'button-text';
 
-        content.appendChild(label);
+        const label = document.createElement('span');
+        label.className = 'button-label-text';
+        label.textContent = item.label;
+        textWrap.appendChild(label);
+
+        const showDescriptions =
+          userPreferences?.behavior?.showButtonDescriptions !== false;
+
+        if (showDescriptions && item.description) {
+          const desc = document.createElement('span');
+          desc.className = 'button-description';
+          desc.textContent = item.description;
+          textWrap.appendChild(desc);
+        }
+
+        content.appendChild(textWrap);
 
         // Append everything
         link.appendChild(content);
@@ -480,6 +613,15 @@ function buildLayoutEditorDOM(container, categories) {
 
             <button
               type="button"
+              class="icon-button duplicate-category-btn"
+              title="Duplicate category"
+              data-category-id="${category.id}"
+            >
+              <i class="fa-solid fa-copy"></i>
+            </button>
+
+            <button
+              type="button"
               class="icon-button delete-category-btn"
               title="Delete category"
               data-category-id="${category.id}"
@@ -500,11 +642,11 @@ function buildLayoutEditorDOM(container, categories) {
                     class="rename-input rename-item-input"
                     type="text"
                     data-item-id="${item.id}"
-                    value="${item.label}"
+                    value="${escapeHtml(item.label)}"
                   />
                 `
                 : `
-                  <span class="item-label">${item.label}</span>
+                  <span class="item-label" title="${escapeHtml(item.url)}">${escapeHtml(item.label)}</span>
                 `
               }
 
@@ -521,6 +663,9 @@ function buildLayoutEditorDOM(container, categories) {
                 </button>
                 <button type="button" class="icon-button rename-item-btn" data-item-id="${item.id}">
                   <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button type="button" class="icon-button duplicate-item-btn" data-item-id="${item.id}" title="Duplicate button">
+                  <i class="fa-solid fa-copy"></i>
                 </button>
                 <button type="button" class="icon-button delete-item-btn" data-item-id="${item.id}">
                   <i class="fa-solid fa-xmark"></i>
@@ -655,11 +800,25 @@ function wireLayoutEditorActions(container) {
     };
   });
 
+  // Wire duplicate category buttons
+  container.querySelectorAll('.duplicate-category-btn').forEach(button => {
+    button.onclick = () => {
+      duplicateCategory(button.dataset.categoryId);
+    };
+  });
+
   // Wire delete category buttons
   container.querySelectorAll('.delete-category-btn').forEach(button => {
     button.onclick = () => {
       const categoryId = button.dataset.categoryId;
       deleteCategory(categoryId);
+    };
+  });
+
+  // Wire duplicate item buttons
+  container.querySelectorAll('.duplicate-item-btn').forEach(button => {
+    button.onclick = () => {
+      duplicateButton(button.dataset.itemId);
     };
   });
 
@@ -1038,15 +1197,24 @@ function setupItemDragAndDrop(container) {
 
         // Remove drag state
         document.body.classList.remove('drag-active');
+
+        // Clear any lingering cross-category drop highlight
+        container.querySelectorAll('.drop-target-category').forEach(el => {
+          el.classList.remove('drop-target-category');
+        });
       });
     });
 
-    // Visual feedback only
+    // Visual feedback — works within AND across categories.
     itemsContainer.addEventListener('dragover', e => {
       if (!draggedItemContext) return;
-      if (draggedItemContext.categoryId !== categoryId) return;
 
       e.preventDefault();
+
+      const crossCategory = draggedItemContext.categoryId !== categoryId;
+
+      // Highlight the whole target category when moving in from elsewhere
+      categoryEl.classList.toggle('drop-target-category', crossCategory);
 
       const targetItem = e.target.closest('.layout-item');
 
@@ -1071,35 +1239,59 @@ function setupItemDragAndDrop(container) {
       }
     });
 
-    // Single source of truth — SAME CATEGORY ONLY
+    itemsContainer.addEventListener('dragleave', e => {
+      // Clear category highlight only when the pointer truly leaves it
+      if (!categoryEl.contains(e.relatedTarget)) {
+        categoryEl.classList.remove('drop-target-category');
+      }
+    });
+
     itemsContainer.addEventListener('drop', e => {
       e.preventDefault();
       if (!draggedItemContext) return;
-      if (draggedItemContext.categoryId !== categoryId) return;
+
+      categoryEl.classList.remove('drop-target-category');
 
       const targetItem = e.target.closest('.layout-item');
-      if (!targetItem) return;
-
-      const targetItemId = targetItem.dataset.itemId;
-      if (!targetItemId || targetItemId === draggedItemContext.itemId) return;
 
       itemsContainer
-        .querySelectorAll('.layout-item.drag-over')
-        .forEach(el => el.classList.remove('drag-over'));
+        .querySelectorAll('.layout-item.drag-over, .layout-item.drag-over-top, .layout-item.drag-over-bottom')
+        .forEach(el => el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom'));
 
-      const insertBefore = targetItem.classList.contains('drag-over-top');
+      const sameCategory = draggedItemContext.categoryId === categoryId;
 
-      reorderItemsAdvanced(
-        categoryId,
-        draggedItemContext.itemId,
-        targetItemId,
-        insertBefore
-      );
-      const el = itemsContainer.querySelector(`[data-item-id="${targetItemId}"]`);
-      if (el) {
-        setTimeout(() => {
-          el.style.transform = '';
-        }, 120);
+      if (sameCategory) {
+        if (!targetItem) return;
+
+        const targetItemId = targetItem.dataset.itemId;
+        if (!targetItemId || targetItemId === draggedItemContext.itemId) return;
+
+        const insertBefore = targetItem.classList.contains('drag-over-top');
+
+        reorderItemsAdvanced(
+          categoryId,
+          draggedItemContext.itemId,
+          targetItemId,
+          insertBefore
+        );
+      } else {
+        // Cross-category move. A missing targetItem (empty category or
+        // drop below the last item) appends to the end.
+        let targetItemId = null;
+        let insertBefore = false;
+
+        if (targetItem) {
+          targetItemId = targetItem.dataset.itemId;
+          insertBefore = targetItem.classList.contains('drag-over-top');
+        }
+
+        moveItemAcrossCategories(
+          draggedItemContext.categoryId,
+          draggedItemContext.itemId,
+          categoryId,
+          targetItemId,
+          insertBefore
+        );
       }
     });
   });

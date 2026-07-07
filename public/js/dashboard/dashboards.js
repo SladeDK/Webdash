@@ -293,6 +293,77 @@ async function createAndSwitchDashboard({ id, name }) {
   renderDashboardManagementPanel();
 }
 
+async function duplicateDashboard(sourceId) {
+  // Load the authoritative state of the dashboard being copied
+  let sourceState = await DashboardService.loadDashboardById(sourceId);
+
+  if (!sourceState) {
+    showToast({
+      title: 'Duplicate failed',
+      lines: ['The dashboard could not be loaded.'],
+      type: 'error',
+      duration: 5000
+    });
+    return;
+  }
+
+  const id = generateId('dashboard');
+  const sourceName =
+    sourceState.name ??
+    availableDashboards.find(d => d.id === sourceId)?.name ??
+    'Dashboard';
+  const name = `${sourceName} (copy)`;
+
+  // Deep clone with fresh IDs so nothing collides with the original
+  const categories = (sourceState.categories ?? []).map(cat => ({
+    ...structuredClone(cat),
+    id: generateId('category'),
+    items: (cat.items ?? []).map(item => ({
+      ...structuredClone(item),
+      id: generateId('item')
+    }))
+  }));
+
+  const template = {
+    id,
+    name,
+    identity: {
+      name,
+      icon: sourceState.identity?.icon ?? '/assets/webdash-logo.png'
+    },
+    appearance: sourceState.appearance
+      ? structuredClone(sourceState.appearance)
+      : undefined,
+    categories
+  };
+
+  await DashboardService.createDashboard({ id, name });
+  await DashboardService.save(template);
+
+  // Hydrate local state and switch to the copy (same flow as create)
+  dashboardState = structuredClone(template);
+  pageCategories = dashboardState.categories;
+
+  addAvailableDashboard({ id, name }, 'duplicateDashboard');
+  setActiveDashboardId(id, 'duplicateDashboard');
+
+  const normalized = normalizeDashboardOrderList(availableDashboards);
+  replaceAvailableDashboards(normalized, 'duplicateDashboard');
+  queueDashboardReorderSave();
+
+  await commitPrehydratedDashboard(id, 'duplicateDashboard');
+
+  syncDashboardUI();
+  renderDashboardManagementPanel();
+
+  showToast({
+    title: 'Dashboard duplicated',
+    lines: [`Created "${name}".`],
+    type: 'success',
+    duration: 5000
+  });
+}
+
 async function deleteDashboard(dashboardId, autoSwitch = true) {
   const dashboard = availableDashboards.find(d => d.id === dashboardId);
   const dashboardName = dashboard?.name ?? 'Dashboard';
@@ -780,6 +851,27 @@ function renderDashboardManagementPanel() {
       renderDashboardManagementPanel();
     };
 
+    const duplicateBtn = document.createElement('button');
+    duplicateBtn.type = 'button';
+    duplicateBtn.className = 'icon-button';
+    duplicateBtn.title = 'Duplicate dashboard';
+    duplicateBtn.innerHTML = '<i class="fa-solid fa-copy"></i>';
+
+    duplicateBtn.onclick = async () => {
+      clearDashboardValidationError();
+      await duplicateDashboard(id);
+    };
+
+    const exportBtn = document.createElement('button');
+    exportBtn.type = 'button';
+    exportBtn.className = 'icon-button';
+    exportBtn.title = 'Export dashboard';
+    exportBtn.innerHTML = '<i class="fa-solid fa-file-export"></i>';
+
+    exportBtn.onclick = () => {
+      exportDashboard(id);
+    };
+
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
     deleteBtn.className = 'icon-button';
@@ -799,7 +891,7 @@ function renderDashboardManagementPanel() {
       });
     };
 
-    actions.append(renameBtn, deleteBtn);
+    actions.append(renameBtn, duplicateBtn, exportBtn, deleteBtn);
     header.append(title, actions);
     row.appendChild(header);
     container.appendChild(row);

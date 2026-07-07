@@ -46,15 +46,38 @@ async function deleteButton(itemId) {
     if (index === -1) continue;
 
     const item = category.items[index];
+    const categoryId = category.id;
 
     const performDelete = async () => {
       const latestIndex = category.items.findIndex(i => i.id === itemId);
       if (latestIndex === -1) return;
 
+      // Snapshot for undo (position + deep copy of the item)
+      const removedIndex = latestIndex;
+      const removedItem = structuredClone(category.items[latestIndex]);
+
       category.items.splice(latestIndex, 1);
       normalizeItemOrder(category.items);
 
       await commitDashboardChange('deleteItem');
+
+      showToast({
+        title: 'Button deleted',
+        lines: [`"${removedItem.label}" was removed.`],
+        type: 'success',
+        duration: 6000,
+        actionLabel: 'Undo',
+        onAction: async () => {
+          const target = pageCategories.find(c => c.id === categoryId);
+          if (!target) return;
+
+          const at = Math.min(removedIndex, target.items.length);
+          target.items.splice(at, 0, removedItem);
+          normalizeItemOrder(target.items);
+
+          await commitDashboardChange('undoDeleteItem');
+        }
+      });
     };
 
     if (userPreferences.behavior.confirmDeleteButtons) {
@@ -72,6 +95,31 @@ async function deleteButton(itemId) {
 }
 
 // =====================================
+// Duplicate button (clone with new ID)
+// =====================================
+
+async function duplicateButton(itemId) {
+  for (const category of pageCategories) {
+    const index = category.items.findIndex(i => i.id === itemId);
+    if (index === -1) continue;
+
+    const source = category.items[index];
+    const clone = {
+      ...structuredClone(source),
+      id: generateId('item'),
+      label: `${source.label} (copy)`
+    };
+
+    // Insert right after the original
+    category.items.splice(index + 1, 0, clone);
+    normalizeItemOrder(category.items);
+
+    await commitDashboardChange('duplicateItem');
+    return;
+  }
+}
+
+// =====================================
 // Open Button Editor
 // =====================================
 
@@ -82,13 +130,14 @@ function openButtonEditor(context) {
   const title = document.getElementById('button-editor-title');
   const labelInput = document.getElementById('button-label-input');
   const urlInput = document.getElementById('button-url-input');
+  const descInput = document.getElementById('button-description-input');
   const errorEl = document.getElementById('button-editor-error');
 
   if (errorEl) {
     errorEl.hidden = true;
     errorEl.textContent = 'Please enter both a name and a valid URL.';
   }
-  
+
   if (!overlay || !labelInput || !urlInput) return;
 
   if (context.mode === 'edit') {
@@ -100,10 +149,12 @@ function openButtonEditor(context) {
     title.textContent = 'Edit Button';
     labelInput.value = item.label;
     urlInput.value = item.url;
+    if (descInput) descInput.value = item.description ?? '';
   } else {
     title.textContent = 'Add Button';
     labelInput.value = '';
     urlInput.value = '';
+    if (descInput) descInput.value = '';
   }
 
   // OPEN with animation support
@@ -195,6 +246,8 @@ function initializeButtonEditorBindings() {
       const urlErrorEl = document.getElementById('button-editor-error');
       const label = document.getElementById('button-label-input').value.trim();
       const url = document.getElementById('button-url-input').value.trim();
+      const description =
+        document.getElementById('button-description-input')?.value.trim() ?? '';
 
       const validation = validateButtonInput({
         label,
@@ -233,6 +286,7 @@ function initializeButtonEditorBindings() {
         const newItem = createEmptyButton(category);
         newItem.label = label;
         newItem.url = normalizedUrl;
+        newItem.description = description;
 
         category.items.push(newItem);
 
@@ -250,6 +304,7 @@ function initializeButtonEditorBindings() {
 
         item.label = label;
         item.url = normalizedUrl;
+        item.description = description;
         await commitDashboardChange('updateItem');
       }
 

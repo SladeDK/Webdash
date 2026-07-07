@@ -23,6 +23,35 @@ if (!document._keyboardHandler) {
     }
 
     // ===============================
+    // "/" → focus service search (when not typing elsewhere)
+    // ===============================
+    if (key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const target = e.target;
+      const isTyping =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target?.isContentEditable;
+
+      const palette = document.getElementById('command-palette');
+      const paletteOpen = palette && !palette.hidden;
+      const modalOpen =
+        typeof getTopModal === 'function' && getTopModal() !== null;
+
+      if (!isTyping && !paletteOpen && !modalOpen) {
+        const search = document.getElementById('service-search');
+
+        if (search) {
+          e.preventDefault();
+          search.focus();
+          search.select();
+        }
+      }
+
+      return;
+    }
+
+    // ===============================
     // ENTER = confirm dialog (only if open)
     // ===============================
     if (key === 'Enter' && confirmOpen) {
@@ -32,7 +61,10 @@ if (!document._keyboardHandler) {
         e.preventDefault();
         e.stopPropagation();
 
-        confirmCallback?.();
+        // Clear before invoking so a rapid second Enter can't double-fire
+        const cb = confirmCallback;
+        confirmCallback = null;
+        cb?.();
         closeConfirm();
       }
 

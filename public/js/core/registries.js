@@ -62,6 +62,8 @@ window.BACKGROUNDS = [
   { id: 'bg-streak', label: 'Streak', previewClass: 'bg-preview-streak' },
   { id: 'bg-circuit', label: 'Circuit Board', previewClass: 'bg-preview-circuit' },
   { id: 'bg-stars', label: 'Stars', previewClass: 'bg-preview-stars' },
+  // Special: user-uploaded wallpaper. Rendered as an upload card in the grid.
+  { id: 'bg-custom', label: 'Custom image', previewClass: 'bg-preview-custom', custom: true },
 ];
 
 // =====================================================
@@ -282,6 +284,86 @@ window.TOGGLE_DEFINITIONS = [
 
     set: (value) => {
       userPreferences.behavior.showFavicons = value;
+
+      PreferencesService.save(userPreferences);
+
+      renderCategories(pageCategories);
+    }
+  },
+
+  {
+    key: 'showButtonDescriptions',
+    label: 'Show button descriptions',
+    panel: 'behavior',
+
+    group: 'Buttons',
+    order: 6,
+
+    get: () =>
+      userPreferences?.behavior?.showButtonDescriptions !== false,
+
+    set: (value) => {
+      userPreferences.behavior.showButtonDescriptions = value;
+
+      PreferencesService.save(userPreferences);
+
+      renderCategories(pageCategories);
+    }
+  },
+
+  {
+    key: 'compactMode',
+    label: 'Compact mode (denser layout)',
+    panel: 'behavior',
+
+    group: 'Appearance',
+    order: 2,
+
+    get: () =>
+      userPreferences?.behavior?.compactMode === true,
+
+    set: (value) => {
+      userPreferences.behavior.compactMode = value;
+
+      PreferencesService.save(userPreferences);
+
+      applyCompactMode();
+    }
+  },
+
+  {
+    key: 'showClock',
+    label: 'Show clock and greeting',
+    panel: 'behavior',
+
+    group: 'Appearance',
+    order: 3,
+
+    get: () =>
+      userPreferences?.behavior?.showClock !== false,
+
+    set: (value) => {
+      userPreferences.behavior.showClock = value;
+
+      PreferencesService.save(userPreferences);
+
+      applyClockWidget();
+    }
+  },
+
+  {
+    key: 'allowCollapseCategories',
+    label: 'Allow collapsing categories',
+    panel: 'behavior',
+
+    group: 'Appearance',
+    order: 4,
+
+    get: () =>
+      userPreferences?.behavior?.allowCollapseCategories !== false,
+
+    set: (value) => {
+      userPreferences.behavior.allowCollapseCategories = value;
 
       PreferencesService.save(userPreferences);
 

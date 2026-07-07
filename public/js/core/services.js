@@ -179,60 +179,23 @@ const PreferencesService = {
   }
 };
 
-// =====================================
-// Cookie helper utilities
-// =====================================
+const BackupService = {
+  async list() {
+    const res = await fetch(buildUrl('/api/backups'));
+    if (!res.ok) return [];
+    return await res.json();
+  },
 
-function setCookie(name, value, days = 365) {
-  const expires = new Date(Date.now() + days * 864e5).toUTCString();
-  document.cookie =
-    `${encodeURIComponent(name)}=${encodeURIComponent(value)}; ` +
-    `expires=${expires}; path=/; domain=.webdash.dk; SameSite=Lax`;
-}
+  async restore(name) {
+    const res = await fetch(buildUrl('/api/backups/restore'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
 
-function getCookie(name) {
-  const match = document.cookie.match(
-    new RegExp('(?:^|; )' + encodeURIComponent(name) + '=([^;]*)')
-  );
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-function deleteCookie(name) {
-  document.cookie =
-    `${encodeURIComponent(name)}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; ` +
-    `path=/; domain=.webdash.dk`;
-}
-
-const SHARED_PREFS_COOKIE = 'webdash_shared_prefs';
-
-function extractSharedPreferences(prefs) {
-  const appearance = prefs?.appearance || {};
-  const behavior = prefs?.behavior || {};
-
-  return {
-    appearance: {
-      theme: appearance.theme,
-      background: appearance.background
-    },
-    behavior: { ...behavior }
-  };
-}
-
-function applySharedPreferences(targetPrefs, sharedPrefs) {
-  if (!sharedPrefs) return;
-
-  if (!targetPrefs.appearance) targetPrefs.appearance = {};
-  if (!targetPrefs.behavior) targetPrefs.behavior = {};
-
-  if (sharedPrefs.appearance) {
-    targetPrefs.appearance.theme =
-      sharedPrefs.appearance.theme ?? targetPrefs.appearance.theme;
-
-    targetPrefs.appearance.background =
-      sharedPrefs.appearance.background ?? targetPrefs.appearance.background;
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
   }
+};
 
-  if (sharedPrefs.behavior) {
-    targetPrefs.behavior = { ...sharedPrefs.behavior };
-  }
-}

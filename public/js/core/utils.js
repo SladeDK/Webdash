@@ -7,6 +7,17 @@ function generateId(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2)}-${Date.now()}`;
 }
 
+// Escape user-provided text before interpolating it into HTML strings.
+// Covers both element content and double-quoted attribute values.
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 function getFaviconCandidates(url) {
   try {
     const u = new URL(url);

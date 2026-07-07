@@ -213,6 +213,143 @@ async function exportSystem() {
 
 
 // ======================================================================
+// SINGLE-DASHBOARD EXPORT / IMPORT
+// ======================================================================
+
+function downloadJsonFile(payload, filename) {
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function exportDashboard(dashboardId) {
+  try {
+    const state = await DashboardService.loadDashboardById(dashboardId);
+    if (!state) throw new Error('Dashboard not found');
+
+    const payload = {
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      type: 'dashboard',
+      exportedAt: new Date().toISOString(),
+      dashboard: {
+        name: state.name,
+        identity: {
+          name: state.identity?.name ?? state.name ?? 'Dashboard',
+          icon: state.identity?.icon ?? null
+        },
+        appearance: {
+          theme: state.appearance?.theme ?? 'system',
+          background: state.appearance?.background ?? 'bg-plain'
+        },
+        categories: (state.categories ?? []).map(cat => ({
+          ...cat,
+          visible: cat.visible ?? true,
+          items: (cat.items ?? []).map(item => ({ ...item }))
+        }))
+      }
+    };
+
+    const safeName = (state.name || 'Dashboard')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-zA-Z0-9-_]/g, '');
+
+    const date = new Date().toISOString().split('T')[0];
+
+    downloadJsonFile(payload, `WebDash-Dashboard-${safeName}-${date}.json`);
+
+    showToast({
+      title: 'Dashboard exported',
+      lines: [`"${state.name}" was exported.`],
+      type: 'success',
+      duration: 4000
+    });
+  } catch (err) {
+    console.error('[WebDash] Dashboard export failed:', err);
+    showToast({
+      title: 'Export failed',
+      lines: ['The dashboard could not be exported.'],
+      type: 'error',
+      duration: 5000
+    });
+  }
+}
+
+// Adds a single exported dashboard as a NEW dashboard (fresh IDs), so it
+// never collides with or overwrites anything the user already has.
+async function importSingleDashboard(payload) {
+  const d = payload?.dashboard;
+
+  if (!d || typeof d !== 'object' || !Array.isArray(d.categories)) {
+    throw new Error('Invalid dashboard file');
+  }
+
+  const normalized = normalizeImportedDashboard(d);
+  const newId = generateId('dashboard');
+
+  // Disambiguate the name if it collides with an existing dashboard
+  const importedName = normalized.name;
+  const hasCollision = availableDashboards.some(
+    x => x.name.toLowerCase() === importedName.toLowerCase()
+  );
+  const finalName = hasCollision ? `${importedName} (imported)` : importedName;
+
+  // Fresh IDs throughout so nothing clashes across dashboards
+  const categories = (normalized.categories ?? []).map(cat => ({
+    ...structuredClone(cat),
+    id: generateId('category'),
+    items: (cat.items ?? []).map(item => ({
+      ...structuredClone(item),
+      id: generateId('item')
+    }))
+  }));
+
+  await DashboardService.createDashboard({ id: newId, name: finalName });
+  await DashboardService.save({
+    id: newId,
+    name: finalName,
+    identity: {
+      name: finalName,
+      icon: normalized.identity?.icon ?? '/assets/webdash-logo.png'
+    },
+    appearance: normalized.appearance,
+    categories,
+    order: availableDashboards.length
+  });
+
+  // Hydrate + switch to the imported dashboard (same flow as duplicate)
+  dashboardState = await DashboardService.loadDashboardById(newId);
+  pageCategories = dashboardState.categories;
+
+  addAvailableDashboard({ id: newId, name: finalName }, 'importSingleDashboard');
+  setActiveDashboardId(newId, 'importSingleDashboard');
+
+  const list = normalizeDashboardOrderList(availableDashboards);
+  replaceAvailableDashboards(list, 'importSingleDashboard');
+  queueDashboardReorderSave();
+
+  await commitPrehydratedDashboard(newId, 'importSingleDashboard');
+
+  syncDashboardUI();
+  renderDashboardManagementPanel();
+
+  showToast({
+    title: 'Dashboard imported',
+    lines: [`Added "${finalName}".`],
+    type: 'success',
+    duration: 5000
+  });
+}
+
+// ======================================================================
 // IMPORT VALIDATION & PREVIEW
 // ======================================================================
 
@@ -249,7 +386,7 @@ function renderImportPreview(plan) {
   (dashboards.removed ?? []).forEach(d => {
     html += `
       <li class="dashboard-item removed">
-        <div class="dashboard-name">${d.name.before}</div>
+        <div class="dashboard-name">${escapeHtml(d.name.before)}</div>
         <div class="dashboard-state">Removed</div>
       </li>
     `;
@@ -258,7 +395,7 @@ function renderImportPreview(plan) {
   (dashboards.added ?? []).forEach(d => {
     html += `
       <li class="dashboard-item added">
-        <div class="dashboard-name">${d.name.after}</div>
+        <div class="dashboard-name">${escapeHtml(d.name.after)}</div>
         <div class="dashboard-state">Added</div>
       </li>
     `;
@@ -291,8 +428,8 @@ function renderImportPreview(plan) {
       <li class="dashboard-item">
         <div class="dashboard-name">
           ${renamed
-            ? `${d.name.before} <span class="rename-arrow">→</span> ${d.name.after} (import override)`
-            : d.name.after}
+            ? `${escapeHtml(d.name.before)} <span class="rename-arrow">→</span> ${escapeHtml(d.name.after)} (import override)`
+            : escapeHtml(d.name.after)}
         </div>
         <div class="dashboard-changes">
           ${renamed ? `<div class="change-label renamed">Renamed (local → imported)</div>` : ``}
@@ -334,10 +471,10 @@ function renderImportPreview(plan) {
         <li class="dashboard-item">
           <div class="dashboard-name">
             <div class="preview-muted">
-              Dashboard · ${d.name.after}
+              Dashboard · ${escapeHtml(d.name.after)}
             </div>
             <div class="item-entity">
-              ${renamed ? `${cat.name.before} → ${cat.name.after} (import override)` : cat.name.after}
+              ${renamed ? `${escapeHtml(cat.name.before)} → ${escapeHtml(cat.name.after)} (import override)` : escapeHtml(cat.name.after)}
             </div>
           </div>
           <div class="dashboard-changes">
@@ -353,10 +490,10 @@ function renderImportPreview(plan) {
         <li class="dashboard-item">
           <div class="dashboard-name">
             <div class="preview-muted">
-              Dashboard · ${d.name.after}
+              Dashboard · ${escapeHtml(d.name.after)}
             </div>
             <div class="item-entity">
-              ${cat.name.after}
+              ${escapeHtml(cat.name.after)}
             </div>
           </div>
           <div class="dashboard-changes">
@@ -372,10 +509,10 @@ function renderImportPreview(plan) {
         <li class="dashboard-item removed">
           <div class="dashboard-name">
             <div class="preview-muted">
-              Dashboard · ${d.name.after}
+              Dashboard · ${escapeHtml(d.name.after)}
             </div>
             <div class="item-entity">
-              ${cat.name.before}
+              ${escapeHtml(cat.name.before)}
             </div>
           </div>
           <div class="dashboard-changes">
@@ -420,17 +557,17 @@ function renderImportPreview(plan) {
           <li class="dashboard-item">
             <div class="dashboard-name">
               <div class="preview-muted">
-                Dashboard · ${d.name.after} → Category · ${cat.name.after}
+                Dashboard · ${escapeHtml(d.name.after)} → Category · ${escapeHtml(cat.name.after)}
               </div>
 
               <div class="item-entity">
-                ${renamed ? `${item.name.before} → ${item.name.after}` : item.name.after}
+                ${renamed ? `${escapeHtml(item.name.before)} → ${escapeHtml(item.name.after)}` : escapeHtml(item.name.after)}
               </div>
 
               <div class="preview-muted">
                 ${urlChanged
-                  ? `${item.url.before} → ${item.url.after}`
-                  : item.url.after}
+                  ? `${escapeHtml(item.url.before)} → ${escapeHtml(item.url.after)}`
+                  : escapeHtml(item.url.after)}
               </div>
             </div>
             <div class="dashboard-changes">
@@ -447,12 +584,12 @@ function renderImportPreview(plan) {
           <li class="dashboard-item">
             <div class="dashboard-name">
               <div class="preview-muted">
-                Dashboard · ${d.name.after} → Category · ${cat.name.after}
+                Dashboard · ${escapeHtml(d.name.after)} → Category · ${escapeHtml(cat.name.after)}
               </div>
               <div class="item-entity">
-                ${item.name.after}
+                ${escapeHtml(item.name.after)}
               </div>
-              <div class="preview-muted">${item.url.after}</div>
+              <div class="preview-muted">${escapeHtml(item.url.after)}</div>
             </div>
             <div class="dashboard-changes">
               <div class="change-label added">
@@ -468,10 +605,10 @@ function renderImportPreview(plan) {
           <li class="dashboard-item removed">
             <div class="dashboard-name">
               <div class="preview-muted">
-                Dashboard · ${d.name.after} → Category · ${cat.name.after}
+                Dashboard · ${escapeHtml(d.name.after)} → Category · ${escapeHtml(cat.name.after)}
               </div>
               <div class="item-entity">
-                ${item.name.before}
+                ${escapeHtml(item.name.before)}
               </div>
             </div>
             <div class="dashboard-changes">
@@ -551,7 +688,6 @@ function normalizeImportedDashboard(d) {
     }))
   };
 }
-``
 
 // ======================================================================
 // IMPORT NORMALIZATION & COMPATIBILITY
@@ -826,6 +962,106 @@ function showImportSuccess(summary, warnings = []) {
 
   // Re-hydrate dropdown components after DOM replacement
   initializeDropdowns();
+}
+
+// ======================================================================
+// BACKUP RESTORE UI
+// ======================================================================
+
+function formatBackupTimestamp(iso) {
+  const date = new Date(iso);
+  if (isNaN(date)) return iso;
+
+  return date.toLocaleString([], {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+async function renderBackupList() {
+  const container = document.getElementById('backup-list');
+  if (!container) return;
+
+  container.innerHTML = '<div class="empty-state">Loading backups…</div>';
+
+  let backups = [];
+  try {
+    backups = await BackupService.list();
+  } catch (err) {
+    console.error('[WebDash] Failed to load backups:', err);
+    container.innerHTML = '<div class="empty-state">Could not load backups</div>';
+    return;
+  }
+
+  if (!backups.length) {
+    container.innerHTML =
+      '<div class="empty-state">No backups yet — they appear after your first change</div>';
+    return;
+  }
+
+  container.innerHTML = '';
+
+  backups.forEach(backup => {
+    const row = document.createElement('div');
+    row.className = 'backup-row';
+
+    const info = document.createElement('div');
+    info.className = 'backup-info';
+
+    const when = document.createElement('span');
+    when.className = 'backup-when';
+    when.textContent = formatBackupTimestamp(backup.createdAt);
+
+    const size = document.createElement('span');
+    size.className = 'backup-size';
+    size.textContent = `${(backup.size / 1024).toFixed(1)} KB`;
+
+    info.append(when, size);
+
+    const restoreBtn = document.createElement('button');
+    restoreBtn.type = 'button';
+    restoreBtn.className = 'secondary-btn';
+    restoreBtn.textContent = 'Restore';
+
+    restoreBtn.onclick = () => {
+      openConfirm({
+        title: 'Restore backup',
+        message:
+          `Restore the snapshot from ${formatBackupTimestamp(backup.createdAt)}?\n\n` +
+          'Your current data will be replaced. A backup of the current state ' +
+          'is taken first, so this can be undone.',
+        confirmLabel: 'Restore',
+        onConfirm: async () => {
+          try {
+            await BackupService.restore(backup.name);
+
+            showToast({
+              title: 'Backup restored',
+              lines: ['Reloading with the restored data…'],
+              type: 'success',
+              duration: 3000
+            });
+
+            setTimeout(() => window.location.reload(), 700);
+          } catch (err) {
+            console.error('[WebDash] Restore failed:', err);
+            showToast({
+              title: 'Restore failed',
+              lines: ['The backup could not be restored.', 'Please try again.'],
+              type: 'error',
+              duration: 5000
+            });
+          }
+        }
+      });
+    };
+
+    row.append(info, restoreBtn);
+    container.appendChild(row);
+  });
 }
 
 // ======================================================================

@@ -26,7 +26,9 @@ function showToast({
   title = '',
   lines = [],
   type = 'success',
-  duration = 5000
+  duration = 5000,
+  actionLabel = null,
+  onAction = null
 }) {
   const container = ensureToastContainer();
   if (!container) return;
@@ -55,8 +57,18 @@ function showToast({
   if (lines.length) {
     const body = document.createElement('div');
     body.className = 'toast-body';
-    body.innerHTML = lines.map(line => `<div>${line}</div>`).join('');
+    // Lines can contain user data (dashboard names etc.) — escape them
+    body.innerHTML = lines.map(line => `<div>${escapeHtml(line)}</div>`).join('');
     content.appendChild(body);
+  }
+
+  // Optional action button (e.g. "Undo")
+  let actionBtn = null;
+  if (actionLabel && typeof onAction === 'function') {
+    actionBtn = document.createElement('button');
+    actionBtn.className = 'toast-action';
+    actionBtn.type = 'button';
+    actionBtn.textContent = actionLabel;
   }
 
   const closeBtn = document.createElement('button');
@@ -109,6 +121,19 @@ function showToast({
     dismissToast();
   });
 
+  if (actionBtn) {
+    actionBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      // Guard against double-invoke, then run the action
+      if (actionBtn.disabled) return;
+      actionBtn.disabled = true;
+
+      Promise.resolve(onAction()).finally(dismissToast);
+    });
+  }
+
   // Hover: pause & reset visually
   toast.addEventListener('mouseenter', () => {
     clearTimer();
@@ -128,7 +153,11 @@ function showToast({
     startTimer();
   });
 
-  toast.append(content, closeBtn, progress);
+  if (actionBtn) {
+    toast.append(content, actionBtn, closeBtn, progress);
+  } else {
+    toast.append(content, closeBtn, progress);
+  }
   container.appendChild(toast);
 
   if (duration > 0) {

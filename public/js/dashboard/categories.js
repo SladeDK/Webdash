@@ -47,11 +47,55 @@ async function deleteCategory(categoryId) {
       const index = pageCategories.findIndex(c => c.id === categoryId);
       if (index === -1) return;
 
+      // Snapshot for undo (position + deep copy, buttons included)
+      const removedIndex = index;
+      const removedCategory = structuredClone(pageCategories[index]);
+
       pageCategories.splice(index, 1);
       normalizeCategoryOrder();
       await commitDashboardChange('deleteCategory');
+
+      showToast({
+        title: 'Category deleted',
+        lines: [`"${removedCategory.title}" and its buttons were removed.`],
+        type: 'success',
+        duration: 6000,
+        actionLabel: 'Undo',
+        onAction: async () => {
+          const at = Math.min(removedIndex, pageCategories.length);
+          pageCategories.splice(at, 0, removedCategory);
+          normalizeCategoryOrder();
+          await commitDashboardChange('undoDeleteCategory');
+        }
+      });
     }
   });
+}
+
+// =====================================
+// Duplicate category (deep clone with new IDs)
+// =====================================
+
+async function duplicateCategory(categoryId) {
+  const index = pageCategories.findIndex(c => c.id === categoryId);
+  if (index === -1) return;
+
+  const source = pageCategories[index];
+  const clone = structuredClone(source);
+
+  // Fresh IDs so nothing collides with the original
+  clone.id = generateId('category');
+  clone.title = `${source.title} (copy)`;
+  clone.items = (clone.items ?? []).map(item => ({
+    ...item,
+    id: generateId('item')
+  }));
+
+  // Insert right after the original
+  pageCategories.splice(index + 1, 0, clone);
+  normalizeCategoryOrder();
+
+  await commitDashboardChange('duplicateCategory');
 }
 
 // =====================================

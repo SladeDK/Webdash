@@ -73,6 +73,7 @@
     <!-- UI HELPERS -->
     <script src="js/ui/dropdowns.js" defer></script>
     <script src="js/ui/toasts.js" defer></script>
+    <script src="js/ui/clock.js" defer></script>
 
     <!-- DASHBOARD -->
     <script src="js/dashboard/dashboards.js" defer></script>
@@ -150,7 +151,7 @@
         <input
           type="search"
           id="service-search"
-          placeholder="Search services…"
+          placeholder="Search services…  ( / )"
           aria-label="Search services"
         />
       </div>
@@ -352,6 +353,28 @@
                   <div class="theme-grid background-grid">
                     <!-- Background options rendered by JS -->
                   </div>
+
+                  <!-- Hidden input for custom background upload -->
+                  <input
+                    type="file"
+                    id="custom-bg-input"
+                    accept="image/png, image/jpeg, image/webp"
+                    hidden
+                  >
+                </fieldset>
+
+                <fieldset class="setting-group">
+                  <legend>Accent color:</legend>
+
+                  <div class="setting-row">
+                    <span>Custom accent color</span>
+                    <div class="accent-controls">
+                      <input type="color" id="accent-color-input" aria-label="Accent color" />
+                      <button type="button" class="secondary-btn" id="accent-color-reset">
+                        Reset
+                      </button>
+                    </div>
+                  </div>
                 </fieldset>
             </div>
 
@@ -510,6 +533,18 @@
                 </div>
               </fieldset>
               <fieldset class="setting-group">
+                <legend>Restore from backup:</legend>
+
+                <p class="setting-description">
+                  WebDash automatically saves a snapshot before every change.
+                  Restoring replaces your current data — but the current state is
+                  itself backed up first, so a restore can always be undone.
+                </p>
+
+                <div id="backup-list" class="backup-list"></div>
+              </fieldset>
+
+              <fieldset class="setting-group">
                 <legend>Reset Active Dashboard:</legend>
 
                 <p class="setting-description">
@@ -604,7 +639,7 @@
                 <input
                   type="text"
                   id="button-url-input"
-                  placeholder="example.com or https://example.com"
+                  placeholder="example.com, 192.168.1.10:8080 or https://example.com"
                   autocomplete="off"
                   required
                 />
@@ -613,6 +648,18 @@
                 </span>
               </div>
             </div>
+
+            <div class="form-group">
+              <label for="button-description-input">Description (optional):</label>
+              <input
+                type="text"
+                id="button-description-input"
+                maxlength="120"
+                placeholder="Short note shown under the button"
+                autocomplete="off"
+              />
+            </div>
+
             <div class="modal-actions">
               <button type="button" class="secondary-btn" id="button-editor-cancel">
                 Cancel

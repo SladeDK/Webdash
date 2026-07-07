@@ -155,6 +155,7 @@ async function openPreferences(panelNameOrEvent = null) {
   syncDefaultDashboardSelector();
   syncLayoutDashboardSelector();
   renderDashboardManagementPanel();
+  syncAccentColorInput();
   await rebuildGlobalItemIndex();
   renderQuickAccessFavorites();
   renderFavoritesManager();
@@ -241,6 +242,10 @@ navItems?.forEach(button => {
           renderQuickAccessFavorites();
           renderFavoritesManager();
         })();
+      }
+
+      if (panelName === 'data') {
+        renderBackupList();
       }
     } else {
       console.warn(`Panel panel-${panelName} not found`);
@@ -343,8 +348,14 @@ if (recentsLimitInput && !recentsLimitInput._wired) {
   recentsLimitInput._wired = true;
 
   recentsLimitInput.addEventListener('change', async () => {
-    userPreferences.behavior.recentsLimit =
-      Number(recentsLimitInput.value);
+    // Clamp to the input's advertised range; fall back to the default
+    const parsed = Number(recentsLimitInput.value);
+    const limit = Number.isFinite(parsed)
+      ? Math.min(50, Math.max(1, Math.round(parsed)))
+      : DEFAULT_BEHAVIOR.recentsLimit;
+
+    recentsLimitInput.value = limit;
+    userPreferences.behavior.recentsLimit = limit;
 
     await PreferencesService.save(userPreferences);
   });
@@ -379,6 +390,280 @@ function applyDebugMode() {
     'debug-mode',
     enabled
   );
+}
+
+function applyCompactMode() {
+  const enabled =
+    userPreferences?.behavior?.compactMode === true;
+
+  document.documentElement.classList.toggle(
+    'compact-mode',
+    enabled
+  );
+}
+
+// ======================================================================
+// CUSTOM ACCENT COLOR
+// ======================================================================
+//
+// The whole UI is keyed off the --accent / --accent-dim CSS variables,
+// so overriding them inline on <html> re-skins everything. An empty
+// value falls back to the active theme's accent.
+
+function hexToRgba(hex, alpha) {
+  const match = /^#?([a-f0-9]{6})$/i.exec(hex);
+  if (!match) return null;
+
+  const int = parseInt(match[1], 16);
+  const r = (int >> 16) & 255;
+  const g = (int >> 8) & 255;
+  const b = int & 255;
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function applyAccentColor() {
+  const root = document.documentElement;
+  const accent = userPreferences?.appearance?.accent;
+
+  if (accent && /^#[0-9a-f]{6}$/i.test(accent)) {
+    root.style.setProperty('--accent', accent);
+
+    const dim = hexToRgba(accent, 0.15);
+    if (dim) root.style.setProperty('--accent-dim', dim);
+
+    const hover = hexToRgba(accent, 0.4);
+    if (hover) root.style.setProperty('--accent-hover', hover);
+  } else {
+    root.style.removeProperty('--accent');
+    root.style.removeProperty('--accent-dim');
+    root.style.removeProperty('--accent-hover');
+  }
+}
+
+// Reflect the current accent (custom or theme default) in the picker
+function syncAccentColorInput() {
+  const input = document.getElementById('accent-color-input');
+  if (!input) return;
+
+  const custom = userPreferences?.appearance?.accent;
+
+  if (custom && /^#[0-9a-f]{6}$/i.test(custom)) {
+    input.value = custom;
+    return;
+  }
+
+  // Fall back to the theme's computed accent (needs the override cleared)
+  const previous = document.documentElement.style.getPropertyValue('--accent');
+  document.documentElement.style.removeProperty('--accent');
+
+  const themeAccent = getComputedStyle(document.documentElement)
+    .getPropertyValue('--accent')
+    .trim();
+
+  if (previous) document.documentElement.style.setProperty('--accent', previous);
+
+  if (/^#[0-9a-f]{6}$/i.test(themeAccent)) {
+    input.value = themeAccent;
+  }
+}
+
+(function wireAccentColorControls() {
+  const input = document.getElementById('accent-color-input');
+  const resetBtn = document.getElementById('accent-color-reset');
+
+  if (input && !input._wired) {
+    input._wired = true;
+
+    input.addEventListener('input', async () => {
+      if (!userPreferences.appearance) userPreferences.appearance = {};
+      userPreferences.appearance.accent = input.value;
+
+      applyAccentColor();
+      await PreferencesService.save(userPreferences);
+    });
+  }
+
+  if (resetBtn && !resetBtn._wired) {
+    resetBtn._wired = true;
+
+    resetBtn.addEventListener('click', async () => {
+      if (userPreferences.appearance) {
+        delete userPreferences.appearance.accent;
+      }
+
+      applyAccentColor();
+      syncAccentColorInput();
+      await PreferencesService.save(userPreferences);
+    });
+  }
+})();
+
+// ======================================================================
+// CUSTOM BACKGROUND IMAGE UPLOAD
+// ======================================================================
+
+(function wireCustomBackgroundInput() {
+  const input = document.getElementById('custom-bg-input');
+  if (!input || input._wired) return;
+  input._wired = true;
+
+  input.addEventListener('change', async () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Reset immediately so re-selecting the same file still fires change
+    const cleanup = () => { input.value = ''; };
+
+    const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5 MB
+
+    if (!file.type.startsWith('image/')) {
+      showToast({
+        title: 'Invalid file',
+        lines: ['Please choose a valid image file.'],
+        type: 'error',
+        duration: 5000
+      });
+      cleanup();
+      return;
+    }
+
+    if (file.size > MAX_UPLOAD_SIZE) {
+      showToast({
+        title: 'File too large',
+        lines: ['Please choose an image smaller than 5 MB.'],
+        type: 'error',
+        duration: 5000
+      });
+      cleanup();
+      return;
+    }
+
+    const library = getCustomBackgroundLibrary();
+
+    if (library.length >= MAX_CUSTOM_BACKGROUNDS) {
+      showToast({
+        title: 'Background limit reached',
+        lines: [
+          `You can keep up to ${MAX_CUSTOM_BACKGROUNDS} custom backgrounds.`,
+          'Delete one to add another.'
+        ],
+        type: 'error',
+        duration: 5000
+      });
+      cleanup();
+      return;
+    }
+
+    try {
+      // Compress to a reasonable wallpaper size to keep storage sane
+      const dataUrl = await compressImage(file, 1600, 0.82);
+
+      const entry = { id: generateId('bg'), image: dataUrl };
+      getCustomBackgroundLibrary().push(entry);
+
+      // Persist the library, then activate the freshly added image
+      await selectCustomBackground(entry.id);
+
+      showToast({
+        title: 'Background added',
+        lines: ['Your custom background has been applied.'],
+        type: 'success',
+        duration: 4000
+      });
+    } catch (err) {
+      console.error('[WebDash] Custom background failed:', err);
+      showToast({
+        title: 'Image failed',
+        lines: ['Could not process that image. Please try another file.'],
+        type: 'error',
+        duration: 5000
+      });
+    }
+
+    cleanup();
+  });
+})();
+
+// Activate a stored custom background by id.
+// The selected id follows appearance sync rules; the image library
+// itself always lives in userPreferences.
+async function selectCustomBackground(id) {
+  if (!userPreferences.appearance) userPreferences.appearance = {};
+
+  const syncOn =
+    userPreferences?.behavior?.syncDashboardAppearance !== false;
+
+  // Global copy so the image resolves regardless of sync mode
+  userPreferences.appearance.customBackgroundId = id;
+
+  if (syncOn) {
+    userPreferences.appearance.background = 'bg-custom';
+    await PreferencesService.save(userPreferences);
+    await syncAppearanceToAllDashboards();
+  } else {
+    if (!dashboardState.appearance) dashboardState.appearance = {};
+    dashboardState.appearance.customBackgroundId = id;
+    dashboardState.appearance.background = 'bg-custom';
+    await DashboardService.save(dashboardState);
+    await PreferencesService.save(userPreferences);
+  }
+
+  applyDashboardAppearance();
+  applyCustomBackgroundImage();
+  updateBackgroundSelectionUI('bg-custom');
+  renderBackgroundGrid();
+  syncThemeRadios?.();
+}
+
+// Remove a stored custom background. If it was the active one, fall back
+// to another custom image, or to the plain background when none remain.
+async function deleteCustomBackground(id) {
+  const library = getCustomBackgroundLibrary();
+  const index = library.findIndex(b => b.id === id);
+  if (index === -1) return;
+
+  const wasActive =
+    getActiveCustomBackgroundId() === id &&
+    (userPreferences?.appearance?.background === 'bg-custom' ||
+     dashboardState?.appearance?.background === 'bg-custom');
+
+  library.splice(index, 1);
+
+  // Clear any dashboard reference pointing at the removed image
+  if (dashboardState?.appearance?.customBackgroundId === id) {
+    dashboardState.appearance.customBackgroundId = library[0]?.id ?? null;
+  }
+  if (userPreferences.appearance.customBackgroundId === id) {
+    userPreferences.appearance.customBackgroundId = library[0]?.id ?? null;
+  }
+
+  if (wasActive && !library.length) {
+    // No custom images left → revert to a safe built-in background
+    const syncOn =
+      userPreferences?.behavior?.syncDashboardAppearance !== false;
+
+    if (syncOn) {
+      userPreferences.appearance.background = 'bg-plain';
+    } else if (dashboardState?.appearance) {
+      dashboardState.appearance.background = 'bg-plain';
+    }
+  }
+
+  await PreferencesService.save(userPreferences);
+  if (dashboardState) await DashboardService.save(dashboardState);
+
+  applyDashboardAppearance();
+  applyCustomBackgroundImage();
+  renderBackgroundGrid();
+  syncThemeRadios?.();
+
+  showToast({
+    title: 'Background removed',
+    lines: ['The custom background was deleted.'],
+    type: 'success',
+    duration: 3500
+  });
 }
 
 function applyClassicUI() {
@@ -777,7 +1062,22 @@ function renderBackgroundGrid() {
 
   grid.innerHTML = '';
 
-  BACKGROUNDS.forEach(bg => {
+  const currentBackground =
+    userPreferences?.appearance?.background ??
+    dashboardState?.appearance?.background;
+
+  const debugOn = userPreferences?.behavior?.debugMode;
+
+  const appendDebug = (btn, id) => {
+    if (!debugOn) return;
+    const debug = document.createElement('span');
+    debug.className = 'debug-id';
+    debug.textContent = ` [${id}]`;
+    btn.appendChild(debug);
+  };
+
+  // ---- Built-in backgrounds (the custom entry is rendered separately) ----
+  BACKGROUNDS.filter(bg => !bg.custom).forEach(bg => {
     const btn = document.createElement('button');
     btn.className = 'theme-card bg-card';
     btn.type = 'button';
@@ -790,32 +1090,95 @@ function renderBackgroundGrid() {
     label.className = 'theme-name';
     label.textContent = bg.label;
 
-    btn.appendChild(preview);
-    btn.appendChild(label);
-
-    const currentBackground =
-      userPreferences?.appearance?.background ??
-      dashboardState?.appearance?.background;
+    btn.append(preview, label);
 
     if (bg.id === currentBackground) {
       btn.classList.add('active');
     }
 
-    // Debug mode
-    if (userPreferences?.behavior?.debugMode) {
-      const debug = document.createElement('span');
-      debug.className = 'debug-id';
-      debug.textContent = ` [${bg.id}]`;
-      btn.appendChild(debug);
-    }
+    appendDebug(btn, bg.id);
 
-    // Click behavior
     btn.addEventListener('click', () => {
       handleAppearanceChange({ background: bg.id });
     });
 
     grid.appendChild(btn);
   });
+
+  // ---- User's custom background library ----
+  const library = getCustomBackgroundLibrary();
+  const activeCustomId = getActiveCustomBackgroundId();
+
+  library.forEach((entry, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'theme-card bg-card bg-card-custom';
+    btn.type = 'button';
+    btn.dataset.bg = 'bg-custom';
+    btn.dataset.customId = entry.id;
+
+    const preview = document.createElement('span');
+    preview.className = 'theme-preview bg-preview-custom';
+    preview.style.backgroundImage = `url("${entry.image}")`;
+    preview.style.backgroundSize = 'cover';
+    preview.style.backgroundPosition = 'center';
+
+    const label = document.createElement('span');
+    label.className = 'theme-name';
+    label.textContent = `Custom ${i + 1}`;
+
+    // Delete control — only user uploads can be removed
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'bg-card-delete';
+    del.title = 'Delete this background';
+    del.setAttribute('aria-label', 'Delete this background');
+    del.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openConfirm({
+        title: 'Delete background',
+        message: 'Delete this custom background image? This cannot be undone.',
+        onConfirm: async () => { await deleteCustomBackground(entry.id); }
+      });
+    });
+
+    btn.append(preview, label, del);
+
+    if (currentBackground === 'bg-custom' && entry.id === activeCustomId) {
+      btn.classList.add('active');
+    }
+
+    appendDebug(btn, entry.id);
+
+    btn.addEventListener('click', () => {
+      selectCustomBackground(entry.id);
+    });
+
+    grid.appendChild(btn);
+  });
+
+  // ---- Upload card (hidden once the library is full) ----
+  if (library.length < MAX_CUSTOM_BACKGROUNDS) {
+    const uploadBtn = document.createElement('button');
+    uploadBtn.className = 'theme-card bg-card bg-card-upload';
+    uploadBtn.type = 'button';
+
+    const preview = document.createElement('span');
+    preview.className = 'theme-preview bg-preview-upload';
+    preview.innerHTML = '<i class="fa-solid fa-plus"></i>';
+
+    const label = document.createElement('span');
+    label.className = 'theme-name';
+    label.textContent = 'Upload image';
+
+    uploadBtn.append(preview, label);
+
+    uploadBtn.addEventListener('click', () => {
+      document.getElementById('custom-bg-input')?.click();
+    });
+
+    grid.appendChild(uploadBtn);
+  }
 }
 
 // ======================================================================
@@ -842,8 +1205,14 @@ if (importDashboardBtn && importDashboardFile) {
     try {
       const text = await file.text();
       const payload = JSON.parse(text);
-      validateSystemImportPayload(payload);
-      openImportSystemModal(payload);
+
+      // Auto-detect a single-dashboard export vs a full system backup
+      if (payload?.type === 'dashboard') {
+        await importSingleDashboard(payload);
+      } else {
+        validateSystemImportPayload(payload);
+        openImportSystemModal(payload);
+      }
     } catch (err) {
       console.error('[WebDash] Import failed:', err);
 
