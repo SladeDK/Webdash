@@ -127,14 +127,11 @@ function applyIdentityToUI() {
   const headerTitle = document.querySelector('.header-center h1');
   if (headerTitle) headerTitle.textContent = name;
 
-  // Header icon
+  // Header icon (uploaded icons are data: URLs; static assets are
+  // cacheable — no cache-buster needed, it only forced re-downloads)
   const headerIcon = document.querySelector('.header-center img');
-  if (headerIcon && icon) {
-    if (icon.startsWith('data:')) {
-      headerIcon.src = icon;
-    } else {
-      headerIcon.src = icon + '?t=' + Date.now();
-    }
+  if (headerIcon && icon && headerIcon.getAttribute('src') !== icon) {
+    headerIcon.src = icon;
   }
 
   // Identity preview name
@@ -143,12 +140,8 @@ function applyIdentityToUI() {
 
   // Identity preview icon
   const previewIcon = document.querySelector('.identity-icon-preview');
-  if (previewIcon && icon) {
-    if (icon.startsWith('data:')) {
-      previewIcon.src = icon;
-    } else {
-      previewIcon.src = icon + '?t=' + Date.now();
-    }
+  if (previewIcon && icon && previewIcon.getAttribute('src') !== icon) {
+    previewIcon.src = icon;
   }
 
   // Input value
@@ -189,6 +182,32 @@ function syncIdentityInputState() {
 // APPEARANCE PREFERENCES (STATE & APPLICATION)
 // ======================================================================
 
+// The theme/background that is actually in effect: global preferences
+// when appearance sync is on, otherwise the active dashboard's own
+// appearance (falling back to global). Selection UIs must use this —
+// not raw userPreferences — or they highlight the wrong entry in
+// per-dashboard mode.
+function getEffectiveAppearance() {
+  const syncOn =
+    userPreferences?.behavior?.syncDashboardAppearance !== false;
+
+  if (syncOn) {
+    return {
+      theme: userPreferences?.appearance?.theme,
+      background: userPreferences?.appearance?.background
+    };
+  }
+
+  return {
+    theme:
+      dashboardState?.appearance?.theme ??
+      userPreferences?.appearance?.theme,
+    background:
+      dashboardState?.appearance?.background ??
+      userPreferences?.appearance?.background
+  };
+}
+
 function updateThemeSelectionUI(theme) {
   const themeCards = document.querySelectorAll('.theme-card[data-theme]');
   const dropdownItems = document.querySelectorAll('.theme-item');
@@ -216,6 +235,21 @@ function resolveSystemTheme() {
     : 'theme-light';
 }
 
+// Cache the APPLIED theme/background classes for the pre-paint script
+// in index.html. Storing the resolved values (never 'system') means the
+// first paint always uses a real theme class, and per-dashboard
+// appearance paints correctly too.
+function updateUiPaintCache(patch) {
+  try {
+    const raw = localStorage.getItem('webdash-ui-cache');
+    const data = raw ? JSON.parse(raw) : {};
+    Object.assign(data, patch);
+    localStorage.setItem('webdash-ui-cache', JSON.stringify(data));
+  } catch {
+    // Best-effort (private browsing, full storage, …)
+  }
+}
+
 function setActiveTheme(theme) {
   const root = document.documentElement;
 
@@ -223,6 +257,8 @@ function setActiveTheme(theme) {
     theme === 'system'
       ? resolveSystemTheme()
       : theme;
+
+  updateUiPaintCache({ theme: resolvedTheme });
 
   // Skip if already applied
   if (root.classList.contains(resolvedTheme)) return;
@@ -250,19 +286,6 @@ function setActiveTheme(theme) {
   root.classList.remove('no-transitions');
 }
 
-function changeTheme(theme) {
-  document.body.classList.add('is-switching');
-
-  setActiveTheme(theme);
-  updateThemeSelectionUI(theme);
-
-  requestAnimationFrame(() => {
-    document.body.classList.remove('is-switching');
-  });
-
-  syncThemeRadios?.();
-}
-
 function setActiveBackground(bg) {
   const root = document.documentElement;
 
@@ -271,6 +294,8 @@ function setActiveBackground(bg) {
   const currentBg = backgrounds.find(b =>
     root.classList.contains(b.id)
   )?.id;
+
+  updateUiPaintCache({ background: bg });
 
   if (currentBg === bg) return;
 
@@ -288,14 +313,6 @@ function setActiveBackground(bg) {
 
   // Re-enable transitions
   root.classList.remove('no-transitions');
-}
-
-function changeBackground(bg) {
-  // Apply visually
-  setActiveBackground(bg);
-
-  // Lightweight UI update
-  updateBackgroundSelectionUI(bg);
 }
 
 // ======================================================================
@@ -455,16 +472,18 @@ async function toggleFavorite(itemId) {
   await PreferencesService.save(userPreferences);
 }
 
+// Returns true when the recents list actually changed, so callers can
+// skip a full dashboard re-render when nothing would look different.
 async function addToRecents(itemId) {
   ensureBehaviorDefaults();
 
-  if (userPreferences?.behavior?.trackRecents === false) return;
+  if (userPreferences?.behavior?.trackRecents === false) return false;
 
-  let recents = userPreferences.behavior.recents;
+  const previous = userPreferences.behavior.recents;
   const limit = userPreferences.behavior.recentsLimit;
 
   // Remove existing (dedup)
-  recents = recents.filter(id => id !== itemId);
+  let recents = previous.filter(id => id !== itemId);
 
   // Add to front
   recents.unshift(itemId);
@@ -474,9 +493,16 @@ async function addToRecents(itemId) {
     recents = recents.slice(0, limit);
   }
 
+  const unchanged =
+    previous.length === recents.length &&
+    previous.every((id, i) => id === recents[i]);
+
   userPreferences.behavior.recents = recents;
 
+  if (unchanged) return false;
+
   await PreferencesService.save(userPreferences);
+  return true;
 }
 
 // ======================================================================

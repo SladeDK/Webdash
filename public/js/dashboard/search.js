@@ -142,8 +142,8 @@ function openTopSearchResult() {
   if (!url) return;
 
   const itemId = topSearchResult.dataset.itemId;
-  if (itemId && typeof addToRecents === 'function') {
-    addToRecents(itemId);
+  if (itemId && typeof trackItemActivation === 'function') {
+    trackItemActivation(itemId);
   }
 
   const newTab = userPreferences?.behavior?.openLinksInNewTab !== false;

@@ -32,6 +32,7 @@ if (!window.__preferencesLifecycleWired__) {
 
     if (savedTheme === 'system') {
       setActiveTheme('system');
+      updateThemeSelectionUI('system');
     }
   });
 }

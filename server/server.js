@@ -25,6 +25,12 @@ const USER_DIR = path.join(DATA_PATH, "users");
 const BACKUP_DIR = path.join(DATA_PATH, "backups");
 const BACKUP_KEEP = Math.max(0, Number(process.env.BACKUP_KEEP ?? 10) || 0);
 
+// Minimum seconds between snapshots per user. Rapid successive changes
+// (color picker drags, drag-and-drop reordering) would otherwise flush
+// the entire rolling backup history within seconds.
+const BACKUP_MIN_INTERVAL =
+  Math.max(0, Number(process.env.BACKUP_MIN_INTERVAL ?? 10) || 0);
+
 // ------------------------------------------------------------------
 // User name sanitization (single source of truth)
 // ------------------------------------------------------------------
@@ -130,18 +136,31 @@ function ensureUserStorage(filePath) {
 
 // Dashboard states may contain base64 identity icons — allow room for them.
 app.use(express.json({ limit: "10mb" }));
+
+// Static assets: images/fonts/backgrounds rarely change → cache for a week.
+// HTML/CSS/JS stay on ETag revalidation so updates show up immediately.
+app.use("/assets", express.static(path.join(FRONTEND_DIR, "assets"), {
+  maxAge: "7d"
+}));
 app.use(express.static(FRONTEND_DIR));
 
 // ------------------------------------------------------------------
 // Storage helpers
 // ------------------------------------------------------------------
 
+// In-memory cache of each user's storage file (raw JSON string).
+// The server is the only writer, so the cache is invalidated/updated on
+// our own writes — this removes a synchronous disk read from every API
+// request without changing any on-disk behavior.
+const storageCache = new Map();
+
 // Atomic write: write to a temp file, then rename over the target.
 // A crash mid-write can no longer corrupt existing user data.
 function writeJsonAtomic(filePath, data) {
   const tmpPath = `${filePath}.${process.pid}.tmp`;
+  const json = JSON.stringify(data, null, 2);
 
-  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2));
+  fs.writeFileSync(tmpPath, json);
 
   try {
     fs.renameSync(tmpPath, filePath);
@@ -150,6 +169,8 @@ function writeJsonAtomic(filePath, data) {
     fs.copyFileSync(tmpPath, filePath);
     fs.unlinkSync(tmpPath);
   }
+
+  storageCache.set(filePath, json);
 }
 
 const EMPTY_STORAGE = {
@@ -189,11 +210,21 @@ function listBackups(user) {
     .sort((a, b) => b.name.localeCompare(a.name));
 }
 
+// Last snapshot time per user (used by the throttle below)
+const lastBackupAt = new Map();
+
 // Snapshot the current on-disk file before it gets overwritten.
 // Failure here must never block a save, so everything is best-effort.
-function snapshotBackup(user, sourceFile) {
+function snapshotBackup(user, sourceFile, { force = false } = {}) {
   if (BACKUP_KEEP <= 0) return;
   if (!fs.existsSync(sourceFile)) return;
+
+  // Throttle: bursts of saves (color drags, reorders) count as one change,
+  // so they don't rotate the whole backup history away in seconds.
+  const now = Date.now();
+  const last = lastBackupAt.get(user) ?? 0;
+
+  if (!force && now - last < BACKUP_MIN_INTERVAL * 1000) return;
 
   try {
     const dir = getUserBackupDir(user);
@@ -204,6 +235,7 @@ function snapshotBackup(user, sourceFile) {
     const target = path.join(dir, `${stamp}.json`);
 
     fs.copyFileSync(sourceFile, target);
+    lastBackupAt.set(user, now);
 
     // Prune oldest beyond the retention count
     const backups = fs.readdirSync(dir)
@@ -227,10 +259,16 @@ function readStorage(req) {
   const user = getUserFromRequest(req);
   const file = getStorageFile(user);
 
-  ensureUserStorage(file);
-
   try {
-    const raw = fs.readFileSync(file, "utf8").trim();
+    let raw = storageCache.get(file);
+
+    if (raw === undefined) {
+      ensureUserStorage(file);
+      raw = fs.readFileSync(file, "utf8");
+      storageCache.set(file, raw);
+    }
+
+    raw = raw.trim();
     return raw ? JSON.parse(raw) : structuredClone(EMPTY_STORAGE);
   } catch (err) {
     console.error(`Storage read failed for user ${user}:`, err);
@@ -320,8 +358,9 @@ app.post('/api/backups/restore', (req, res) => {
 
   const targetFile = getStorageFile(user);
 
-  // Snapshot current state (so the restore can be undone), then write
-  snapshotBackup(user, targetFile);
+  // Snapshot current state (so the restore can be undone), then write.
+  // Forced: a restore must always be reversible, even mid-throttle-window.
+  snapshotBackup(user, targetFile, { force: true });
 
   try {
     writeJsonAtomic(targetFile, restored);
@@ -396,6 +435,10 @@ app.post('/api/users/:user/rename', (req, res) => {
 
   fs.renameSync(oldFile, newFile);
 
+  const cached = storageCache.get(oldFile);
+  storageCache.delete(oldFile);
+  if (cached !== undefined) storageCache.set(newFile, cached);
+
   // Move the backup folder along with the user (best-effort)
   try {
     const oldBackups = getUserBackupDir(oldUser);
@@ -434,6 +477,7 @@ app.delete('/api/users/:user', (req, res) => {
   }
 
   fs.unlinkSync(file);
+  storageCache.delete(file);
 
   // Remove the user's backups too (best-effort)
   try {
@@ -644,6 +688,42 @@ app.post('/api/dashboards/reorder', (req, res) => {
       data.dashboards[id].order = index;
     }
   });
+
+  commitStorage(req, res, data);
+});
+
+// Apply a theme/background to EVERY dashboard in a single write.
+// Used by the "synchronize appearance" mode: switching a theme is one
+// request and one backup snapshot instead of three round-trips per
+// dashboard (set-active → load → save) from the client.
+app.post('/api/dashboards/appearance', (req, res) => {
+  const { theme, background, customBackgroundId } = req.body ?? {};
+
+  const validValue = v =>
+    v === undefined || v === null ||
+    (typeof v === 'string' && v.length <= 128);
+
+  if (!validValue(theme) || !validValue(background) || !validValue(customBackgroundId)) {
+    return res.status(400).json({ error: 'Invalid appearance payload' });
+  }
+
+  if (theme === undefined && background === undefined && customBackgroundId === undefined) {
+    return res.status(400).json({ error: 'Nothing to apply' });
+  }
+
+  const data = readStorage(req);
+
+  for (const dashboard of Object.values(data.dashboards || {})) {
+    if (!dashboard) continue;
+
+    const appearance = dashboard.appearance ?? {};
+
+    if (theme !== undefined) appearance.theme = theme;
+    if (background !== undefined) appearance.background = background;
+    if (customBackgroundId !== undefined) appearance.customBackgroundId = customBackgroundId;
+
+    dashboard.appearance = appearance;
+  }
 
   commitStorage(req, res, data);
 });

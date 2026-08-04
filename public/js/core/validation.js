@@ -26,15 +26,16 @@ function validateAppearance(prefs) {
   }
 
   // Validate theme
+  // (warnings are plain strings — consumers check warnings.includes('theme'))
   if (!isValidTheme(prefs.appearance.theme)) {
     prefs.appearance.theme = defaults.appearance.theme;
-    warnings.push({ field: 'theme' });
+    warnings.push('theme');
   }
 
   // Validate background
   if (!isValidBackground(prefs.appearance.background)) {
     prefs.appearance.background = defaults.appearance.background;
-    warnings.push({ field: 'background' });
+    warnings.push('background');
   }
 
   return { prefs, warnings };

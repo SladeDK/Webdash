@@ -630,10 +630,10 @@ h1, h2 {
   padding: 0;
 
   image-rendering: auto;
-  transform: translateZ(0);
 
-  /* Better visibility */
-  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+  /* No translateZ/drop-shadow here: each icon would become its own
+     filtered compositor layer, which made dashboards with many
+     buttons noticeably janky for a barely visible 1px shadow. */
 }
 
 /* Slight emphasis on hover */
@@ -3401,9 +3401,11 @@ a:active {
   transform: scale(0.98);
 }
 
-/* Prevent ugly jitter on rapid clicks */
-button,
-.dashboard-item {
+/* `will-change: transform` used to sit on EVERY button here, which
+   permanently promoted the whole UI to individual compositor layers.
+   Scope it to the hovered element instead: the layer is created just
+   before the transform transition runs, and torn down after. */
+.dashboard-item:hover {
   will-change: transform;
 }
 

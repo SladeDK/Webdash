@@ -198,9 +198,14 @@ function getItemsFromCurrentDashboard(ids) {
 
 async function rebuildGlobalItemIndex() {
   const dashboards = await DashboardService.loadAllDashboards();
+  buildGlobalItemIndexFromDashboards(dashboards);
+}
+
+// Build the index from an already-loaded dashboards map (no request)
+function buildGlobalItemIndexFromDashboards(dashboards) {
   const map = new Map();
 
-  for (const dashboard of Object.values(dashboards)) {
+  for (const dashboard of Object.values(dashboards || {})) {
     if (!dashboard?.categories) continue;
 
     for (const category of dashboard.categories) {
@@ -211,6 +216,18 @@ async function rebuildGlobalItemIndex() {
   }
 
   globalItemIndex = map;
+}
+
+// Cheap in-place refresh after edits to the CURRENT dashboard —
+// upserts its items without re-fetching every other dashboard.
+function updateGlobalItemIndexFromCurrentDashboard() {
+  if (!Array.isArray(pageCategories)) return;
+
+  for (const category of pageCategories) {
+    for (const item of category.items ?? []) {
+      globalItemIndex.set(item.id, item);
+    }
+  }
 }
 
 function removeFromFavorites(itemId) {
@@ -299,40 +316,55 @@ function renderQuickAccess(container) {
   container.appendChild(section);
 }
 
-function createFavicon(item, container) {
+// Records a button activation and re-renders ONLY when the recents list
+// actually changed. Clicking a button used to tear down and rebuild the
+// whole dashboard every time, even with recents tracking switched off.
+async function trackItemActivation(itemId) {
+  const changed = await addToRecents(itemId);
+  if (!changed) return;
 
-  // Respect display favicon toggle
-  if (userPreferences?.behavior?.showFavicons === false) return;
+  // Deferred so navigation isn't interrupted by the re-render
+  setTimeout(() => renderCategories(pageCategories), 0);
+}
 
-  const candidates = getFaviconCandidates(item.url);
-
-  if (!candidates.length) return;
-
+function buildFaviconElement(src) {
   const img = new Image();
   img.width = 16;
   img.height = 16;
   img.className = 'item-favicon';
+  img.alt = '';
+  img.setAttribute('aria-hidden', 'true');
+  img.decoding = 'async';
+  img.src = src;
+  return img;
+}
 
-  let currentIndex = 0;
+function createFavicon(item, container) {
+  // Respect display favicon toggle — no probing at all when disabled
+  if (userPreferences?.behavior?.showFavicons === false) return;
 
-  img.onload = () => {
-    container.prepend(img);
-  };
+  const origin = getFaviconOrigin(item.url);
+  if (!origin) return;
 
-  img.onerror = () => {
-    currentIndex++;
+  // Known result → insert (or skip) synchronously, before first paint.
+  // No request, and no layout shift from a late insertion.
+  const cached = getCachedFavicon(origin);
 
-    if (currentIndex >= candidates.length) {
-      console.warn(
-        `Couldn't fetch favicon for "${item.label}" (${item.url})`
-      );
-      return;
-    }
+  if (cached !== undefined) {
+    if (cached) container.prepend(buildFaviconElement(cached));
+    return;
+  }
 
-    img.src = candidates[currentIndex];
-  };
+  // Unknown origin → probe once; concurrent buttons share the result
+  resolveFaviconUrl(item.url).then(src => {
+    if (!src) return;
 
-  img.src = candidates[0];
+    // A re-render may have replaced this node in the meantime
+    if (!container.isConnected) return;
+    if (container.querySelector('.item-favicon')) return;
+
+    container.prepend(buildFaviconElement(src));
+  });
 }
 
 function createQARow(icon, items) {
@@ -374,16 +406,14 @@ function createQARow(icon, items) {
     // Add to recents on click
     link.addEventListener('click', (event) => {
       if (event.button === 0) {
-        addToRecents(item.id);
-        setTimeout(() => renderCategories(pageCategories), 0);
+        trackItemActivation(item.id);
       }
     });
 
     // Middle-click support
     link.addEventListener('auxclick', (event) => {
       if (event.button === 1) {
-        addToRecents(item.id);
-        setTimeout(() => renderCategories(pageCategories), 0);
+        trackItemActivation(item.id);
       }
     });
 
@@ -534,24 +564,14 @@ function renderCategories(categories) {
         link.addEventListener('click', (event) => {
           // Left click only
           if (event.button === 0) {
-            addToRecents(item.id);
-
-            // Delay re-render so navigation is not interrupted
-            setTimeout(() => {
-              renderCategories(pageCategories);
-            }, 0);
+            trackItemActivation(item.id);
           }
         });
 
         link.addEventListener('auxclick', (event) => {
           // Middle click
           if (event.button === 1) {
-            addToRecents(item.id);
-
-            // No need to re-render immediately (tab opens anyway)
-            setTimeout(() => {
-              renderCategories(pageCategories);
-            }, 0);
+            trackItemActivation(item.id);
           }
         });
 

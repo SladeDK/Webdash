@@ -1,4 +1,4 @@
-# WebDash v0.27.0
+# WebDash v1.0.0
 
 A self-hosted, configurable dashboard for organizing services, links, and systems in one place.  
 
@@ -110,11 +110,12 @@ cp .env.example .env
 
 ### Available Variables
 
-| Variable      | Description                              | Default  |
-|---------------|------------------------------------------|----------|
-| `PORT`        | HTTP server port                         | `3000`   |
-| `DATA_PATH`   | Directory for persisted data             | `./data` |
-| `BACKUP_KEEP` | Rolling backups kept per user (0 = off)  | `10`     |
+| Variable              | Description                                        | Default  |
+|-----------------------|----------------------------------------------------|----------|
+| `PORT`                | HTTP server port                                   | `3000`   |
+| `DATA_PATH`           | Directory for persisted data                       | `./data` |
+| `BACKUP_KEEP`         | Rolling backups kept per user (0 = off)            | `10`     |
+| `BACKUP_MIN_INTERVAL` | Min. seconds between backup snapshots per user     | `10`     |
 
 ---
 
@@ -151,6 +152,39 @@ Designed for simplicity while maintaining a structured and scalable architecture
 - If exposed to the internet, use a **reverse proxy with authentication**
 - User names are sanitized server-side and all user-provided text is escaped before rendering
 - Data files are written atomically, so a crash mid-save cannot corrupt existing data
+
+---
+
+## What's New in 1.0.0
+
+WebDash 1.0.0 is the first stable release, focused on performance and making
+the app truly self-contained.
+
+**Performance**
+- **Instant theme & background switching** — visuals apply immediately; persistence happens in the background. Synchronizing appearance across dashboards is now a single request (one write, one backup) instead of three round-trips per dashboard.
+- **Faster startup** — the app boots with 2 API requests instead of ~10; the full system state loads in one call.
+- **Server-side caching** — user data is cached in memory (no disk read per request), and static assets are served with long-lived cache headers.
+- **Lighter edits** — adding/renaming/reordering buttons and categories no longer re-fetches every dashboard or renders the page twice; exports and import previews load all dashboards in one request.
+- **Smaller assets** — the logo went from 301 KB to 14 KB; the accent color picker no longer saves on every drag tick.
+- **Favicons are cached** — icon lookups are resolved once per site and remembered (including "this site has no icon"), instead of re-probing up to 4 URLs per button on *every* re-render. On a 30-button dashboard this removed ~30 network requests per interaction. Turning **Show icons off now does no icon fetching at all.**
+- **Far fewer compositor layers** — every button carried `will-change: transform`, and every favicon a `drop-shadow` filter, permanently promoting dozens of elements to their own GPU layers. Both are gone, which is most noticeable on icon-heavy dashboards and low-powered hosts (Raspberry Pi, NAS).
+- **No pointless re-renders** — clicking a button rebuilt the entire dashboard even when nothing changed (e.g. with recents tracking switched off). It now re-renders only when the recents list actually changes.
+
+**Fully self-hosted, works offline**
+- Font Awesome and the UI fonts (Inter, JetBrains Mono) now ship with WebDash. The previous external font/icon CDNs are gone — after `docker compose up`, WebDash makes **zero external requests** (except optional button favicons).
+- The render-blocking icon script was replaced with plain, cacheable CSS.
+
+**Data safety**
+- Backup snapshots are throttled (`BACKUP_MIN_INTERVAL`, default 10 s) so a burst of rapid changes counts as one change instead of rotating away your entire backup history. Restores still always snapshot first.
+
+**Fixes**
+- Docker Compose port mapping now works when `PORT` is not 3000, and the container healthcheck is back.
+- The OS dark/light mode listener was registered twice; dashboard identity icons no longer force a re-download on every dashboard switch.
+- Opening WebDash in a **background tab** could leave it blank until focused — the page revealed itself on an animation frame, which browsers pause in hidden tabs.
+- An invalid saved theme or background is now actually detected: the reset notice appears and the corrected value is persisted (previously the check silently never matched).
+- Theme and background selection now highlight the correct entry when appearance sync is **off** — they were reading the global setting instead of the dashboard's own.
+- First paint uses the resolved theme, so "System" theme users no longer see a flash of the wrong colours on load.
+- A malformed CSS comment in the Classic UI stylesheet was silently voiding a dropdown styling rule.
 
 ---
 
@@ -211,7 +245,7 @@ MAJOR.MINOR.PATCH
 Example:
 
 ```
-v0.19.0
+v1.0.0
 ```
 
 ### Version Components

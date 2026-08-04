@@ -107,6 +107,23 @@ const DashboardService = {
     const data = await res.json();
     return data.dashboards || {};
   },
+
+  // Full system snapshot in one request:
+  // { dashboards, activeDashboardId, defaultDashboardId }
+  async loadFullState() {
+    const res = await fetch(buildUrl('/api/dashboards/full'));
+    if (!res.ok) return null;
+    return await res.json();
+  },
+
+  // Apply theme/background to every dashboard in a single request
+  async applyAppearanceToAll(appearance) {
+    await fetch(buildUrl('/api/dashboards/appearance'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(appearance)
+    });
+  },
 };
 
 const UserService = {
@@ -163,14 +180,8 @@ const PreferencesService = {
   },
 
   async save(prefs) {
-    localStorage.setItem(
-      'webdash-ui-cache',
-      JSON.stringify({
-        theme: prefs.appearance.theme,
-        background: prefs.appearance.background
-      })
-    );
-
+    // (The pre-paint cache — 'webdash-ui-cache' — is written by
+    // setActiveTheme/setActiveBackground with the RESOLVED values.)
     await fetch(buildUrl('/api/preferences'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

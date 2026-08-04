@@ -48,16 +48,12 @@ function normalizeDashboardOrderList(dashboards) {
 async function commitDashboardChange(context = '') {
   await DashboardService.save(dashboardState);
 
-  await rebuildGlobalItemIndex();
+  // Local mutations only touch the current dashboard — update the
+  // global item index in place instead of re-fetching every dashboard.
+  updateGlobalItemIndexFromCurrentDashboard();
 
   // Re-render dashboard UI
   renderCategories(pageCategories);
-
-  // FORCE QA to refresh correctly
-  requestAnimationFrame(() => {
-    renderCategories(pageCategories);
-  });
-
   renderLayoutEditor(pageCategories);
 
   // Dev-time safety net
@@ -1120,6 +1116,12 @@ function getDashboardDisplayName(dashboardId) {
   if (dashboardState && dashboardState.id === dashboardId) {
     return dashboardState.name || 'WebDash';
   }
+
+  // Non-active dashboards: resolve the display name from metadata
+  // (previously returned the raw id, which broke UI name matching)
+  const meta = availableDashboards.find(d => d.id === dashboardId);
+  if (meta?.name) return meta.name;
+
   return dashboardId === 'default' ? 'WebDash' : dashboardId;
 }
 

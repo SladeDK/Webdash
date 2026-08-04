@@ -702,15 +702,9 @@ function executeCommand(index, event = {}) {
   // Normal commands
   cmd.run();
 
-  // Handle button recents
+  // Handle button recents (re-renders only if the list actually changed)
   if (cmd.id?.startsWith('btn-')) {
-    const buttonId = cmd.id.replace('btn-', '');
-
-    addToRecents?.(buttonId);
-
-    setTimeout(() => {
-      renderCategories?.(pageCategories);
-    }, 0);
+    trackItemActivation?.(cmd.id.replace('btn-', ''));
   }
 
   // Close only for real commands

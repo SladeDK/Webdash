@@ -5,7 +5,9 @@
 	Palette: GitHub Dark-adjacent with electric-blue accent
 	Signature: Service buttons as lit rack ports
 	============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap'); /* ============================================================
+/* Fonts are self-hosted and loaded from index.html
+	(assets/fonts/fonts.css) — no external requests. */
+/* ============================================================
 	1. DESIGN TOKENS
 	============================================================ */
 :root {
@@ -957,7 +959,6 @@ html.identity-ready .header-center {
 	font-weight: 500;
 	cursor: pointer;
 	transition: border-left-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
-	will-change: transform;
 	background: linear-gradient( to bottom, rgba(255,255,255,0.025), rgba(0,0,0,0.08) ), var(--bg-card);
 	border-left-color: var(--accent);
 }
@@ -996,9 +997,10 @@ html.identity-ready .header-center {
   padding: 0;
 
   image-rendering: auto;
-  transform: translateZ(0);
 
-  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+  /* No translateZ/drop-shadow here: each icon would become its own
+     filtered compositor layer, which made dashboards with many
+     buttons noticeably janky for a barely visible 1px shadow. */
 }
 
 /* Slight emphasis on hover */

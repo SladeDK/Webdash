@@ -23,6 +23,9 @@ Thumbs.db
 .idea/
 *.swp
 
+# Claude Code local tooling
+.claude/
+
 # Docker local overrides (optional)
 docker-compose.override.yml
 

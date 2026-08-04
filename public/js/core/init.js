@@ -57,133 +57,6 @@ function setLifecyclePhase(phase) {
   });
 }
 
-async function initializeDashboardState() {
-  let cached = null;
-
-  try {
-    const cachedRaw = localStorage.getItem('webdash-dashboard-cache-v1');
-
-    if (cachedRaw) {
-      const parsed = JSON.parse(cachedRaw);
-
-      if (parsed?.data) {
-        cached = parsed.data;
-      }
-    }
-  } catch (e) {
-    console.warn('[WebDash] Failed to read dashboard cache:', e);
-  }
-
-  // Start API request BUT DO NOT block immediately
-  let savedPromise = null;
-
-  try {
-    savedPromise = DashboardService.load();
-  } catch (e) {
-    console.warn('[WebDash] Failed to start dashboard API request:', e);
-  }
-
-  let saved = null;
-
-  try {
-    // Await API (but cache already loaded in parallel)
-    saved = await savedPromise;
-  } catch (e) {
-    console.warn('[WebDash] Failed to load dashboard from API:', e);
-  }
-
-  // Decide final state
-  const finalState = saved || cached;
-
-  if (finalState) {
-    if (saved) {
-      console.info('[WebDash] Dashboard loaded from API');
-    } else {
-      console.info('[WebDash] Dashboard loaded from cache (SWR fallback)');
-    }
-
-    dashboardState = finalState;
-
-    // ensure dashboardState matches active dashboard
-    if (activeDashboardId && dashboardState?.id !== activeDashboardId) {
-      console.warn('[Init Fix] Syncing dashboardState.id with activeDashboardId');
-
-      // Reload correct state
-      await DashboardService.setActiveDashboardId(activeDashboardId);
-      dashboardState = await DashboardService.load();
-    }
-
-    // Update cache with latest data
-    try {
-      localStorage.setItem(
-        'webdash-dashboard-cache-v1',
-        JSON.stringify({
-          timestamp: Date.now(),
-          data: dashboardState
-        })
-      );
-    } catch (e) {
-      console.warn('[WebDash] Failed to write dashboard cache:', e);
-    }
-
-    return;
-  }
-
-  // Fallback
-  console.info('[WebDash] Using default dashboard state');
-
-  dashboardState = structuredClone(DEFAULT_DASHBOARD_STATE);
-
-  try {
-    localStorage.setItem(
-      'webdash-dashboard-cache-v1',
-      JSON.stringify({
-        timestamp: Date.now(),
-        data: dashboardState
-      })
-    );
-  } catch (e) {
-    console.warn('[WebDash] Failed to write dashboard cache:', e);
-  }
-}
-
-async function refreshDashboardMetadata() {
-  const dashboardsData = await DashboardService.listDashboards();
-
-  availableDashboards = normalizeDashboardOrder(
-    dashboardsData.map(d => ({
-      id: d.id,
-      name: d.name
-    })),
-    availableDashboards
-  );
-
-  const refreshedActiveId = await DashboardService.getActiveDashboardId();
-  const refreshedDefaultId = await DashboardService.getDefaultDashboardId();
-
-  // Validate default first
-  const nextDefaultId =
-    refreshedDefaultId &&
-    availableDashboards.some(d => d.id === refreshedDefaultId)
-      ? refreshedDefaultId
-      : availableDashboards[0]?.id;
-
-  if (nextDefaultId) {
-    setDefaultDashboardId(nextDefaultId, 'refreshDashboardMetadata');
-  }
-
-  // Validate active AFTER default
-  const nextActiveId =
-    refreshedActiveId &&
-    availableDashboards.some(d => d.id === refreshedActiveId)
-      ? refreshedActiveId
-      : nextDefaultId;
-
-  if (nextActiveId) {
-    setActiveDashboardId(nextActiveId, 'refreshDashboardMetadata');
-  }
-}
-
 function normalizeDashboardOrder(dashboards, originalLocal = []) {
   const localMap = new Map(originalLocal.map(d => [d.id, d]));
 
@@ -248,44 +121,52 @@ function normalizeDashboardOrder(dashboards, originalLocal = []) {
 
 async function initApp() {
   // Early cache read (for instant data availability — NO rendering here)
+  let cachedDashboard = null;
+
   try {
     const cachedRaw = localStorage.getItem('webdash-dashboard-cache-v1');
 
     if (cachedRaw) {
       const parsed = JSON.parse(cachedRaw);
 
-      if (parsed?.data?.categories) {
-        console.debug('[WebDash] Preloading categories from cache');
+      if (parsed?.data) {
+        cachedDashboard = parsed.data;
 
-        pageCategories = parsed.data.categories;
+        if (Array.isArray(parsed.data.categories)) {
+          console.debug('[WebDash] Preloading categories from cache');
+          pageCategories = parsed.data.categories;
+        }
       }
     }
   } catch (e) {
     console.warn('[WebDash] Failed to preload cache:', e);
   }
+
   // ----------------------------------
-  // Initial dashboard metadata
+  // Load the FULL system state + preferences in two parallel requests.
+  // (This bootstrap previously took ~9 sequential round-trips.)
   // ----------------------------------
-  const [
-    dashboardsList,
-    activeId,
-    defaultId
-  ] = await Promise.all([
-    DashboardService.listDashboards(),
-    DashboardService.getActiveDashboardId(),
-    DashboardService.getDefaultDashboardId()
+  const [fullState, loadedPreferences] = await Promise.all([
+    DashboardService.loadFullState(),
+    PreferencesService.load()
   ]);
 
+  userPreferences = loadedPreferences;
+  ensureBehaviorDefaults();
+
+  const dashboardsMap = fullState?.dashboards ?? {};
+
   availableDashboards = normalizeDashboardOrder(
-    dashboardsList.map(d => ({
-      id: d.id,
-      name: d.name
+    Object.entries(dashboardsMap).map(([id, d]) => ({
+      id,
+      name: d?.name || 'WebDash',
+      order: d?.order ?? 0
     }))
   );
 
   // Ensure system always has a valid default + active dashboard
-  let nextDefaultDashboardId = defaultId;
-  let nextActiveDashboardId = activeId;
+  let nextDefaultDashboardId = fullState?.defaultDashboardId ?? null;
+  let nextActiveDashboardId = fullState?.activeDashboardId ?? null;
 
   // If no dashboards exist → create one (absolute base invariant)
   if (!availableDashboards.length) {
@@ -300,6 +181,8 @@ async function initApp() {
     });
 
     await DashboardService.save(template);
+
+    dashboardsMap[id] = template;
 
     availableDashboards = [{
       id: template.id,
@@ -343,35 +226,41 @@ async function initApp() {
   appReady = prevAppReady;
 
   // ----------------------------------
-  // Ensure dashboard DATA exists
+  // Hydrate dashboard state from the snapshot (no extra request);
+  // the localStorage copy is a fallback when the API is unavailable.
   // ----------------------------------
-  const dashboardPromise = initializeDashboardState();
-  
-  await Promise.all([
-    dashboardPromise,
-    (async () => {
-      userPreferences = await PreferencesService.load();
-      ensureBehaviorDefaults();
-    })()
-  ]);
+  dashboardState =
+    dashboardsMap[activeDashboardId] ??
+    (cachedDashboard?.id === activeDashboardId ? cachedDashboard : null) ??
+    getDefaultDashboardTemplate({ id: activeDashboardId });
+
+  if (!Array.isArray(dashboardState.categories)) {
+    console.warn('[WebDash] Invalid dashboardState.categories');
+    dashboardState.categories = [];
+  }
+
+  pageCategories = dashboardState.categories;
+
+  // Refresh the local cache with the authoritative state
+  try {
+    localStorage.setItem(
+      'webdash-dashboard-cache-v1',
+      JSON.stringify({
+        timestamp: Date.now(),
+        data: dashboardState
+      })
+    );
+  } catch (e) {
+    console.warn('[WebDash] Failed to write dashboard cache:', e);
+  }
 
   if (userPreferences?.behavior?.storeRecentsAcrossReloads === false) {
     userPreferences.behavior.recents = [];
     await PreferencesService.save(userPreferences);
   }
 
-  if (dashboardState && Array.isArray(dashboardState.categories)) {
-    pageCategories = dashboardState.categories;
-  } else {
-    console.warn('[WebDash] Invalid dashboardState.categories');
-    pageCategories = [];
-  }
-
-  // Re-fetch metadata AFTER initialization,
-  // because initializeDashboardState() can mutate backend state
-  await refreshDashboardMetadata();
   setLifecyclePhase(LifecyclePhase.DASHBOARDS_LOADED);
-  
+
   // ----------------------------------
   // Preferences
   // ----------------------------------
@@ -466,17 +355,7 @@ async function initApp() {
     });
   }
 
-  if (!window._themeMediaListenerAdded) {
-    window._themeMediaListenerAdded = true;
-
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      if (userPreferences.appearance.theme === 'system') {
-        setActiveTheme('system');
-
-        updateThemeSelectionUI('system');
-      }
-    });
-  }
+  // (OS theme changes are handled in preferences.lifecycle.js)
 
   // ----------------------------------
   // Render
@@ -488,7 +367,9 @@ async function initApp() {
 
   document.body.classList.add('categories-initialized');
 
-  await rebuildGlobalItemIndex();
+  // Build the cross-dashboard item index from the snapshot we already
+  // loaded — no extra request needed.
+  buildGlobalItemIndexFromDashboards(dashboardsMap);
 
   renderCategories(pageCategories);
   renderLayoutEditor(pageCategories);
@@ -505,7 +386,21 @@ async function initApp() {
   initializeDashboardUIBindings();
   initializeButtonEditorBindings();
 
-  requestAnimationFrame(() => {
+  revealApp();
+}
+
+// The app starts hidden (visibility:hidden + .preload) to avoid a
+// flash of unstyled content. Reveal on the next frame so styles settle
+// first — but rAF is paused in background tabs, and a startpage is very
+// often opened in one. The timeout guarantees the page is revealed even
+// if no frame is ever painted.
+function revealApp() {
+  let revealed = false;
+
+  const reveal = () => {
+    if (revealed) return;
+    revealed = true;
+
     const root = document.documentElement;
 
     root.style.visibility = 'visible';
@@ -513,7 +408,10 @@ async function initApp() {
 
     document.body.classList.remove('app-loading');
     document.body.classList.add('app-ready');
-  });
+  };
+
+  requestAnimationFrame(reveal);
+  setTimeout(reveal, 100);
 }
 
 // =====================================================
@@ -699,28 +597,26 @@ async function applySystemState({
 async function syncAppearanceToAllDashboards() {
   if (!dashboardState || !availableDashboards.length) return;
 
-  const currentTheme = userPreferences.appearance.theme;
-  const currentBackground = userPreferences.appearance.background;
+  const appearance = {
+    theme: userPreferences.appearance.theme,
+    background: userPreferences.appearance.background
+  };
 
-  const originalActiveId = activeDashboardId;
-
-  for (const { id } of availableDashboards) {
-    if (id === originalActiveId) continue;
-
-    await DashboardService.setActiveDashboardId(id);
-    const state = await DashboardService.load();
-    if (!state) continue;
-
-    state.appearance = {
-      theme: currentTheme,
-      background: currentBackground
-    };
-
-    await DashboardService.save(state);
+  if (userPreferences.appearance.customBackgroundId != null) {
+    appearance.customBackgroundId =
+      userPreferences.appearance.customBackgroundId;
   }
 
-  // Restore original dashboard
-  await DashboardService.setActiveDashboardId(originalActiveId);
+  // Keep the active dashboard's in-memory state consistent with what
+  // the server just wrote to every dashboard.
+  dashboardState.appearance = {
+    ...dashboardState.appearance,
+    ...appearance
+  };
+
+  // One request updates every dashboard server-side (single write +
+  // single backup) instead of set-active/load/save per dashboard.
+  await DashboardService.applyAppearanceToAll(appearance);
 }
 
 async function resetDashboard(dashboardId = activeDashboardId) {
@@ -930,23 +826,15 @@ function buildImportChangePlan(payload, mode) {
 }
 
 async function buildPreviewContext(payload, mode) {
-  // Preserve current active dashboard
-  const originalActiveId = activeDashboardId;
-
-  // Load ALL local dashboards into a snapshot map
+  // Load ALL local dashboards into a snapshot map (single request)
+  const allDashboards = await DashboardService.loadAllDashboards();
   const localDashboardStates = new Map();
 
   for (const { id } of availableDashboards) {
-    await DashboardService.setActiveDashboardId(id);
-    const state = await DashboardService.load();
+    const state = allDashboards[id];
     if (state) {
       localDashboardStates.set(id, structuredClone(state));
     }
-  }
-
-  // Restore original active dashboard
-  if (originalActiveId) {
-    await DashboardService.setActiveDashboardId(originalActiveId);
   }
 
   // Build a complete change plan using snapshots
@@ -1142,13 +1030,19 @@ async function mergeSystemImport(payload, replacePreferences) {
     availableDashboards.map(d => [d.id, d])
   );
 
+  // Snapshot all local dashboards once instead of per-dashboard loads
+  const allLocalStates = await DashboardService.loadAllDashboards();
+
   for (const importedRaw of payload.dashboards) {
     const imported = normalizeImportedDashboard(importedRaw);
     if (localDashboards.has(imported.id)) {
       importSummary.dashboardsMerged++;
 
-      await DashboardService.setActiveDashboardId(imported.id);
-      const localState = await DashboardService.load();
+      const localState = allLocalStates[imported.id] ?? {
+        id: imported.id,
+        name: imported.name,
+        categories: []
+      };
 
       const mergedCategories = mergeCategories(
         localState.categories,

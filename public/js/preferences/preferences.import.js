@@ -22,9 +22,6 @@
 //
 
 
-// TODO: validateAppearance does not consistently return warnings for invalid values.
-// Warning toasts may not fire as expected. Investigate after system stabilization.
-
 // ======================================================================
 // Import Utilities
 // ======================================================================
@@ -108,15 +105,11 @@ async function exportSystem() {
 
     const originalActiveId = activeDashboardId;
 
-    for (const { id } of availableDashboards) {
-      let state;
+    // Load every dashboard in a single request
+    const allDashboards = await DashboardService.loadAllDashboards();
 
-      try {
-        state = await DashboardService.loadDashboardById(id);
-      } catch (err) {
-        console.warn('[WebDash] Failed to load dashboard during export', id, err);
-        continue;
-      }
+    for (const { id } of availableDashboards) {
+      const state = allDashboards[id];
 
       if (!state) continue;
 
@@ -153,10 +146,6 @@ async function exportSystem() {
 
         categories
       });
-    }
-
-    if (originalActiveId) {
-      await DashboardService.setActiveDashboardId(originalActiveId);
     }
 
     const exportPayload = {
@@ -931,29 +920,9 @@ function showImportSuccess(summary, warnings = []) {
     });
   }
   
-  // Force immediate UI sync
-
-  // Apply global preferences
-  setActiveTheme(userPreferences.appearance.theme);
-  setActiveBackground(userPreferences.appearance.background);
-
-  // Re-apply active dashboard appearance if applicable
-  if (activeDashboardId) {
-    const activeDashboard = availableDashboards.find(
-      d => d.id === activeDashboardId
-    );
-
-    if (activeDashboard) {
-      DashboardService.setActiveDashboardId(activeDashboard.id)
-        .then(() => DashboardService.load())
-        .then(state => {
-          if (state?.appearance) {
-            setActiveTheme(state.appearance.theme ?? userPreferences.appearance.theme);
-            setActiveBackground(state.appearance.background ?? userPreferences.appearance.background);
-          }
-        });
-    }
-  }
+  // Force immediate UI sync — initApp() already re-hydrated
+  // dashboardState, so appearance comes from in-memory state.
+  applyDashboardAppearance();
 
   // Sync UI safely
   if (typeof syncThemeCards === 'function') syncThemeCards();

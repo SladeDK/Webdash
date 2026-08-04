@@ -1,8 +1,12 @@
 node_modules
+server/node_modules
 npm-debug.log
 .git
 .gitignore
 Dockerfile
+dockerfile
 docker-compose.yml
 .env
 data
+.claude
+work-files

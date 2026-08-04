@@ -39,15 +39,19 @@
       }
     </style>
 
+    <!-- FONTS (self-hosted — no external requests, works offline) -->
+    <link rel="preload" as="font" type="font/woff2" href="assets/fonts/webfonts/font-6.woff2" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" href="assets/fonts/fontawesome/webfonts/fa-solid-900.woff2" crossorigin>
+    <link rel="stylesheet" href="assets/fonts/fonts.css">
+
     <!-- CSS -->
     <link rel="stylesheet" href="style.css" id="main-style"/>
     <link rel="stylesheet" href="classic.css" id="classic-style" disabled>
 
-    <!-- PRELOAD FONTAWESOME (reduces icon flicker) -->
-    <link rel="preload" as="script" href="https://kit.fontawesome.com/782d4dd7ab.js" crossorigin="anonymous">
-
-    <!-- FONTAWESOME -->
-    <script src="https://kit.fontawesome.com/782d4dd7ab.js" crossorigin="anonymous"></script>
+    <!-- FONTAWESOME (self-hosted) -->
+    <link rel="stylesheet" href="assets/fonts/fontawesome/css/fontawesome.min.css">
+    <link rel="stylesheet" href="assets/fonts/fontawesome/css/solid.min.css">
+    <link rel="stylesheet" href="assets/fonts/fontawesome/css/regular.min.css">
 
     <!-- CORE SYSTEM -->
     <script src="js/core/state.js" defer></script>

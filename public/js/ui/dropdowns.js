@@ -99,9 +99,7 @@ function renderThemeDropdown() {
     menu.appendChild(header);
   }
 
-  const currentTheme =
-    userPreferences?.appearance?.theme ??
-    dashboardState?.appearance?.theme;
+  const currentTheme = getEffectiveAppearance().theme;
 
   THEMES.forEach(theme => {
     const btn = document.createElement('button');

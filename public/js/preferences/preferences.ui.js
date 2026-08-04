@@ -472,15 +472,24 @@ function syncAccentColorInput() {
   const input = document.getElementById('accent-color-input');
   const resetBtn = document.getElementById('accent-color-reset');
 
+  // The color picker fires `input` continuously while dragging —
+  // apply the color instantly but debounce the save round-trips.
+  let accentSaveTimer = null;
+
   if (input && !input._wired) {
     input._wired = true;
 
-    input.addEventListener('input', async () => {
+    input.addEventListener('input', () => {
       if (!userPreferences.appearance) userPreferences.appearance = {};
       userPreferences.appearance.accent = input.value;
 
       applyAccentColor();
-      await PreferencesService.save(userPreferences);
+
+      clearTimeout(accentSaveTimer);
+      accentSaveTimer = setTimeout(() => {
+        accentSaveTimer = null;
+        PreferencesService.save(userPreferences);
+      }, 400);
     });
   }
 
@@ -488,6 +497,9 @@ function syncAccentColorInput() {
     resetBtn._wired = true;
 
     resetBtn.addEventListener('click', async () => {
+      clearTimeout(accentSaveTimer);
+      accentSaveTimer = null;
+
       if (userPreferences.appearance) {
         delete userPreferences.appearance.accent;
       }
@@ -599,21 +611,26 @@ async function selectCustomBackground(id) {
 
   if (syncOn) {
     userPreferences.appearance.background = 'bg-custom';
-    await PreferencesService.save(userPreferences);
-    await syncAppearanceToAllDashboards();
   } else {
     if (!dashboardState.appearance) dashboardState.appearance = {};
     dashboardState.appearance.customBackgroundId = id;
     dashboardState.appearance.background = 'bg-custom';
-    await DashboardService.save(dashboardState);
-    await PreferencesService.save(userPreferences);
   }
 
+  // Apply visuals immediately, then persist in the background
   applyDashboardAppearance();
   applyCustomBackgroundImage();
   updateBackgroundSelectionUI('bg-custom');
   renderBackgroundGrid();
   syncThemeRadios?.();
+
+  if (syncOn) {
+    await PreferencesService.save(userPreferences);
+    await syncAppearanceToAllDashboards();
+  } else {
+    await DashboardService.save(dashboardState);
+    await PreferencesService.save(userPreferences);
+  }
 }
 
 // Remove a stored custom background. If it was the active one, fall back
@@ -967,6 +984,8 @@ async function handleAppearanceChange({ theme, background }) {
   const isSyncOn =
     userPreferences?.behavior?.syncDashboardAppearance !== false;
 
+  // Update state and apply visuals FIRST — the switch is instant and
+  // never waits on persistence round-trips.
   if (isSyncOn) {
     if (theme !== undefined) {
       userPreferences.appearance.theme = theme;
@@ -975,9 +994,6 @@ async function handleAppearanceChange({ theme, background }) {
     if (background !== undefined) {
       userPreferences.appearance.background = background;
     }
-
-    await PreferencesService.save(userPreferences);
-    await syncAppearanceToAllDashboards();
   } else {
     if (!dashboardState.appearance) {
       dashboardState.appearance = {};
@@ -990,8 +1006,6 @@ async function handleAppearanceChange({ theme, background }) {
     if (background !== undefined) {
       dashboardState.appearance.background = background;
     }
-
-    await DashboardService.save(dashboardState);
   }
 
   applyDashboardAppearance();
@@ -1005,6 +1019,14 @@ async function handleAppearanceChange({ theme, background }) {
   }
 
   syncThemeRadios?.();
+
+  // Persist in the background
+  if (isSyncOn) {
+    await PreferencesService.save(userPreferences);
+    await syncAppearanceToAllDashboards();
+  } else {
+    await DashboardService.save(dashboardState);
+  }
 }
 
 function renderThemeGrid() {
@@ -1032,9 +1054,7 @@ function renderThemeGrid() {
     btn.appendChild(preview);
     btn.appendChild(label);
 
-    const currentTheme =
-      userPreferences?.appearance?.theme ??
-      dashboardState?.appearance?.theme;
+    const currentTheme = getEffectiveAppearance().theme;
 
     if (theme.id === currentTheme) {
       btn.classList.add('active');
@@ -1062,9 +1082,7 @@ function renderBackgroundGrid() {
 
   grid.innerHTML = '';
 
-  const currentBackground =
-    userPreferences?.appearance?.background ??
-    dashboardState?.appearance?.background;
+  const currentBackground = getEffectiveAppearance().background;
 
   const debugOn = userPreferences?.behavior?.debugMode;
 
