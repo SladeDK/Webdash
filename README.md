@@ -51,7 +51,7 @@ WebDash uses a data-driven preferences system that controls user behavior and ap
 This system allows new features to be added without tightly coupling logic to the UI, keeping the codebase scalable and maintainable.
 
 ---
-## Quick Start (Docker – Recommended)
+## Quick Start (Docker - Recommended)
 
 ### Prerequisites
 - Docker
