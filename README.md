@@ -4,7 +4,7 @@ A self-hosted, configurable dashboard for organizing services, links, and system
 
 WebDash is designed to be simple, flexible, and fully under your control while still providing a polished, modern user experience. It runs locally with no external dependencies and works equally well on personal machines, homelabs, NAS devices, and VPS setups.
 
-The interface is desktop-first but fully responsive: the layout scales continuously from a phone in portrait to an ultrawide monitor, and every feature — including drag-and-drop reordering and the command palette — works on touch.
+The interface is desktop-first but fully responsive: the layout scales continuously from a phone in portrait to an ultrawide monitor, and every feature - including drag-and-drop reordering and the command palette - works on touch.
 
 The system is built around a modular preferences and layout architecture, allowing users to customize behavior, appearance, and structure without complexity.
 
@@ -162,25 +162,25 @@ Designed for simplicity while maintaining a structured and scalable architecture
 ## What's New in 1.1.0
 
 WebDash 1.1.0 makes the interface adapt to whatever it's opened on. WebDash
-remains desktop-first — nothing about the desktop experience was traded away to
-get here — but phones, tablets and ultrawide monitors are now first-class.
+remains desktop-first - nothing about the desktop experience was traded away to
+get here - but phones, tablets and ultrawide monitors are now first-class.
 
 **Responsive everywhere**
 - **The layout is now fluid, not fixed.** Spacing, content width, the search field, the clock and the dashboard title all scale continuously with the window instead of being pinned to a single set of pixel values. Resizing or snapping a window to half the screen no longer leaves the UI awkwardly proportioned.
-- **Large displays use the space.** Content previously stopped at 1280px wide no matter the monitor — on a 2560px screen that meant 640px of empty gutter each side. It now grows to 1800px, showing 7 button columns instead of 5.
+- **Large displays use the space.** Content previously stopped at 1280px wide no matter the monitor - on a 2560px screen that meant 640px of empty gutter each side. It now grows to 1800px, showing 7 button columns instead of 5.
 - **Dialogs are sized sensibly at any width.** The preferences window was a fixed 1000px: on a ~1050px window that filled 96% of the screen with 21px margins, and on an ultrawide it looked lost. It now tracks the window between 320px and 1200px.
 
 **Mobile**
 - **No more sideways scrolling.** The header's three fixed groups overflowed a 375px screen, pushing the settings button off the edge.
-- **Denser, more readable dashboards.** Reclaimed horizontal padding that only made sense in a multi-column grid, plus tighter vertical rhythm — about 218px shorter over a five-category dashboard, buttons 36px wider, and more links visible per screen.
+- **Denser, more readable dashboards.** Reclaimed horizontal padding that only made sense in a multi-column grid, plus tighter vertical rhythm - about 218px shorter over a five-category dashboard, buttons 36px wider, and more links visible per screen.
 - **Touch-sized controls.** Buttons, category headings, dropdown entries, dialog fields and dialog actions now meet the 44px minimum. Text inputs are 16px so iOS Safari no longer zooms the page when you focus them.
 - **A sticky header**, so the dashboard switcher, themes and settings stay reachable without scrolling back to the top.
 - **Preferences becomes a full-screen sheet** with its sidebar as a horizontal strip; previously the settings pane was squeezed to 122px wide and its contents overflowed off-screen.
-- **Landscape phones are handled.** A phone on its side is over 800px wide, so it previously fell through to the full desktop layout — including the sub-16px inputs that trigger zoom-on-focus.
+- **Landscape phones are handled.** A phone on its side is over 800px wide, so it previously fell through to the full desktop layout - including the sub-16px inputs that trigger zoom-on-focus.
 - Safe-area insets are respected on notched devices, and the tap highlight and double-tap-zoom delay are gone from controls.
 
 **Touch support**
-- **Reordering now works on touch.** Dashboards, categories, buttons and Quick Access favorites all reordered via HTML5 drag-and-drop, which never fires from touch input — meaning reordering was simply impossible on a phone. A long press now starts a drag, with a preview that follows your finger. Scrolling and tapping are unaffected, and mouse input still uses the native path.
+- **Reordering now works on touch.** Dashboards, categories, buttons and Quick Access favorites all reordered via HTML5 drag-and-drop, which never fires from touch input - meaning reordering was simply impossible on a phone. A long press now starts a drag, with a preview that follows your finger. Scrolling and tapping are unaffected, and mouse input still uses the native path.
 - **The command palette is reachable on touch.** It was bound solely to `Ctrl`/`Cmd`+`K`, so on a phone there was no way to open it. A search button now appears in the header on touch devices.
 
 **Fixes**
@@ -198,17 +198,17 @@ WebDash 1.0.0 is the first stable release, focused on performance and making
 the app truly self-contained.
 
 **Performance**
-- **Instant theme & background switching** — visuals apply immediately; persistence happens in the background. Synchronizing appearance across dashboards is now a single request (one write, one backup) instead of three round-trips per dashboard.
-- **Faster startup** — the app boots with 2 API requests instead of ~10; the full system state loads in one call.
-- **Server-side caching** — user data is cached in memory (no disk read per request), and static assets are served with long-lived cache headers.
-- **Lighter edits** — adding/renaming/reordering buttons and categories no longer re-fetches every dashboard or renders the page twice; exports and import previews load all dashboards in one request.
-- **Smaller assets** — the logo went from 301 KB to 14 KB; the accent color picker no longer saves on every drag tick.
-- **Favicons are cached** — icon lookups are resolved once per site and remembered (including "this site has no icon"), instead of re-probing up to 4 URLs per button on *every* re-render. On a 30-button dashboard this removed ~30 network requests per interaction. Turning **Show icons off now does no icon fetching at all.**
-- **Far fewer compositor layers** — every button carried `will-change: transform`, and every favicon a `drop-shadow` filter, permanently promoting dozens of elements to their own GPU layers. Both are gone, which is most noticeable on icon-heavy dashboards and low-powered hosts (Raspberry Pi, NAS).
-- **No pointless re-renders** — clicking a button rebuilt the entire dashboard even when nothing changed (e.g. with recents tracking switched off). It now re-renders only when the recents list actually changes.
+- **Instant theme & background switching** - visuals apply immediately; persistence happens in the background. Synchronizing appearance across dashboards is now a single request (one write, one backup) instead of three round-trips per dashboard.
+- **Faster startup** - the app boots with 2 API requests instead of ~10; the full system state loads in one call.
+- **Server-side caching** - user data is cached in memory (no disk read per request), and static assets are served with long-lived cache headers.
+- **Lighter edits** - adding/renaming/reordering buttons and categories no longer re-fetches every dashboard or renders the page twice; exports and import previews load all dashboards in one request.
+- **Smaller assets** - the logo went from 301 KB to 14 KB; the accent color picker no longer saves on every drag tick.
+- **Favicons are cached** - icon lookups are resolved once per site and remembered (including "this site has no icon"), instead of re-probing up to 4 URLs per button on *every* re-render. On a 30-button dashboard this removed ~30 network requests per interaction. Turning **Show icons off now does no icon fetching at all.**
+- **Far fewer compositor layers** - every button carried `will-change: transform`, and every favicon a `drop-shadow` filter, permanently promoting dozens of elements to their own GPU layers. Both are gone, which is most noticeable on icon-heavy dashboards and low-powered hosts (Raspberry Pi, NAS).
+- **No pointless re-renders** - clicking a button rebuilt the entire dashboard even when nothing changed (e.g. with recents tracking switched off). It now re-renders only when the recents list actually changes.
 
 **Fully self-hosted, works offline**
-- Font Awesome and the UI fonts (Inter, JetBrains Mono) now ship with WebDash. The previous external font/icon CDNs are gone — after `docker compose up`, WebDash makes **zero external requests** (except optional button favicons).
+- Font Awesome and the UI fonts (Inter, JetBrains Mono) now ship with WebDash. The previous external font/icon CDNs are gone - after `docker compose up`, WebDash makes **zero external requests** (except optional button favicons).
 - The render-blocking icon script was replaced with plain, cacheable CSS.
 
 **Data safety**
@@ -217,9 +217,9 @@ the app truly self-contained.
 **Fixes**
 - Docker Compose port mapping now works when `PORT` is not 3000, and the container healthcheck is back.
 - The OS dark/light mode listener was registered twice; dashboard identity icons no longer force a re-download on every dashboard switch.
-- Opening WebDash in a **background tab** could leave it blank until focused — the page revealed itself on an animation frame, which browsers pause in hidden tabs.
+- Opening WebDash in a **background tab** could leave it blank until focused - the page revealed itself on an animation frame, which browsers pause in hidden tabs.
 - An invalid saved theme or background is now actually detected: the reset notice appears and the corrected value is persisted (previously the check silently never matched).
-- Theme and background selection now highlight the correct entry when appearance sync is **off** — they were reading the global setting instead of the dashboard's own.
+- Theme and background selection now highlight the correct entry when appearance sync is **off** - they were reading the global setting instead of the dashboard's own.
 - First paint uses the resolved theme, so "System" theme users no longer see a flash of the wrong colours on load.
 - A malformed CSS comment in the Classic UI stylesheet was silently voiding a dropdown styling rule.
 
@@ -228,22 +228,22 @@ the app truly self-contained.
 ## What's New in 0.27.0
 
 **Data safety**
-- **Rolling backups**: the server snapshots your data before every change (last 10 kept, configurable via `BACKUP_KEEP`). Restore any snapshot from Data Management — and because restoring itself takes a backup first, it's always reversible.
+- **Rolling backups**: the server snapshots your data before every change (last 10 kept, configurable via `BACKUP_KEEP`). Restore any snapshot from Data Management - and because restoring itself takes a backup first, it's always reversible.
 - **Undo** on button and category deletion, straight from the toast.
 
 **Productivity**
 - **Duplicate** any button, category, or dashboard with one click.
-- **Collapsible categories** (toggle) — fold sections on large dashboards; state is remembered per dashboard.
+- **Collapsible categories** (toggle) - fold sections on large dashboards; state is remembered per dashboard.
 - **Drag buttons between categories**, not just within them.
-- **Per-dashboard export/import** — share or move a single dashboard; imports are auto-detected and added as new.
-- **Smarter search** — fuzzy matching (`plx` → Plex), matches URLs, and Enter opens the top hit.
+- **Per-dashboard export/import** - share or move a single dashboard; imports are auto-detected and added as new.
+- **Smarter search** - fuzzy matching (`plx` → Plex), matches URLs, and Enter opens the top hit.
 
 **Personalization**
 - **Clock & greeting** widget (toggle).
 - **Compact mode** (toggle) for a denser layout.
-- **Custom accent color** — recolor the whole UI, with reset.
-- **Custom background image** — upload your own wallpaper.
-- **Button descriptions** (toggle) — optional subtitles on buttons.
+- **Custom accent color** - recolor the whole UI, with reset.
+- **Custom background image** - upload your own wallpaper.
+- **Button descriptions** (toggle) - optional subtitles on buttons.
 
 ---
 
