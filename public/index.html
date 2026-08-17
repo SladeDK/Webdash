@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover is required for env(safe-area-inset-*) to resolve on notched devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>WebDash</title>
 
     <link rel="icon" href="assets/webdash-logo.png" />
@@ -67,6 +68,7 @@
     <script src="js/ui/modals.js" defer></script>
     <script src="js/interactions/command-palette.js" defer></script>
     <script src="js/interactions/keyboard.js" defer></script>
+    <script src="js/interactions/drag-drop.js" defer></script>
 
     <!-- PREFERENCES -->
     <script src="js/preferences/preferences.state.js" defer></script>
@@ -121,13 +123,24 @@
       </div>
 
       <div class="header-right dropdown">
-        <button 
-          class="dropdown-btn"
+        <button
+          class="dropdown-btn themes-btn"
           aria-haspopup="true"
           aria-expanded="false"
           type="button"
           >
           <i class="fa-solid fa-paint-brush"></i> Themes
+        </button>
+
+        <!-- Touch-only entry point to the command palette, which is otherwise
+             reachable solely via Ctrl/Cmd+K. Hidden on desktop by CSS. -->
+        <button
+          id="command-button"
+          class="dropdown-btn touch-only"
+          aria-label="Open command palette"
+          type="button"
+        >
+          <span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span>
         </button>
 
         <button

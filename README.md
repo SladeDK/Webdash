@@ -1,8 +1,10 @@
-# WebDash v1.0.0
+# WebDash v1.1.0
 
 A self-hosted, configurable dashboard for organizing services, links, and systems in one place.  
 
 WebDash is designed to be simple, flexible, and fully under your control while still providing a polished, modern user experience. It runs locally with no external dependencies and works equally well on personal machines, homelabs, NAS devices, and VPS setups.
+
+The interface is desktop-first but fully responsive: the layout scales continuously from a phone in portrait to an ultrawide monitor, and every feature — including drag-and-drop reordering and the command palette — works on touch.
 
 The system is built around a modular preferences and layout architecture, allowing users to customize behavior, appearance, and structure without complexity.
 
@@ -12,9 +14,11 @@ The system is built around a modular preferences and layout architecture, allowi
 
 - Multiple dashboards with independent layouts and appearance
 - Custom categories and service buttons
-- Drag-and-drop layout editor for categories and buttons
+- Drag-and-drop layout editor for categories and buttons (mouse and touch)
+- Responsive layout that scales from phones to ultrawide displays
 - Global and per-dashboard appearance system (themes & backgrounds)
 - Quick Access system with favorites and recents
+- Command palette for jumping to any service or setting
 - Advanced behavior settings and user preferences
 - Data-driven toggle system for configurable features
 - Import and export of full system backups
@@ -152,6 +156,39 @@ Designed for simplicity while maintaining a structured and scalable architecture
 - If exposed to the internet, use a **reverse proxy with authentication**
 - User names are sanitized server-side and all user-provided text is escaped before rendering
 - Data files are written atomically, so a crash mid-save cannot corrupt existing data
+
+---
+
+## What's New in 1.1.0
+
+WebDash 1.1.0 makes the interface adapt to whatever it's opened on. WebDash
+remains desktop-first — nothing about the desktop experience was traded away to
+get here — but phones, tablets and ultrawide monitors are now first-class.
+
+**Responsive everywhere**
+- **The layout is now fluid, not fixed.** Spacing, content width, the search field, the clock and the dashboard title all scale continuously with the window instead of being pinned to a single set of pixel values. Resizing or snapping a window to half the screen no longer leaves the UI awkwardly proportioned.
+- **Large displays use the space.** Content previously stopped at 1280px wide no matter the monitor — on a 2560px screen that meant 640px of empty gutter each side. It now grows to 1800px, showing 7 button columns instead of 5.
+- **Dialogs are sized sensibly at any width.** The preferences window was a fixed 1000px: on a ~1050px window that filled 96% of the screen with 21px margins, and on an ultrawide it looked lost. It now tracks the window between 320px and 1200px.
+
+**Mobile**
+- **No more sideways scrolling.** The header's three fixed groups overflowed a 375px screen, pushing the settings button off the edge.
+- **Denser, more readable dashboards.** Reclaimed horizontal padding that only made sense in a multi-column grid, plus tighter vertical rhythm — about 218px shorter over a five-category dashboard, buttons 36px wider, and more links visible per screen.
+- **Touch-sized controls.** Buttons, category headings, dropdown entries, dialog fields and dialog actions now meet the 44px minimum. Text inputs are 16px so iOS Safari no longer zooms the page when you focus them.
+- **A sticky header**, so the dashboard switcher, themes and settings stay reachable without scrolling back to the top.
+- **Preferences becomes a full-screen sheet** with its sidebar as a horizontal strip; previously the settings pane was squeezed to 122px wide and its contents overflowed off-screen.
+- **Landscape phones are handled.** A phone on its side is over 800px wide, so it previously fell through to the full desktop layout — including the sub-16px inputs that trigger zoom-on-focus.
+- Safe-area insets are respected on notched devices, and the tap highlight and double-tap-zoom delay are gone from controls.
+
+**Touch support**
+- **Reordering now works on touch.** Dashboards, categories, buttons and Quick Access favorites all reordered via HTML5 drag-and-drop, which never fires from touch input — meaning reordering was simply impossible on a phone. A long press now starts a drag, with a preview that follows your finger. Scrolling and tapping are unaffected, and mouse input still uses the native path.
+- **The command palette is reachable on touch.** It was bound solely to `Ctrl`/`Cmd`+`K`, so on a phone there was no way to open it. A search button now appears in the header on touch devices.
+
+**Fixes**
+- **Modals were positioned against the page instead of the window.** A leftover `filter` on `<body>` made it the containing block for fixed-position elements, so every modal and the command palette were centred in the whole document. On desktop that pushed the preferences window partly below the fold; on a long mobile page it opened roughly 1100px past the bottom of the screen.
+- Custom background delete buttons were invisible on touch (revealed on hover only), as were the category collapse chevron and the dashboard icon overlay.
+- The button editor and the create/edit user dialogs no longer stretch edge-to-edge on phones with their fields flush against the screen edge.
+
+Both the default and Classic UI stylesheets received all of the above.
 
 ---
 

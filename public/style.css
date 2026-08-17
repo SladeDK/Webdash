@@ -62,9 +62,15 @@
 	--shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
 	--shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
 	--shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.5);
-	/* Layout */
+	/* Layout — fluid, so the UI tracks the window at every size rather than
+	   snapping at breakpoints. Each clamp is tuned to land on the historical
+	   fixed value at ~1280px, then keep scaling either side of it.
+	   Below ~1455px the container is full-width (as before); above it grows
+	   to 1800px so an ultrawide isn't 50% empty gutter. */
 	--header-height: 56px;
-	--content-max: 1280px;
+	--content-max: clamp(1280px, 88vw, 1800px);
+	--gutter-x: clamp(16px, 1.9vw, 32px);
+	--gutter-y: clamp(20px, 3.1vw, 40px);
 	/* Dropdown tokens */
 	--dropdown-bg: var(--bg-card);
 	--dropdown-hover: var(--bg-control-hover);
@@ -555,7 +561,7 @@ html.theme-light::before {
 	display: grid;
 	grid-template-columns: 1fr auto 1fr;
 	align-items: center;
-	padding: 0 20px;
+	padding: 0 clamp(12px, 1.6vw, 24px);
 	height: var(--header-height);
 	background: var(--bg-header);
 	border-bottom: 1px solid var(--border-color);
@@ -603,7 +609,7 @@ html.identity-ready .header-center {
 }
 
 .header h1 {
-	font-size: 18px;
+	font-size: clamp(15px, 1.4vw, 20px);
 	font-weight: 600;
 	color: var(--text-main);
 	margin: 0;
@@ -842,7 +848,7 @@ html.identity-ready .header-center {
 .container {
 	max-width: var(--content-max);
 	margin: 0 auto;
-	padding: 40px 24px 56px;
+	padding: var(--gutter-y) var(--gutter-x) 56px;
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
@@ -857,7 +863,7 @@ html.identity-ready .header-center {
 
 #service-search {
 	width: 100%;
-	max-width: 340px;
+	max-width: clamp(280px, 27vw, 480px);
 	height: 30px;
 	padding: 0 12px;
 	background: var(--bg-control);
@@ -1147,9 +1153,13 @@ html.identity-ready .header-center {
 }
 
 .modal {
-	width: 1000px;
+	/* Fluid rather than a fixed 1000px: at 1050px wide that was 96% of the
+	   viewport (21px margins, visibly cramped); on a 2560px screen it was
+	   39% and looked lost. This tracks the window and still lands on ~1000px
+	   at 1280px wide. Per-dialog max-width rules (480px etc.) still win. */
+	width: clamp(320px, 78vw, 1200px);
 	max-width: 95vw;
-	height: 800px;
+	height: min(800px, 85vh);
 	max-height: 85vh;
 	background: var(--bg-card);
 	border: 1px solid var(--border-color);
@@ -3137,9 +3147,13 @@ html.preload * {
   animation: none !important;
 }
 
+/* `filter: none` — NOT `blur(0)`. Any filter value other than `none` makes
+   body the containing block for fixed-position descendants, which would size
+   every .modal-overlay to the document instead of the viewport. Interpolation
+   still fades correctly: blur(6px) -> none animates as blur(6px) -> blur(0). */
 body.app-ready {
 	opacity: 1;
-	filter: blur(0);
+	filter: none;
 	transition: opacity 140ms ease, filter 180ms ease;
 }
 
@@ -3273,7 +3287,7 @@ html.transitioning body *, html.transitioning body {
 
 .dashboard-clock .clock-time {
 	font-family: var(--font-ui);
-	font-size: 40px;
+	font-size: clamp(28px, 3.1vw, 46px);
 	font-weight: 600;
 	line-height: 1;
 	letter-spacing: 0.01em;
@@ -3531,4 +3545,433 @@ html.bg-custom::before {
 	border-radius: var(--radius-sm);
 	background: var(--bg-control);
 	cursor: pointer;
+}
+
+/* ============================================================
+	31. RESPONSIVE — Mobile / touch
+	------------------------------------------------------------
+	WebDash is PC-first. Everything below is additive and gated
+	so the desktop layout is never touched. Three gates are used:
+
+	  (max-width: 720px)                     narrow layout. 720 sits
+	                                         under tablet portrait (768)
+	                                         so tablets keep the desktop grid.
+	  (pointer: coarse) and (max-height: 500px)
+	                                         landscape phones, which are WIDE
+	                                         (812+) and so miss the width gate
+	                                         entirely. Tablets in landscape are
+	                                         >= 768 tall, so they're excluded.
+	  (pointer: coarse)                      tap feel only — never layout, so
+	                                         touchscreen laptops stay dense.
+	============================================================ */
+
+/* Rendered only for touch layouts; see the media blocks below. */
+.touch-only {
+	display: none;
+}
+
+/* ---- Layout: narrow viewports ---- */
+@media (max-width: 720px) {
+	/* Inherit the fluid gutters so nothing jumps at the breakpoint —
+	   only the safe-area inset is phone-specific. */
+	.container {
+		padding: var(--gutter-y) var(--gutter-x)
+			calc(40px + env(safe-area-inset-bottom));
+	}
+
+	/* Two-plus screenfuls of content on a phone — keep the dashboard
+	   switcher, themes and settings reachable without scrolling up. */
+	.header {
+		position: sticky;
+		top: 0;
+	}
+
+	.touch-only {
+		display: inline-flex;
+	}
+
+	/* Header: three fixed groups (117+117+133+40) overflow 375px.
+	   Let the centre column absorb the slack instead. */
+	.header {
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		gap: 8px;
+		padding-left: calc(clamp(12px, 1.6vw, 24px) + env(safe-area-inset-left));
+		padding-right: calc(clamp(12px, 1.6vw, 24px) + env(safe-area-inset-right));
+	}
+
+	.header-left,
+	.header-center,
+	.header-right {
+		min-width: 0;
+	}
+
+	.header h1 {
+		font-size: 15px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	/* Collapse the labelled buttons to icons — buys back ~140px, which is
+	   what makes room for the command-palette trigger. */
+	.header-left .dropdown-btn,
+	.header-right .themes-btn {
+		font-size: 0;
+		gap: 0;
+		padding: 0 10px;
+	}
+
+	/* Every header control is icon-only here, so size them as one set —
+	   the base .dropdown-btn i is 11px, which reads as a mismatch next to
+	   the 14px collapsed labels. */
+	.header .dropdown-btn i {
+		font-size: 14px;
+	}
+
+	/* 16px minimum prevents iOS Safari zooming the page on focus */
+	#service-search {
+		max-width: none;
+		height: 44px;
+		font-size: 16px;
+	}
+
+	#command-input,
+	.modal input,
+	.modal select,
+	.modal textarea {
+		font-size: 16px;
+	}
+
+	.buttons {
+		grid-template-columns: 1fr;
+	}
+
+	/* ---- Density ----
+	   At default spacing only three links fit on a 812px-tall phone: the
+	   header, clock, search, quick-access and the first category heading
+	   consume 473px before the first button. These reclaim ~230px over a
+	   five-category dashboard without dropping any tap target below 44px. */
+
+	/* The 18px side padding indents content to show hierarchy. In a single
+	   column the heading already does that, so it's 36px of dead width (10%
+	   of the viewport) — spend it on labels instead. */
+	.category {
+		padding: 18px 0 20px;
+	}
+
+	.quick-access {
+		padding: 14px 0 18px;
+	}
+
+	.dashboard-clock {
+		margin-bottom: 14px;
+	}
+
+	.search-wrap {
+		margin-bottom: 16px;
+	}
+
+	/* 63px -> 55px per row; still well above the 44px minimum */
+	.buttons a {
+		padding: 9px 14px;
+	}
+
+	.toast-container {
+		left: 12px;
+		right: 12px;
+		align-items: stretch;
+	}
+
+	.toast {
+		min-width: 0;
+		max-width: none;
+	}
+
+	.command-box {
+		width: 100%;
+		max-width: calc(100vw - 24px);
+	}
+
+	#command-palette {
+		padding-top: 8vh;
+		padding-left: 12px;
+		padding-right: 12px;
+	}
+}
+
+/* ---- Preferences modal: stack the two-column body ----
+   Scoped to #preferences-overlay ON PURPOSE. It is the only modal with a
+   nav + content body that needs the whole screen. The others (button
+   editor, create/edit user, confirm) are small forms — going edge-to-edge
+   turns them into a broken-looking full-screen sheet, and zeroing the body
+   padding puts their fields flush against the screen edge. */
+@media (max-width: 720px) {
+	#preferences-overlay .modal {
+		width: 100%;
+		max-width: 100vw;
+		height: 100%;
+		max-height: 100dvh;
+		border-radius: 0;
+		border-left: none;
+		border-right: none;
+	}
+
+	#preferences-overlay .modal-body {
+		flex-direction: column;
+		padding: 0;
+	}
+
+	/* Sidebar becomes a horizontally scrolling chip strip */
+	.modal-nav {
+		width: 100%;
+		flex-direction: row;
+		flex-shrink: 0;
+		gap: 6px;
+		padding: 8px;
+		overflow-x: auto;
+		overflow-y: hidden;
+		border-right: none;
+		border-bottom: 1px solid var(--border-color);
+		scrollbar-width: none;
+	}
+
+	.modal-nav::-webkit-scrollbar {
+		display: none;
+	}
+
+	.modal-nav .nav-group {
+		display: flex;
+		gap: 6px;
+		margin-bottom: 0;
+	}
+
+	.modal-nav .nav-group-title {
+		display: none;
+	}
+
+	.modal-nav .nav-group:not(:first-child)::before {
+		display: none;
+	}
+
+	.nav-item {
+		white-space: nowrap;
+	}
+
+	.modal-content {
+		padding: 16px;
+	}
+
+	.setting-row {
+		flex-wrap: wrap;
+	}
+}
+
+/* ---- Small form dialogs (button editor, create/edit user) ----
+   These carry fixed pixel widths sized for a 480px desktop dialog, which
+   leave the form hard against one edge with dead space beside it once the
+   sheet narrows. Let them fill the dialog instead. */
+@media (max-width: 720px) {
+	#button-editor-form,
+	#button-url-input,
+	#create-user-form,
+	#create-user-input,
+	#edit-user-form,
+	#edit-user-input {
+		width: 100%;
+	}
+
+	.form-group input,
+	.url-input-row {
+		width: 100%;
+	}
+
+	/* Stack the actions full width — 28px buttons crammed left is neither
+	   thumb-friendly nor readable as the primary action. */
+	.modal-actions,
+	#button-editor-overlay .modal-actions,
+	#create-user-overlay .modal-actions,
+	#edit-user-overlay .modal-actions {
+		justify-content: stretch;
+		gap: 10px;
+	}
+
+	.modal-actions .primary-btn,
+	.modal-actions .secondary-btn {
+		flex: 1;
+		justify-content: center;
+	}
+
+	/* Their per-dialog max-width (480px) exceeds the viewport, so the sheet
+	   goes full-bleed and the rounded corners land on the screen edge.
+	   Inset them so they read as dialogs. ID specificity is required to
+	   beat the per-overlay rules above. */
+	#button-editor-overlay .modal-container,
+	#confirm-overlay .modal-container,
+	#create-user-overlay .modal-container,
+	#delete-default-dashboard-overlay .modal-container,
+	#edit-user-overlay .modal-container,
+	#import-preview-overlay .modal-container,
+	#import-system-overlay .modal-container {
+		/* Beat the base width:clamp(), whose 320px floor would otherwise
+	   leave these narrower than the space available. */
+	width: 100%;
+	max-width: calc(100vw - 24px);
+	}
+}
+
+/* ---- Landscape phones ----
+   A phone on its side is ~812x375: too WIDE for the narrow gate above, so
+   without this block it would fall through to the full desktop layout,
+   including the sub-16px inputs that make iOS Safari zoom on focus. */
+@media (pointer: coarse) and (max-height: 500px) {
+	#service-search,
+	#command-input,
+	.modal input,
+	.modal select,
+	.modal textarea {
+		font-size: 16px;
+	}
+
+	#service-search {
+		height: 44px;
+	}
+
+	/* 85vh of a 375px-tall viewport leaves a 319px modal; reclaim the margin */
+	.modal {
+		height: 100%;
+		max-height: 96vh;
+	}
+
+	.touch-only {
+		display: inline-flex;
+	}
+}
+
+/* ---- Tap feel ----
+   Never layout, so this is safe to apply to any coarse pointer including
+   touchscreen laptops. */
+@media (pointer: coarse) {
+	a,
+	button,
+	[role="button"],
+	input,
+	select,
+	label {
+		/* Replaces the default heavy blue flash */
+		-webkit-tap-highlight-color: color-mix(in srgb, var(--accent) 18%, transparent);
+		/* Drops the ~300ms double-tap-zoom wait on controls */
+		touch-action: manipulation;
+	}
+}
+
+/* ---- Touch: 44px minimum hit area (WCAG 2.5.5) ----
+   Scoped to coarse pointer AND a phone-sized viewport (either orientation)
+   so a touchscreen laptop keeps the dense desktop layout. */
+@media (pointer: coarse) and (max-width: 720px),
+       (pointer: coarse) and (max-height: 500px) {
+	.dropdown-btn,
+	.dropdown-menu a,
+	.dropdown-menu button,
+	.nav-item,
+	.category-title {
+		min-height: 44px;
+	}
+
+	.dropdown-close,
+	.modal-close {
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	.icon-button,
+	.qa-button {
+		min-height: 40px;
+	}
+
+	/* Dialog form controls default to 30px inputs / 28px buttons */
+	.form-group input,
+	.modal input[type="text"],
+	.modal input[type="number"],
+	.modal select {
+		min-height: 44px;
+	}
+
+	.modal-actions .primary-btn,
+	.modal-actions .secondary-btn {
+		min-height: 44px;
+	}
+
+	/* Hover-reveal affordances never trigger on touch */
+	.category.is-collapsible .category-chevron,
+	.identity-icon-wrapper .identity-icon-overlay,
+	.bg-card-custom .bg-card-delete {
+		opacity: 1;
+	}
+
+	/* Was a 20px target that only appeared on hover */
+	.bg-card-delete {
+		width: 28px;
+		height: 28px;
+		font-size: 13px;
+	}
+}
+
+/* ---- Scroll containment on touch surfaces ---- */
+.modal-content,
+.modal-nav,
+.dropdown-menu,
+#command-results {
+	-webkit-overflow-scrolling: touch;
+	overscroll-behavior: contain;
+}
+
+/* ============================================================
+	32. TOUCH DRAG & DROP
+	------------------------------------------------------------
+	Supports js/interactions/drag-drop.js, which bridges touch
+	input to the HTML5 drag events. setDragImage() is inert for
+	synthetic drags, so the element trailing the finger is a real
+	cloned node positioned by the script.
+	============================================================ */
+
+.touch-drag-ghost {
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 2000;
+	margin: 0;
+	opacity: 0.9;
+	background: var(--bg-card);
+	border: 1px solid var(--accent);
+	border-radius: var(--radius-sm);
+	box-shadow: var(--shadow-xl);
+	pointer-events: none;
+	overflow: hidden;
+}
+
+/* Suppress panning and the iOS selection callout mid-drag.
+   Deliberately NOT overflow:hidden — that resets scrollTop in some
+   engines, which would jump the page mid-drag. touchmove is already
+   preventDefault()ed by the script. */
+html.touch-dragging,
+html.touch-dragging body {
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+@media (pointer: coarse) and (max-width: 720px),
+       (pointer: coarse) and (max-height: 500px) {
+	/* Handles are the long-press affordance — make them findable and holdable */
+	.drag-handle {
+		opacity: 0.85;
+		font-size: 15px;
+		padding: 0 6px;
+		min-width: 40px;
+		min-height: 40px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		-webkit-touch-callout: none;
+	}
 }

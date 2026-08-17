@@ -710,3 +710,21 @@ function executeCommand(index, event = {}) {
   // Close only for real commands
   closeCommandPalette();
 }
+
+// ===============================
+// Touch entry point
+// ===============================
+// The palette is otherwise keyboard-only (Ctrl/Cmd+K), which makes it
+// unreachable on a phone. This button is rendered for touch layouts only
+// (see .touch-only in the stylesheets); wiring it here keeps the palette's
+// entry points in one file.
+(() => {
+  const commandButton = document.getElementById('command-button');
+  if (!commandButton) return;
+
+  commandButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleCommandPalette();
+  });
+})();
